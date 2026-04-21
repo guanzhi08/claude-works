@@ -347,6 +347,71 @@ function showPromoDialog(color) {
 
 // ── Hint ───────────────────────────────────────────────────────────────────
 const PIECE_NAMES_ZH = { p:'兵', n:'馬', b:'象', r:'車', q:'后', k:'王' };
+const PIECE_VALUES   = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+
+function isSquareAttackedBy(sq, byColor) {
+  const parts = chess.fen().split(' ');
+  parts[1] = byColor;
+  const tmp = new Chess(parts.join(' '));
+  return tmp.moves({ verbose: true }).some(m => m.to === sq);
+}
+
+function generateHintReason(detail) {
+  const opColor = playerColor === 'w' ? 'b' : 'w';
+  const reasons = [];
+
+  // Temporarily apply the move to inspect results
+  chess.move(detail.san);
+  const isCheck     = chess.in_check();
+  const isMate      = chess.in_checkmate();
+  chess.undo();
+
+  if (isMate) return '這步棋可以直接將死對手，一擊致勝！';
+
+  if (isCheck) reasons.push('將軍對手，迫使對方回應');
+
+  if (detail.flags.includes('k')) return '王翼入堡，保護王的安全，並啟動車參與攻防。';
+  if (detail.flags.includes('q')) return '后翼入堡，保護王的安全，並啟動車參與攻防。';
+
+  if (detail.flags.includes('p')) {
+    const promoName = PIECE_NAMES_ZH[detail.promotion] || '后';
+    reasons.push(`兵升變為${promoName}，大幅提升己方子力`);
+  }
+
+  if (detail.captured) {
+    const capVal  = PIECE_VALUES[detail.captured] || 0;
+    const ownVal  = PIECE_VALUES[detail.piece]    || 0;
+    const capName = PIECE_NAMES_ZH[detail.captured];
+    const ownName = PIECE_NAMES_ZH[detail.piece];
+    if (capVal > ownVal) {
+      reasons.push(`以${ownName}吃掉對方${capName}，獲得子力優勢（+${capVal - ownVal}分）`);
+    } else if (capVal === ownVal) {
+      reasons.push(`以${ownName}兌換對方${capName}，保持子力平衡`);
+    } else {
+      reasons.push(`吃掉對方${capName}`);
+    }
+  }
+
+  // Check if the moved piece was under threat before moving
+  if (!detail.captured && isSquareAttackedBy(detail.from, opColor)) {
+    reasons.push(`${PIECE_NAMES_ZH[detail.piece]}正被對方威脅，撤離危險位置`);
+  }
+
+  if (reasons.length === 0) {
+    const scoreBefore = evaluate();
+    chess.move(detail.san);
+    const scoreAfter = evaluate();
+    chess.undo();
+    const gain = playerColor === 'w' ? (scoreAfter - scoreBefore) : (scoreBefore - scoreAfter);
+    if (gain > 30) {
+      reasons.push('改善棋子位置，加強陣型控制');
+    } else {
+      reasons.push('鞏固陣型，維持均勢優勢');
+    }
+  }
+
+  return reasons.join('；') + '。';
+}
 
 function showHint() {
   if (isAIThinking || chess.game_over()) return;
@@ -378,6 +443,8 @@ function showHint() {
       `<div class="hint-piece">${sym}</div>` +
       `<div class="hint-arrow">${detail.from} <span>→</span> ${detail.to}</div>` +
       `<div class="hint-san">${pieceName}：${detail.san}</div>`;
+
+    document.getElementById('hint-reason').textContent = generateHintReason(detail);
 
     document.getElementById('hint-overlay').classList.add('active');
   }, 30);
