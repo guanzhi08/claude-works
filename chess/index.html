@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="board-wrapper">
+      <div id="board"></div>
+    </div>
+    <div id="sidebar">
+      <h1>Chess</h1>
+      <div id="status" class="status"></div>
+      <div class="controls">
+        <button id="new-game-btn">新局開始</button>
+        <label>
+          難度
+          <select id="difficulty">
+            <option value="2">簡單</option>
+            <option value="3" selected>中等</option>
+            <option value="4">困難</option>
+          </select>
+        </label>
+        <label>
+          執棋方
+          <select id="player-color">
+            <option value="w" selected>白方（先手）</option>
+            <option value="b">黑方（後手）</option>
+          </select>
+        </label>
+      </div>
+      <div id="history-container">
+        <h3>走棋記錄</h3>
+        <div id="move-history"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Pawn promotion dialog -->
+  <div id="promo-overlay">
+    <div id="promo-box">
+      <p>選擇升變棋子</p>
+      <div id="promo-choices"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
