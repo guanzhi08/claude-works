@@ -1,5 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { overflow-x: hidden; }
+
 :root {
   --light-sq: #f0d9b5;
   --dark-sq:  #b58863;
@@ -7,14 +9,22 @@
   --panel:    #16213e;
   --accent:   #e94560;
   --text:     #e0e0e0;
-  --sq:       70px;          /* desktop default */
+  --sq:       70px;
   --piece:    calc(var(--sq) * 0.71);
 }
 
-/* ── Mobile: square size fills viewport width ── */
+/* Tablet / landscape phone: side-by-side but smaller squares */
+/* sidebar(220) + gap(24) + padding(32) = 276 */
+@media (max-width: 860px) and (min-width: 641px) {
+  :root {
+    --sq: min(70px, calc((100vw - 276px) / 8));
+  }
+}
+
+/* Mobile portrait: board fills viewport width */
 @media (max-width: 640px) {
   :root {
-    --sq: min(70px, calc((100vw - 16px) / 8));
+    --sq: min(56px, calc((100vw - 16px) / 8));
   }
 }
 
@@ -24,11 +34,14 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  min-height: 100dvh;            /* dynamic viewport on mobile */
+  min-height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 16px;
+  padding-left:   max(16px, env(safe-area-inset-left));
+  padding-right:  max(16px, env(safe-area-inset-right));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   overflow-x: hidden;
 }
 
@@ -42,7 +55,13 @@ body {
 
 /* ── Mobile layout: stack vertically ───────── */
 @media (max-width: 640px) {
-  body { padding: 8px; align-items: flex-start; }
+  body {
+    padding: 8px;
+    padding-left:   max(8px, env(safe-area-inset-left));
+    padding-right:  max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    align-items: flex-start;
+  }
 
   #app {
     flex-direction: column;
@@ -72,12 +91,10 @@ body {
   justify-content: center;
   cursor: pointer;
   user-select: none;
-  /* Remove 300ms tap delay & highlight on mobile */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Hover only on devices that support it (not touch) */
 @media (hover: hover) {
   .square:hover { filter: brightness(1.08); }
 }
@@ -88,7 +105,6 @@ body {
 .last-from { background: rgba(255, 220, 60, 0.50) !important; }
 .last-to   { background: rgba(255, 220, 60, 0.72) !important; }
 
-/* Legal move dots — scale with square size */
 .legal:not(.legal-capture)::after {
   content: '';
   position: absolute;
@@ -150,7 +166,6 @@ body {
   flex-shrink: 0;
 }
 
-/* On mobile: sidebar matches board width */
 @media (max-width: 640px) {
   #sidebar {
     width: calc(8 * var(--sq));
@@ -195,32 +210,7 @@ h1 {
   gap: 10px;
 }
 
-/* Mobile: new-game full width, selectors side by side */
-@media (max-width: 640px) {
-  .controls {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .select-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  .select-row label {
-    flex: 1;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    font-size: 12px;
-  }
-
-  .select-row select {
-    width: 100%;
-  }
-}
-
-/* Desktop: stacked labels */
+/* Desktop: labels stacked, select on the right */
 @media (min-width: 641px) {
   .select-row {
     display: flex;
@@ -232,11 +222,38 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+  }
+}
+
+/* Mobile: each label is a full-width row (text left, select right) */
+@media (max-width: 640px) {
+  .controls { gap: 8px; }
+
+  .select-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .select-row label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .select-row select {
+    flex-shrink: 0;
+    max-width: 55%;
   }
 }
 
 button {
-  padding: 12px 16px;    /* larger tap target */
+  padding: 12px 16px;
   background: var(--accent);
   color: #fff;
   border: none;
@@ -269,7 +286,7 @@ select {
   color: var(--text);
   border: 1px solid #444;
   border-radius: 6px;
-  padding: 7px 8px;      /* larger tap target */
+  padding: 7px 8px;
   font-size: 13px;
   cursor: pointer;
   touch-action: manipulation;
@@ -290,6 +307,7 @@ select {
   border-radius: 6px;
   padding: 6px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   font-size: 13px;
   max-height: 300px;
 }
@@ -336,16 +354,26 @@ select {
   z-index: 100;
   align-items: center;
   justify-content: center;
+  padding: 16px;
 }
 #hint-overlay.active { display: flex; }
+
 #hint-box {
   background: var(--panel);
   border: 2px solid #2a6496;
   border-radius: 12px;
   padding: 28px 32px;
   text-align: center;
-  min-width: 220px;
+  width: 100%;
+  max-width: 320px;
 }
+
+@media (max-width: 640px) {
+  #hint-box {
+    padding: 20px 16px;
+  }
+}
+
 #hint-box h3 {
   font-size: 16px;
   font-weight: 700;
@@ -365,6 +393,11 @@ select {
   line-height: 1;
   filter: drop-shadow(0 2px 6px rgba(100,160,255,0.5));
 }
+
+@media (max-width: 640px) {
+  .hint-piece { font-size: 44px; }
+}
+
 .hint-arrow {
   font-size: 20px;
   font-weight: 700;
@@ -400,6 +433,7 @@ select {
   z-index: 100;
   align-items: center;
   justify-content: center;
+  padding: 16px;
 }
 #promo-overlay.active { display: flex; }
 
@@ -410,13 +444,18 @@ select {
   padding: 24px 20px;
   text-align: center;
 }
+
+@media (max-width: 640px) {
+  #promo-box { padding: 16px 12px; }
+}
+
 #promo-box p { margin-bottom: 16px; font-size: 15px; }
 
 #promo-choices { display: flex; gap: 10px; }
 
 .promo-btn {
-  width:  max(56px, calc(var(--sq) * 0.85));
-  height: max(56px, calc(var(--sq) * 0.85));
+  width:  max(52px, calc(var(--sq) * 0.85));
+  height: max(52px, calc(var(--sq) * 0.85));
   background: var(--bg);
   border: 2px solid #444;
   border-radius: 8px;
@@ -429,7 +468,7 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 .promo-btn span {
-  font-size: max(36px, calc(var(--sq) * 0.6));
+  font-size: max(32px, calc(var(--sq) * 0.6));
 }
 .promo-btn:active { border-color: var(--accent); background: #222; }
 
