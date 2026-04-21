@@ -16,21 +16,23 @@
       <div id="status" class="status"></div>
       <div class="controls">
         <button id="new-game-btn">新局開始</button>
-        <label>
-          難度
-          <select id="difficulty">
-            <option value="2">簡單</option>
-            <option value="3" selected>中等</option>
-            <option value="4">困難</option>
-          </select>
-        </label>
-        <label>
-          執棋方
-          <select id="player-color">
-            <option value="w" selected>白方（先手）</option>
-            <option value="b">黑方（後手）</option>
-          </select>
-        </label>
+        <div class="select-row">
+          <label>
+            難度
+            <select id="difficulty">
+              <option value="2">簡單</option>
+              <option value="3" selected>中等</option>
+              <option value="4">困難</option>
+            </select>
+          </label>
+          <label>
+            執棋方
+            <select id="player-color">
+              <option value="w" selected>白方</option>
+              <option value="b">黑方</option>
+            </select>
+          </label>
+        </div>
       </div>
       <div id="history-container">
         <h3>走棋記錄</h3>
