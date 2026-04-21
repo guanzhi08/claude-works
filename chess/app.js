@@ -305,7 +305,6 @@ function execMove(from, to, promotion) {
   updateStatus();
   updateHistory();
   renderBoard();
-  updateUndoBtn();
 
   if (!chess.game_over()) {
     const aiColor = playerColor === 'w' ? 'b' : 'w';
@@ -455,7 +454,6 @@ function showHint() {
 function doAIMove() {
   isAIThinking = true;
   updateStatus();
-  updateUndoBtn();
 
   setTimeout(() => {
     const move = getBestMove();
@@ -467,7 +465,6 @@ function doAIMove() {
     updateStatus();
     updateHistory();
     renderBoard();
-    updateUndoBtn();
   }, 60);
 }
 
@@ -521,39 +518,6 @@ function updateHistory() {
 
   el.innerHTML = html;
   el.scrollTop = el.scrollHeight;
-}
-
-// ── Undo ───────────────────────────────────────────────────────────────────
-function undoMove() {
-  if (isAIThinking || chess.game_over()) return;
-  const hist = chess.history();
-  if (!hist.length) return;
-
-  // Undo AI's move + player's move (2 half-moves)
-  // If player is black and only 1 move exists (AI's first move), undo just that
-  const movesToUndo = hist.length >= 2 ? 2 : 1;
-  for (let i = 0; i < movesToUndo; i++) chess.undo();
-
-  // Restore lastMove from history
-  const remaining = chess.history({ verbose: true });
-  lastMove = remaining.length
-    ? { from: remaining[remaining.length - 1].from, to: remaining[remaining.length - 1].to }
-    : null;
-
-  selectedSq = null;
-  legalDests = [];
-  hintMove   = null;
-  document.getElementById('hint-overlay').classList.remove('active');
-
-  updateStatus();
-  updateHistory();
-  renderBoard();
-  updateUndoBtn();
-}
-
-function updateUndoBtn() {
-  const btn = document.getElementById('undo-btn');
-  btn.disabled = isAIThinking || chess.history().length === 0;
 }
 
 // ── New game ───────────────────────────────────────────────────────────────
