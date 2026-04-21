@@ -313,6 +313,84 @@ select {
 .move      { font-family: 'Courier New', monospace; color: #ccc; }
 .move.last { color: #fff; font-weight: 700; }
 
+/* ── Hint highlights ───────────────────── */
+.hint-from { background: rgba(100, 160, 255, 0.55) !important; }
+.hint-to   { background: rgba(100, 160, 255, 0.80) !important; }
+
+/* ── Hint button ───────────────────────── */
+#hint-btn {
+  background: #2a6496;
+}
+#hint-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Hint dialog ───────────────────────── */
+#hint-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#hint-overlay.active { display: flex; }
+#hint-box {
+  background: var(--panel);
+  border: 2px solid #2a6496;
+  border-radius: 12px;
+  padding: 28px 32px;
+  text-align: center;
+  min-width: 220px;
+}
+#hint-box h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #88bbff;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+#hint-move-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.hint-piece {
+  font-size: 56px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(100,160,255,0.5));
+}
+.hint-arrow {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #cde;
+}
+.hint-arrow span { color: #88bbff; }
+.hint-san {
+  font-size: 13px;
+  color: #888;
+  font-family: 'Courier New', monospace;
+}
+#hint-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+#hint-apply-btn {
+  background: #2a6496;
+  flex: 1;
+}
+#hint-close-btn {
+  background: #444;
+  flex: 1;
+}
+
 /* ── Promotion dialog ──────────────────────── */
 #promo-overlay {
   display: none;

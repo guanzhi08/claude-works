@@ -81,6 +81,7 @@ let isAIThinking = false;
 let playerColor  = 'w';
 let lastMove     = null;
 let pendingPromo = null; // { from, to }
+let hintMove     = null; // { from, to, san, piece }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function idxToSq(row, col) {
@@ -198,6 +199,10 @@ function renderBoard() {
         if (sq === lastMove.from) sqEl.classList.add('last-from');
         if (sq === lastMove.to)   sqEl.classList.add('last-to');
       }
+      if (hintMove) {
+        if (sq === hintMove.from) sqEl.classList.add('hint-from');
+        if (sq === hintMove.to)   sqEl.classList.add('hint-to');
+      }
       if (legalDests.includes(sq)) {
         sqEl.classList.add('legal');
         if (piece && piece.color !== playerColor) sqEl.classList.add('legal-capture');
@@ -267,6 +272,12 @@ function clearSelection() {
   renderBoard();
 }
 
+function clearHint() {
+  hintMove = null;
+  document.getElementById('hint-overlay').classList.remove('active');
+  renderBoard();
+}
+
 function attemptMove(from, to) {
   const piece = chess.get(from);
   // Check if pawn promotion required
@@ -288,6 +299,8 @@ function execMove(from, to, promotion) {
   if (!result) return;
 
   lastMove = { from, to };
+  hintMove = null;
+  document.getElementById('hint-overlay').classList.remove('active');
   clearSelection();
   updateStatus();
   updateHistory();
@@ -330,6 +343,44 @@ function showPromoDialog(color) {
     choices.appendChild(btn);
   }
   overlay.classList.add('active');
+}
+
+// ── Hint ───────────────────────────────────────────────────────────────────
+const PIECE_NAMES_ZH = { p:'兵', n:'馬', b:'象', r:'車', q:'后', k:'王' };
+
+function showHint() {
+  if (isAIThinking || chess.game_over()) return;
+  if (chess.turn() !== playerColor) return;
+
+  const btn = document.getElementById('hint-btn');
+  btn.disabled = true;
+  btn.textContent = '計算中…';
+
+  setTimeout(() => {
+    const san = getBestMove();
+    btn.disabled = false;
+    btn.textContent = '提示下一步';
+    if (!san) return;
+
+    // Get verbose move details
+    chess.move(san);
+    const detail = chess.history({ verbose: true }).pop();
+    chess.undo();
+
+    hintMove = { from: detail.from, to: detail.to, san: detail.san, piece: detail.piece };
+    renderBoard();
+
+    // Build dialog content
+    const sym = SYMBOLS[playerColor + detail.piece.toUpperCase()];
+    const pieceName = PIECE_NAMES_ZH[detail.piece];
+    const el = document.getElementById('hint-move-display');
+    el.innerHTML =
+      `<div class="hint-piece">${sym}</div>` +
+      `<div class="hint-arrow">${detail.from} <span>→</span> ${detail.to}</div>` +
+      `<div class="hint-san">${pieceName}：${detail.san}</div>`;
+
+    document.getElementById('hint-overlay').classList.add('active');
+  }, 30);
 }
 
 // ── AI move ────────────────────────────────────────────────────────────────
@@ -410,6 +461,8 @@ function newGame() {
   isAIThinking = false;
   lastMove     = null;
   pendingPromo = null;
+  hintMove     = null;
+  document.getElementById('hint-overlay').classList.remove('active');
   playerColor  = document.getElementById('player-color').value;
 
   updateStatus();
@@ -423,6 +476,14 @@ function newGame() {
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('new-game-btn').addEventListener('click', newGame);
 document.getElementById('player-color').addEventListener('change', newGame);
+document.getElementById('hint-btn').addEventListener('click', showHint);
+document.getElementById('hint-close-btn').addEventListener('click', clearHint);
+document.getElementById('hint-apply-btn').addEventListener('click', () => {
+  if (!hintMove) return;
+  const { from, to } = hintMove;
+  clearHint();
+  attemptMove(from, to);
+});
 
 // Promotion overlay (dismiss on background click)
 document.getElementById('promo-overlay').addEventListener('click', function(e) {

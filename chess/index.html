@@ -16,6 +16,7 @@
       <div id="status" class="status"></div>
       <div class="controls">
         <button id="new-game-btn">新局開始</button>
+        <button id="hint-btn">提示下一步</button>
         <div class="select-row">
           <label>
             難度
@@ -28,8 +29,8 @@
           <label>
             執棋方
             <select id="player-color">
-              <option value="w" selected>白方</option>
-              <option value="b">黑方</option>
+              <option value="w" selected>白方（先手）</option>
+              <option value="b">黑方（後手）</option>
             </select>
           </label>
         </div>
@@ -40,6 +41,18 @@
       </div>
     </div>
   </div>
+  <!-- Hint dialog -->
+  <div id="hint-overlay">
+    <div id="hint-box">
+      <h3>建議下一步</h3>
+      <div id="hint-move-display"></div>
+      <div id="hint-actions">
+        <button id="hint-apply-btn">套用此步</button>
+        <button id="hint-close-btn">關閉</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Pawn promotion dialog -->
   <div id="promo-overlay">
     <div id="promo-box">
