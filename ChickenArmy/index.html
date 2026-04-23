@@ -37,7 +37,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 
 /* PLAYERS */
 #players{display:flex;gap:6px;flex:1;overflow:hidden}
-.pp{flex:1;min-width:240px;background:var(--panel);border-radius:8px;border:2px solid var(--border);padding:7px;display:flex;flex-direction:column;gap:5px;transition:border-color .3s;overflow:hidden}
+.pp{flex:1;min-width:240px;background:var(--panel);border-radius:8px;border:2px solid var(--border);padding:7px;display:flex;flex-direction:column;gap:5px;transition:border-color .3s;overflow:visible}
+.terr-wrap{overflow:auto;flex:1;min-height:80px;max-height:260px}
 .pp.active{border-color:#f1c40f;box-shadow:0 0 10px #f1c40f44}
 .pp.dead{opacity:.4}
 .ph{display:flex;align-items:center;justify-content:space-between}
@@ -52,13 +53,17 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 .tPA{background:var(--PA-l);color:var(--PA)}.tMA{background:var(--MA-l);color:var(--MA)}
 .tPD{background:var(--PD-l);color:var(--PD)}.tMD{background:var(--MD-l);color:var(--MD)}
 .terrlbl{font-size:.7rem;color:#888}
-.terr-wrap{overflow:auto;flex:1}
 .tgrid{display:inline-grid;gap:1px;background:#111;border:1px solid #333;border-radius:4px}
 .tc{width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-direction:column;border-radius:2px;font-size:.65rem;position:relative;user-select:none}
 .tc-empty{background:#1a1a2e;border:1px dashed #2a2a4a}
-.tc-valid{background:#142a14;border:1px dashed #3a7a3a;cursor:pointer;animation:pulse .9s infinite}
-.tc-preview{opacity:.65}
-@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+/* 空格的合法放置點 */
+.tc-valid{background:#142a14;border:2px dashed #4caf50;cursor:pointer;animation:pulse .9s infinite}
+.tc-valid:hover{background:#1e4a1e;border-color:#6fcf70}
+/* 已有 cell 的合法放置點：保留原格子，加綠色邊框 + 右上角＋ */
+.tc-valid-over{cursor:pointer;border:2px solid #4caf50 !important;box-shadow:inset 0 0 0 2px #4caf5044;animation:pulse .9s infinite}
+.tc-valid-over:hover{box-shadow:inset 0 0 0 99px #4caf5033,inset 0 0 0 2px #4caf5088 !important}
+.tc-valid-over::after{content:"＋";position:absolute;top:1px;right:2px;font-size:.55rem;color:#4caf50;font-weight:bold;line-height:1}
+@keyframes pulse{0%,100%{opacity:.85}50%{opacity:1}}
 
 /* CARD ROW */
 #rowarea{background:var(--panel);border-radius:8px;padding:8px;border:1px solid var(--border);flex-shrink:0}
@@ -100,9 +105,20 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 #mbox h2{font-size:1.8rem;color:#f1c40f;margin-bottom:10px}
 #mbox p{color:#ccc;margin-bottom:18px;white-space:pre-line;font-size:.9rem}
 #mbox button{padding:10px 28px;background:#f1c40f;border:none;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;color:#1a1a2e}
+
+/* 浮動卡片預覽（跟著滑鼠，pointer-events:none 不擋點擊） */
+#cpreview{
+  display:none;position:fixed;pointer-events:none;z-index:200;
+  border:2px solid #f1c40f;border-radius:6px;overflow:hidden;
+  background:#111;box-shadow:0 4px 16px #000c;
+  grid-template-columns:1fr 1fr;gap:1px;
+  opacity:.9;
+}
 </style>
 </head>
 <body>
+<!-- 浮動預覽（跟著滑鼠移動） -->
+<div id="cpreview"></div>
 
 <!-- TITLE -->
 <div id="title">
@@ -140,7 +156,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
   <div id="actbar">
     <div id="actmsg">請選擇一張牌</div>
     <button class="abtn b-rot"  id="brot"  onclick="doRotate()"   disabled>↻ 旋轉</button>
-    <button class="abtn b-ok"   id="bok"   onclick="doConfirm()"  disabled>✓ 放置</button>
+    <button class="abtn b-ok"   id="bok"   onclick="doConfirm()"  disabled style="display:none">✓ 放置</button>
     <button class="abtn b-skip" id="bskip" onclick="doSkip()"     disabled>跳過</button>
     <button class="abtn b-next" id="bnext" onclick="doNext()"     disabled>下一步 ▶</button>
   </div>
@@ -584,84 +600,77 @@ function renderPlayers() {
     </div>`;
   }).join('');
 
-  // Attach territory click/hover events
-  document.querySelectorAll('.tc-valid').forEach(el=>{
-    const pi=+el.dataset.p, gx=+el.dataset.x, gy=+el.dataset.y;
-    el.addEventListener('click',()=>{
-      if(pi!==G.currentPlayer||G.selCardId===null) return;
-      G.pendingPos=[gx,gy]; G.hoverPos=[gx,gy];
-      document.getElementById('bok').disabled=false;
-      document.getElementById('actmsg').textContent=`準備放置於(${gx},${gy})，按✓確認`;
-      renderPlayers(); renderRow();
-    });
-    el.addEventListener('mouseenter',()=>{
-      if(G.selCardId!==null){G.hoverPos=[gx,gy];renderPlayers();}
-    });
-    el.addEventListener('mouseleave',()=>{
-      if(!G.pendingPos){G.hoverPos=null;renderPlayers();}
-    });
-  });
+}
+
+// ── 陣地格子的 inline handler（不依賴 addEventListener，DOM 重建也不會失效）──
+function terrClick(pi, gx, gy) {
+  if(pi!==G.currentPlayer || G.selCardId===null) return;
+  hidePreview();
+  const cp=G.players[G.currentPlayer];
+  const cost=rowCost(G.selRowIdx);
+  cp.coins -= cost;
+  placeCard(cp.territory, gx, gy, CARDS[G.selCardId], G.selRot);
+  takeFromRow(G.selRowIdx);
+  addLog(`${cp.name} 花${cost}🪙，放牌(${gx},${gy})`);
+  resetSelection();
+  nextDeployPlayer();
 }
 
 function renderTerr(player, pi) {
   const terr=player.territory;
   const {minX,maxX,minY,maxY}=terrBounds(terr);
 
-  // Compute valid placements if this is the active deploying player
+  // 只對當前部屬玩家顯示合法放置點
   let validSet=new Set();
-  let hoverCells=new Set(); // all 4 cells of hovered placement
-  if (G.phase==='deploy'&&pi===G.currentPlayer&&G.selCardId!==null&&!player.eliminated) {
-    validSet=validTL(terr);
-    if (G.hoverPos) {
-      const [hx,hy]=G.hoverPos;
-      cardPos(hx,hy).forEach(([x,y])=>hoverCells.add(`${x},${y}`));
-    }
-  }
+  const isActiveDeploy = G.phase==='deploy' && pi===G.currentPlayer && G.selCardId!==null && !player.eliminated;
+  if (isActiveDeploy) validSet=validTL(terr);
 
-  // Expand bounding box to include valid TL positions + their full 2×2 footprint
-  let vminX=minX,vmaxX=maxX,vminY=minY,vmaxY=maxY;
+  // 擴展顯示範圍：把所有合法 TL 的完整 2×2 佔位也納入
+  let vminX=minX, vmaxX=maxX, vminY=minY, vmaxY=maxY;
   for (const k of validSet) {
     const [x,y]=k.split(',').map(Number);
-    if(x<vminX)vminX=x;if(x+1>vmaxX)vmaxX=x+1;
-    if(y<vminY)vminY=y;if(y+1>vmaxY)vmaxY=y+1;
+    if(x<vminX)vminX=x;   if(x+1>vmaxX)vmaxX=x+1;
+    if(y<vminY)vminY=y;   if(y+1>vmaxY)vmaxY=y+1;
   }
-
   const cols=vmaxX-vminX+1;
-  const rows=vmaxY-vminY+1;
 
-  let cells='';
-  for (let y=vminY;y<=vmaxY;y++) {
-    for (let x=vminX;x<=vmaxX;x++) {
+  let html='';
+  for (let y=vminY; y<=vmaxY; y++) {
+    for (let x=vminX; x<=vmaxX; x++) {
       const k=`${x},${y}`;
       const cell=terr.get(k);
-      const isValid=validSet.has(k);
-      const isHover=hoverCells.has(k);
+      const isValidTL=validSet.has(k);
 
-      if (isHover) {
-        // Hover preview takes highest priority (shows card being placed)
-        const previewCells=G.selCardId!==null?rotCells(CARDS[G.selCardId],G.selRot):null;
-        const [hx,hy]=G.hoverPos;
-        const posIdx=cardPos(hx,hy).findIndex(([px,py])=>px===x&&py===y);
-        const previewCell=previewCells&&posIdx>=0?previewCells[posIdx]:null;
-        const bg=previewCell?COLORS[previewCell[0]]+'cc':'#2a3a2a';
-        const ic=previewCell?ICONS[previewCell[0]]:'';
-        cells+=`<div class="tc tc-preview" style="background:${bg}" title="預覽">
-          <span style="font-size:1.1rem">${ic}</span>
-          ${previewCell&&previewCell[1]>1?`<span style="font-size:.5rem;color:#fff">×${previewCell[1]}</span>`:''}
+      if (isValidTL && cell) {
+        html+=`<div class="tc tc-valid-over" style="background:${COLORS[cell.type]}"
+          data-pi="${pi}" data-x="${x}" data-y="${y}"
+          title="點擊放置（覆蓋）"
+          onclick="terrClick(${pi},${x},${y})"
+          onmouseenter="showPreview(${pi},${x},${y},this)"
+          onmouseleave="hidePreview()">
+          <span style="font-size:1.1rem">${ICONS[cell.type]}</span>
+          ${cell.count>1?`<span style="font-size:.45rem;position:absolute;bottom:1px;left:2px;color:#fff">×${cell.count}</span>`:''}
         </div>`;
+      } else if (isValidTL) {
+        html+=`<div class="tc tc-valid"
+          data-pi="${pi}" data-x="${x}" data-y="${y}"
+          title="點擊放置"
+          onclick="terrClick(${pi},${x},${y})"
+          onmouseenter="showPreview(${pi},${x},${y},this)"
+          onmouseleave="hidePreview()">＋</div>`;
       } else if (cell) {
-        cells+=`<div class="tc" style="background:${COLORS[cell.type]}" title="${ICONS[cell.type]}×${cell.count}">
+        html+=`<div class="tc" style="background:${COLORS[cell.type]}"
+          data-x="${x}" data-y="${y}"
+          title="${ICONS[cell.type]}×${cell.count}">
           <span style="font-size:1.1rem">${ICONS[cell.type]}</span>
           ${cell.count>1?`<span style="font-size:.5rem;position:absolute;bottom:2px;right:3px;color:#fff">×${cell.count}</span>`:''}
         </div>`;
-      } else if (isValid) {
-        cells+=`<div class="tc tc-valid" data-p="${pi}" data-x="${x}" data-y="${y}" title="點擊放置">＋</div>`;
       } else {
-        cells+=`<div class="tc tc-empty"></div>`;
+        html+=`<div class="tc tc-empty" data-x="${x}" data-y="${y}"></div>`;
       }
     }
   }
-  return `<div class="tgrid" style="grid-template-columns:repeat(${cols},42px)">${cells}</div>`;
+  return `<div class="tgrid" style="grid-template-columns:repeat(${cols},42px)">${html}</div>`;
 }
 
 function renderRow() {
@@ -702,10 +711,14 @@ function renderActBar() {
   if (G.phase==='deploy') {
     e('bskip').disabled=false; e('bnext').disabled=true;
     e('brot').disabled=G.selCardId===null;
-    e('bok').disabled=!(G.selCardId!==null&&G.pendingPos);
-    e('actmsg').textContent=G.selCardId!==null
-      ?`已選牌，點陣地綠格放置（可先旋轉）`
-      :`${cp.name} 選牌（💰 ${cp.coins}枚）`;
+    e('bok').disabled=!(G.selCardId!==null && G.pendingPos!=null);
+    if (G.pendingPos) {
+      e('actmsg').textContent=`準備放置於(${G.pendingPos[0]},${G.pendingPos[1]})，按✓確認`;
+    } else if (G.selCardId!==null) {
+      e('actmsg').textContent=`已選牌，點陣地綠格放置（↻可旋轉）`;
+    } else {
+      e('actmsg').textContent=`${cp.name} 選牌（💰 ${cp.coins}枚）`;
+    }
   } else if (G.phase==='combat') {
     e('brot').disabled=true;e('bok').disabled=true;e('bskip').disabled=true;
     e('bnext').disabled=false;
@@ -728,6 +741,39 @@ function addLog(msg,cls='') {
   box.appendChild(s);
   const w=document.getElementById('logwrap');
   w.scrollTop=w.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+// 浮動預覽卡：定位在實際放置格子上
+// ══════════════════════════════════════════
+function showPreview(pi, gx, gy, tlEl) {
+  if (pi !== G.currentPlayer || G.selCardId === null) return;
+
+  // 取得 TL 格子的實際畫面位置
+  const rect = tlEl.getBoundingClientRect();
+  const cs = Math.round(rect.width); // 格子實際像素大小（含邊框）
+
+  const rotated = rotCells(CARDS[G.selCardId], G.selRot);
+  const p = document.getElementById('cpreview');
+
+  // 尺寸：2 格 + 1px gap
+  const sz = cs * 2 + 1;
+  p.style.display  = 'grid';
+  p.style.left     = rect.left + 'px';
+  p.style.top      = rect.top  + 'px';
+  p.style.width    = sz + 'px';
+  p.style.height   = sz + 'px';
+
+  p.innerHTML = rotated.map(([t,c]) =>
+    `<div style="width:${cs}px;height:${cs}px;background:${COLORS[t]};display:flex;align-items:center;justify-content:center;flex-direction:column">
+       <span style="font-size:${Math.round(cs*.4)}px;line-height:1">${ICONS[t]}</span>
+       ${c>1?`<span style="font-size:.42rem;color:#fff">×${c}</span>`:''}
+     </div>`
+  ).join('');
+}
+
+function hidePreview() {
+  document.getElementById('cpreview').style.display = 'none';
 }
 
 // ══════════════════════════════════════════
