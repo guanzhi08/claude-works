@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全軍出雞 Regroup! Chicken Army</title>
+<style>
+:root {
+  --PA:#e74c3c; --PA-l:#fadbd8;
+  --MA:#3498db; --MA-l:#d6eaf8;
+  --PD:#e67e22; --PD-l:#fdebd0;
+  --MD:#9b59b6; --MD-l:#e8daef;
+  --CO:#f1c40f; --CO-l:#fef9e7;
+  --PT:#27ae60; --PT-l:#d5f5e3;
+  --bg:#1a1a2e; --panel:#16213e; --text:#eee; --border:#334;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh}
+
+/* TITLE */
+#title{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px;text-align:center;padding:20px}
+#title h1{font-size:2.8rem;color:#f1c40f;text-shadow:0 0 20px #f1c40f66}
+.psel{display:flex;gap:12px}
+.pbtn{padding:12px 28px;border:2px solid #f1c40f;background:transparent;color:#f1c40f;border-radius:8px;font-size:1.1rem;cursor:pointer;transition:all .2s}
+.pbtn:hover{background:#f1c40f22;transform:scale(1.05)}
+.legend{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-size:.75rem}
+.li{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:#222}
+
+/* GAME */
+#game{display:none;flex-direction:column;height:100vh;padding:6px;gap:6px;overflow:hidden}
+
+/* TOP BAR */
+#topbar{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border-radius:8px;padding:6px 14px;border:1px solid var(--border);flex-shrink:0}
+#phase{font-size:1rem;font-weight:bold;color:#f1c40f}
+#turnlbl{color:#aaa;font-size:.85rem}
+#decklbl{color:#aaa;font-size:.85rem}
+
+/* PLAYERS */
+#players{display:flex;gap:6px;flex:1;overflow:hidden}
+.pp{flex:1;min-width:240px;background:var(--panel);border-radius:8px;border:2px solid var(--border);padding:7px;display:flex;flex-direction:column;gap:5px;transition:border-color .3s;overflow:hidden}
+.pp.active{border-color:#f1c40f;box-shadow:0 0 10px #f1c40f44}
+.pp.dead{opacity:.4}
+.ph{display:flex;align-items:center;justify-content:space-between}
+.pname{font-weight:bold;font-size:.95rem}
+.pstats{display:flex;gap:8px;font-size:.82rem}
+.shp{color:#e74c3c;font-weight:bold}
+.sco{color:#f1c40f;font-weight:bold}
+.hpbar-w{height:5px;background:#333;border-radius:3px}
+.hpbar{height:5px;border-radius:3px;transition:width .4s}
+.cvrow{display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:.72rem}
+.cv{display:flex;justify-content:space-between;padding:2px 5px;border-radius:3px}
+.tPA{background:var(--PA-l);color:var(--PA)}.tMA{background:var(--MA-l);color:var(--MA)}
+.tPD{background:var(--PD-l);color:var(--PD)}.tMD{background:var(--MD-l);color:var(--MD)}
+.terrlbl{font-size:.7rem;color:#888}
+.terr-wrap{overflow:auto;flex:1}
+.tgrid{display:inline-grid;gap:1px;background:#111;border:1px solid #333;border-radius:4px}
+.tc{width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-direction:column;border-radius:2px;font-size:.65rem;position:relative;user-select:none}
+.tc-empty{background:#1a1a2e;border:1px dashed #2a2a4a}
+.tc-valid{background:#142a14;border:1px dashed #3a7a3a;cursor:pointer;animation:pulse .9s infinite}
+.tc-preview{opacity:.65}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* CARD ROW */
+#rowarea{background:var(--panel);border-radius:8px;padding:8px;border:1px solid var(--border);flex-shrink:0}
+#rowarea h3{font-size:.78rem;color:#666;text-align:center;margin-bottom:6px}
+#rowcards{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+.rslot{display:flex;flex-direction:column;align-items:center;gap:3px}
+.rslot-lbl{font-size:.72rem}
+.lbl-free{color:#27ae60}.lbl-1{color:#f1c40f}.lbl-2{color:#e74c3c}
+.deck-pile{width:64px;height:64px;background:#0f3460;border:2px solid #334;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:.65rem;color:#aaa}
+
+/* CARD */
+.gcard{width:88px;height:88px;border-radius:7px;border:2px solid #444;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;background:#111;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+.gcard:hover:not(.gdis){transform:scale(1.06);box-shadow:0 0 10px #f1c40f88}
+.gcard.gsel{border-color:#f1c40f;box-shadow:0 0 14px #f1c40f}
+.gcard.gdis{cursor:default;opacity:.45}
+.ccell{display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:.7rem;gap:1px}
+.cPA{background:var(--PA)}.cMA{background:var(--MA)}.cPD{background:var(--PD)}.cMD{background:var(--MD)}.cCOIN{background:var(--CO)}.cPOTION{background:var(--PT)}
+
+/* ACTION */
+#actbar{background:var(--panel);border-radius:8px;padding:8px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+#actmsg{flex:1;color:#ccc;font-size:.88rem}
+.abtn{padding:7px 16px;border-radius:7px;border:none;cursor:pointer;font-size:.85rem;font-weight:bold;transition:all .15s}
+.abtn:disabled{opacity:.35;cursor:default}
+.b-rot{background:#3498db;color:#fff}.b-rot:hover:not(:disabled){background:#2980b9}
+.b-ok{background:#27ae60;color:#fff}.b-ok:hover:not(:disabled){background:#219a52}
+.b-skip{background:#555;color:#ccc}.b-skip:hover:not(:disabled){background:#666}
+.b-next{background:#f1c40f;color:#1a1a2e}.b-next:hover:not(:disabled){background:#d4ac0d}
+
+/* LOG */
+#logwrap{background:var(--panel);border-radius:8px;padding:6px 12px;border:1px solid var(--border);max-height:70px;overflow-y:auto;flex-shrink:0}
+#logbox{font-size:.72rem;color:#777;line-height:1.55}
+#logbox span{display:block}
+.ld{color:#e74c3c}.lh{color:#27ae60}.lp{color:#f1c40f;font-weight:bold}.le{color:#e74c3c;font-weight:bold}
+
+/* MODAL */
+#modal{display:none;position:fixed;inset:0;background:#000b;align-items:center;justify-content:center;z-index:99}
+#modal.show{display:flex}
+#mbox{background:var(--panel);border-radius:14px;padding:28px;border:2px solid #f1c40f;text-align:center;max-width:360px;width:90%}
+#mbox h2{font-size:1.8rem;color:#f1c40f;margin-bottom:10px}
+#mbox p{color:#ccc;margin-bottom:18px;white-space:pre-line;font-size:.9rem}
+#mbox button{padding:10px 28px;background:#f1c40f;border:none;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;color:#1a1a2e}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title">
+  <h1>🐔 全軍出雞</h1>
+  <p style="color:#aaa">Regroup! Chicken Army — 卡牌疊放戰鬥桌遊</p>
+  <div class="legend">
+    <div class="li"><span style="display:inline-block;width:12px;height:12px;background:var(--PA);border-radius:2px"></span>⚔ 物理攻</div>
+    <div class="li"><span style="display:inline-block;width:12px;height:12px;background:var(--MA);border-radius:2px"></span>🔮 魔法攻</div>
+    <div class="li"><span style="display:inline-block;width:12px;height:12px;background:var(--PD);border-radius:2px"></span>🛡 物理防</div>
+    <div class="li"><span style="display:inline-block;width:12px;height:12px;background:var(--MD);border-radius:2px"></span>✨ 魔法防</div>
+    <div class="li"><span style="display:inline-block;width:12px;height:12px;background:var(--CO);border-radius:2px"></span>🪙 金幣</div>
+    <div class="li"><span style="display:inline-block;width:12px;height:12px;background:var(--PT);border-radius:2px"></span>🧪 藥瓶</div>
+  </div>
+  <p style="color:#888;font-size:.85rem">每格至少2個相鄰同類符號才計入戰力｜初始HP 30</p>
+  <p style="color:#aaa;font-size:.9rem">選擇人數開始</p>
+  <div class="psel">
+    <button class="pbtn" onclick="startGame(2)">2 人</button>
+    <button class="pbtn" onclick="startGame(3)">3 人</button>
+    <button class="pbtn" onclick="startGame(4)">4 人</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div id="topbar">
+    <div id="phase">▶ 部屬</div>
+    <div id="turnlbl">輪到：-</div>
+    <div id="decklbl">牌堆：56</div>
+  </div>
+  <div id="players"></div>
+  <div id="rowarea">
+    <h3>— 中央牌列 —</h3>
+    <div id="rowcards"></div>
+  </div>
+  <div id="actbar">
+    <div id="actmsg">請選擇一張牌</div>
+    <button class="abtn b-rot"  id="brot"  onclick="doRotate()"   disabled>↻ 旋轉</button>
+    <button class="abtn b-ok"   id="bok"   onclick="doConfirm()"  disabled>✓ 放置</button>
+    <button class="abtn b-skip" id="bskip" onclick="doSkip()"     disabled>跳過</button>
+    <button class="abtn b-next" id="bnext" onclick="doNext()"     disabled>下一步 ▶</button>
+  </div>
+  <div id="logwrap"><div id="logbox"></div></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal"><div id="mbox">
+  <h2 id="mtitle">遊戲結束</h2>
+  <p id="mbody"></p>
+  <button onclick="location.reload()">再玩一次</button>
+</div></div>
+
+<script>
+// ══════════════════════════════════════════
+// 56 CARD DEFINITIONS
+// Each card: 4 cells [TL,TR,BL,BR], each cell = [type, count]
+// Types: PA,MA,PD,MD,COIN,POTION
+// ══════════════════════════════════════════
+const CARDS = [
+  // Heavy PA (8)
+  [['PA',2],['PA',1],['PA',1],['PD',1]],
+  [['PA',2],['PA',2],['PD',1],['PD',1]],
+  [['PA',1],['PA',1],['PA',1],['COIN',1]],
+  [['PA',2],['PA',1],['MA',1],['POTION',1]],
+  [['PA',1],['PA',2],['PA',1],['MD',1]],
+  [['PA',2],['PD',1],['PA',2],['COIN',1]],
+  [['PA',1],['PA',1],['COIN',1],['COIN',1]],
+  [['PA',2],['PA',1],['PD',1],['MD',1]],
+  // Heavy MA (8)
+  [['MA',2],['MA',1],['MA',1],['MD',1]],
+  [['MA',2],['MA',2],['MD',1],['MD',1]],
+  [['MA',1],['MA',1],['MA',1],['COIN',1]],
+  [['MA',2],['MA',1],['PA',1],['POTION',1]],
+  [['MA',1],['MA',2],['MA',1],['PD',1]],
+  [['MA',2],['MD',1],['MA',2],['COIN',1]],
+  [['MA',1],['MA',1],['COIN',1],['COIN',1]],
+  [['MA',2],['MA',1],['MD',1],['PD',1]],
+  // Heavy PD (6)
+  [['PD',2],['PD',1],['PD',1],['PA',1]],
+  [['PD',2],['PD',2],['PA',1],['MD',1]],
+  [['PD',1],['PD',1],['PD',1],['POTION',1]],
+  [['PD',2],['PD',1],['POTION',1],['COIN',1]],
+  [['PD',1],['PD',2],['PA',1],['PA',1]],
+  [['PD',2],['PA',1],['PD',1],['MA',1]],
+  // Heavy MD (6)
+  [['MD',2],['MD',1],['MD',1],['MA',1]],
+  [['MD',2],['MD',2],['MA',1],['PD',1]],
+  [['MD',1],['MD',1],['MD',1],['POTION',1]],
+  [['MD',2],['MD',1],['POTION',1],['COIN',1]],
+  [['MD',1],['MD',2],['MA',1],['MA',1]],
+  [['MD',2],['MA',1],['MD',1],['PA',1]],
+  // Balanced (8)
+  [['PA',1],['MA',1],['PD',1],['MD',1]],
+  [['PA',1],['MA',1],['PA',1],['MA',1]],
+  [['PD',1],['MD',1],['PD',1],['MD',1]],
+  [['PA',1],['PD',1],['MA',1],['MD',1]],
+  [['PA',2],['MA',1],['PD',1],['MD',2]],
+  [['PA',1],['MA',2],['PD',2],['MD',1]],
+  [['PA',1],['PD',2],['MA',1],['MD',1]],
+  [['MA',1],['MD',2],['PA',1],['PD',1]],
+  // Resource (8)
+  [['COIN',1],['COIN',1],['POTION',1],['PA',1]],
+  [['COIN',1],['COIN',1],['POTION',1],['MA',1]],
+  [['COIN',1],['POTION',1],['PD',1],['MD',1]],
+  [['POTION',1],['POTION',1],['PA',1],['MA',1]],
+  [['COIN',1],['COIN',1],['PA',1],['PD',1]],
+  [['POTION',1],['POTION',1],['PD',1],['MD',1]],
+  [['COIN',1],['POTION',1],['PA',1],['MA',1]],
+  [['COIN',1],['COIN',1],['COIN',1],['POTION',1]],
+  // Mixed (12)
+  [['PA',2],['MA',2],['COIN',1],['POTION',1]],
+  [['PD',2],['MD',2],['COIN',1],['POTION',1]],
+  [['PA',1],['MA',1],['COIN',1],['POTION',1]],
+  [['PD',1],['MD',1],['COIN',1],['POTION',1]],
+  [['PA',2],['PD',2],['POTION',1],['COIN',1]],
+  [['MA',2],['MD',2],['POTION',1],['COIN',1]],
+  [['PA',1],['PA',1],['MA',1],['MA',1]],
+  [['PD',1],['PD',1],['MD',1],['MD',1]],
+  [['PA',2],['MD',2],['COIN',1],['POTION',1]],
+  [['MA',2],['PD',2],['COIN',1],['POTION',1]],
+  [['PA',1],['MA',1],['PD',1],['POTION',1]],
+  [['PA',1],['MA',1],['MD',1],['COIN',1]],
+];
+// Verify 56 cards
+console.assert(CARDS.length === 56, 'Card count should be 56');
+
+const ICONS = {PA:'⚔',MA:'🔮',PD:'🛡',MD:'✨',COIN:'🪙',POTION:'🧪'};
+const COLORS = {PA:'#e74c3c',MA:'#3498db',PD:'#e67e22',MD:'#9b59b6',COIN:'#f1c40f',POTION:'#27ae60'};
+const PCOLORS = ['#e74c3c','#3498db','#27ae60','#9b59b6'];
+const PNAMES = ['玩家1','玩家2','玩家3','玩家4'];
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let G;
+
+function newGame(n) {
+  const deck = shuffle([...Array(56).keys()]);
+  // Draw 3 for row: index 0 = closest to deck (2c), 2 = farthest (free)
+  const row = [deck.pop(), deck.pop(), deck.pop()];
+
+  const players = Array.from({length:n}, (_,i) => ({
+    id: i, name: PNAMES[i], color: PCOLORS[i],
+    hp: 30, coins: 0, eliminated: false,
+    // territory: Map<"x,y" -> {type,count}>
+    // Starting card (clockwise TL): PD, MA, PD, PA
+    // TL=(0,0), TR=(1,0), BL=(0,1), BR=(1,1)
+    territory: new Map([
+      ['0,0',{type:'PD',count:1}],
+      ['1,0',{type:'MA',count:1}],
+      ['0,1',{type:'PD',count:1}],
+      ['1,1',{type:'PA',count:1}],
+    ]),
+  }));
+
+  G = {
+    n, players, deck, row,
+    phase: 'deploy',       // deploy | combat | regroup
+    roundNum: 1,
+    // deploy turn tracking
+    firstPlayer: 0,        // who goes first this round
+    deployIdx: 0,          // how many players have deployed this round
+    currentPlayer: 0,      // index of current deploying player
+    // placement state
+    selRowIdx: null,       // which row slot selected
+    selCardId: null,       // card id from row
+    selRot: 0,             // 0-3
+    pendingPos: null,      // [gx,gy] chosen position
+    hoverPos: null,        // [gx,gy] hovering
+  };
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function shuffle(a) {
+  for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+
+// Rotate card cells: [TL,TR,BL,BR]
+// 90CW:  new TL=old BL, TR=old TL, BL=old BR, BR=old TR  → [2,0,3,1]
+// 180:   [3,2,1,0]
+// 270CW: [1,3,0,2]
+function rotCells(cells, r) {
+  if (r===0) return cells;
+  if (r===1) return [cells[2],cells[0],cells[3],cells[1]];
+  if (r===2) return [cells[3],cells[2],cells[1],cells[0]];
+           return [cells[1],cells[3],cells[0],cells[2]];
+}
+
+// The 4 (x,y) positions a card occupies when its TL is at (gx,gy)
+function cardPos(gx,gy){return [[gx,gy],[gx+1,gy],[gx,gy+1],[gx+1,gy+1]];}
+
+// Cost by row index
+function rowCost(idx){return [2,1,0][idx]??0;}
+
+// ══════════════════════════════════════════
+// TERRITORY HELPERS
+// ══════════════════════════════════════════
+function terrBounds(terr) {
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for (const k of terr.keys()) {
+    const [x,y]=k.split(',').map(Number);
+    if(x<minX)minX=x;if(x>maxX)maxX=x;
+    if(y<minY)minY=y;if(y>maxY)maxY=y;
+  }
+  return {minX,maxX,minY,maxY};
+}
+
+// Valid TL positions for placing a 2×2 card on this territory
+function validTL(terr) {
+  const {minX,maxX,minY,maxY} = terrBounds(terr);
+  const result = new Set();
+  for (let gy=minY-1; gy<=maxY+1; gy++) {
+    for (let gx=minX-1; gx<=maxX+1; gx++) {
+      // Must overlap ≥1 existing cell
+      const overlaps = cardPos(gx,gy).filter(([x,y])=>terr.has(`${x},${y}`)).length;
+      if (overlaps>=1) result.add(`${gx},${gy}`);
+    }
+  }
+  return result;
+}
+
+// Place card (apply rotation, write cells)
+function placeCard(terr, gx, gy, cardDef, rot) {
+  const cells = rotCells(cardDef, rot);
+  cardPos(gx,gy).forEach(([x,y],i)=>{
+    terr.set(`${x},${y}`,{type:cells[i][0],count:cells[i][1]});
+  });
+}
+
+// ══════════════════════════════════════════
+// COMBAT ENGINE
+// ══════════════════════════════════════════
+function calcCV(terr) {
+  const res = {PA:0,MA:0,PD:0,MD:0};
+  for (const t of ['PA','MA','PD','MD']) {
+    const tCells = new Map();
+    for (const [k,v] of terr) if(v.type===t) tCells.set(k,v.count);
+    const visited = new Set();
+    for (const start of tCells.keys()) {
+      if (visited.has(start)) continue;
+      // BFS component
+      const comp = [], q = [start];
+      visited.add(start);
+      while (q.length) {
+        const cur = q.shift(); comp.push(cur);
+        const [cx,cy]=cur.split(',').map(Number);
+        for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+          const nk=`${cx+dx},${cy+dy}`;
+          if (!visited.has(nk)&&tCells.has(nk)){visited.add(nk);q.push(nk);}
+        }
+      }
+      if (comp.length>=2) comp.forEach(k=>{ res[t]+=tCells.get(k); });
+    }
+  }
+  return res;
+}
+
+function countRes(terr) {
+  let coins=0,potions=0;
+  for (const v of terr.values()) {
+    if(v.type==='COIN')coins+=v.count;
+    if(v.type==='POTION')potions+=v.count;
+  }
+  return {coins,potions};
+}
+
+// ══════════════════════════════════════════
+// ROW MANAGEMENT
+// ══════════════════════════════════════════
+function takeFromRow(idx) {
+  const id = G.row[idx];
+  if (G.deck.length > 0) {
+    // Shift: remove taken card, insert new card at pos 0 (most expensive)
+    // Cards closer to deck shift toward free end (become cheaper)
+    G.row.splice(idx, 1);
+    G.row.unshift(G.deck.pop());
+  } else {
+    // Deck empty: leave null in place, no shifting
+    G.row[idx] = null;
+  }
+  return id;
+}
+
+// ══════════════════════════════════════════
+// PHASE CONTROLLERS
+// ══════════════════════════════════════════
+function activePlayers() { return G.players.filter(p=>!p.eliminated); }
+
+function nextDeployPlayer() {
+  G.deployIdx++;
+  const active = activePlayers();
+  if (G.deployIdx >= active.length) {
+    // All deployed → combat
+    G.deployIdx = 0;
+    runCombat();
+  } else {
+    // Find the next player in order starting from firstPlayer
+    const ordered = [];
+    for (let i=0;i<G.n;i++) {
+      const pi = (G.firstPlayer+i)%G.n;
+      if (!G.players[pi].eliminated) ordered.push(pi);
+    }
+    G.currentPlayer = ordered[G.deployIdx];
+    resetSelection();
+    render();
+  }
+}
+
+function resetSelection() {
+  G.selRowIdx=null; G.selCardId=null; G.selRot=0;
+  G.pendingPos=null; G.hoverPos=null;
+}
+
+function runCombat() {
+  G.phase='combat';
+  addLog('═══ ⚔ 戰鬥 ═══','lp');
+  const cvs = G.players.map(p=>p.eliminated?null:calcCV(p.territory));
+  const dmg = Array(G.n).fill(0);
+  for (let a=0;a<G.n;a++) {
+    if(G.players[a].eliminated) continue;
+    for (let d=0;d<G.n;d++) {
+      if(d===a||G.players[d].eliminated) continue;
+      const ph=Math.max(0,cvs[a].PA-cvs[d].PD);
+      const mg=Math.max(0,cvs[a].MA-cvs[d].MD);
+      const tot=ph+mg;
+      if(tot>0) addLog(`${G.players[a].name}→${G.players[d].name}: ⚔${ph}+🔮${mg}=-${tot}HP`,'ld');
+      dmg[d]+=tot;
+    }
+  }
+  G.players.forEach((p,i)=>{ if(!p.eliminated) p.hp=Math.max(0,p.hp-dmg[i]); });
+  render();
+}
+
+function runRegroup() {
+  G.phase='regroup';
+  addLog('═══ 🔄 盤整 ═══','lp');
+  G.players.forEach(p=>{
+    if(p.eliminated) return;
+    const {coins,potions}=countRes(p.territory);
+    if(potions>0){ p.hp=Math.min(30,p.hp+potions); addLog(`${p.name} +${potions}HP藥瓶→${p.hp}`,'lh'); }
+    if(coins>0){ p.coins+=coins; addLog(`${p.name} +${coins}🪙→${p.coins}🪙`); }
+  });
+  G.players.forEach(p=>{
+    if(!p.eliminated&&p.hp<=0){ p.eliminated=true; addLog(`💀 ${p.name} 淘汰`,'le'); }
+  });
+  const alive=activePlayers();
+  if(alive.length<=1){ endGame(alive[0]||null); return; }
+  if(G.deck.length===0&&G.row.filter(x=>x!=null).length===0){ endByScore(); return; }
+  render();
+}
+
+function startNextRound() {
+  G.roundNum++;
+  G.phase='deploy';
+  G.deployIdx=0;
+  // Next first player (clockwise, skip eliminated)
+  let fp=(G.firstPlayer+1)%G.n;
+  while(G.players[fp].eliminated) fp=(fp+1)%G.n;
+  G.firstPlayer=fp;
+  G.currentPlayer=fp;
+  resetSelection();
+  addLog(`══ 第${G.roundNum}回合 ══`,'lp');
+  render();
+}
+
+function endGame(winner) {
+  render();
+  document.getElementById('mtitle').textContent = winner ? `🏆 ${winner.name} 獲勝！` : '🏆 遊戲結束';
+  document.getElementById('mbody').textContent = winner
+    ? `以 ${winner.hp} HP 存活，全軍出雞！`
+    : '所有玩家同時淘汰！';
+  document.getElementById('modal').classList.add('show');
+}
+
+function endByScore() {
+  render();
+  const alive=activePlayers().sort((a,b)=>b.hp-a.hp);
+  document.getElementById('mtitle').textContent='🏆 牌堆耗盡';
+  document.getElementById('mbody').textContent=
+    `${alive[0].name} 以最高 ${alive[0].hp} HP 獲勝！\n`+
+    alive.map(p=>`${p.name}: ${p.hp}HP`).join(' | ');
+  document.getElementById('modal').classList.add('show');
+}
+
+// ══════════════════════════════════════════
+// USER ACTIONS
+// ══════════════════════════════════════════
+function selectCard(rowIdx) {
+  if(G.phase!=='deploy') return;
+  const cp=G.players[G.currentPlayer];
+  const cost=rowCost(rowIdx);
+  if(cp.coins<cost){ addLog(`金幣不足（需${cost}枚）`,'ld'); return; }
+  G.selRowIdx=rowIdx;
+  G.selCardId=G.row[rowIdx];
+  G.selRot=0;
+  G.pendingPos=null; G.hoverPos=null;
+  render();
+}
+
+function doRotate() {
+  if(G.selCardId===null) return;
+  G.selRot=(G.selRot+1)%4;
+  G.pendingPos=null; G.hoverPos=null;
+  render();
+}
+
+function doConfirm() {
+  if(G.selCardId===null||!G.pendingPos) return;
+  const cp=G.players[G.currentPlayer];
+  const [gx,gy]=G.pendingPos;
+  cp.coins-=rowCost(G.selRowIdx);
+  placeCard(cp.territory,gx,gy,CARDS[G.selCardId],G.selRot);
+  takeFromRow(G.selRowIdx);
+  addLog(`${cp.name} 花${rowCost(G.selRowIdx)}🪙，放牌(${gx},${gy})`);
+  resetSelection();
+  nextDeployPlayer();
+}
+
+function doSkip() {
+  addLog(`${G.players[G.currentPlayer].name} 跳過部屬`);
+  resetSelection();
+  nextDeployPlayer();
+}
+
+function doNext() {
+  if(G.phase==='combat') runRegroup();
+  else if(G.phase==='regroup') startNextRound();
+}
+
+// ══════════════════════════════════════════
+// RENDERING
+// ══════════════════════════════════════════
+function render() {
+  renderPlayers();
+  renderRow();
+  renderActBar();
+}
+
+function cellSVG(type,count,sz=38) {
+  return `<div style="background:${COLORS[type]};width:${sz}px;height:${sz}px;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-direction:column">
+    <span style="font-size:${Math.round(sz*.38)}px;line-height:1">${ICONS[type]}</span>
+    ${count>1?`<span style="font-size:${Math.round(sz*.24)}px;color:#fff;margin-top:1px">×${count}</span>`:''}
+  </div>`;
+}
+
+function cardHTML(def, rot, sz=88, extra='') {
+  const cells=rotCells(def,rot);
+  const cs=Math.floor(sz/2)-2;
+  return `<div class="gcard ${extra}" style="width:${sz}px;height:${sz}px">
+    ${cells.map(([t,c])=>`<div class="ccell c${t}">${cellSVG(t,c,cs)}</div>`).join('')}
+  </div>`;
+}
+
+function renderPlayers() {
+  const area=document.getElementById('players');
+  area.innerHTML=G.players.map((p,i)=>{
+    const cv=calcCV(p.territory);
+    const res=countRes(p.territory);
+    const isAct=!p.eliminated&&G.phase==='deploy'&&i===G.currentPlayer;
+    const hpPct=Math.max(0,p.hp/30*100);
+    const hpC=p.hp>20?'#27ae60':p.hp>10?'#f1c40f':'#e74c3c';
+
+    return `<div class="pp${isAct?' active':''}${p.eliminated?' dead':''}" id="pp${i}">
+      <div class="ph">
+        <div class="pname" style="color:${p.color}">● ${p.name}${p.eliminated?' ✕':''}</div>
+        <div class="pstats"><span class="shp">❤ ${p.hp}</span><span class="sco">🪙 ${p.coins}</span></div>
+      </div>
+      <div class="hpbar-w"><div class="hpbar" style="width:${hpPct}%;background:${hpC}"></div></div>
+      <div class="cvrow">
+        <div class="cv tPA">⚔ 物攻 <b>${cv.PA}</b></div>
+        <div class="cv tMA">🔮 魔攻 <b>${cv.MA}</b></div>
+        <div class="cv tPD">🛡 物防 <b>${cv.PD}</b></div>
+        <div class="cv tMD">✨ 魔防 <b>${cv.MD}</b></div>
+      </div>
+      <div class="terrlbl">陣地${p.territory.size}格 🧪${res.potions}</div>
+      <div class="terr-wrap">${renderTerr(p,i)}</div>
+    </div>`;
+  }).join('');
+
+  // Attach territory click/hover events
+  document.querySelectorAll('.tc-valid').forEach(el=>{
+    const pi=+el.dataset.p, gx=+el.dataset.x, gy=+el.dataset.y;
+    el.addEventListener('click',()=>{
+      if(pi!==G.currentPlayer||G.selCardId===null) return;
+      G.pendingPos=[gx,gy]; G.hoverPos=[gx,gy];
+      document.getElementById('bok').disabled=false;
+      document.getElementById('actmsg').textContent=`準備放置於(${gx},${gy})，按✓確認`;
+      renderPlayers(); renderRow();
+    });
+    el.addEventListener('mouseenter',()=>{
+      if(G.selCardId!==null){G.hoverPos=[gx,gy];renderPlayers();}
+    });
+    el.addEventListener('mouseleave',()=>{
+      if(!G.pendingPos){G.hoverPos=null;renderPlayers();}
+    });
+  });
+}
+
+function renderTerr(player, pi) {
+  const terr=player.territory;
+  const {minX,maxX,minY,maxY}=terrBounds(terr);
+
+  // Compute valid placements if this is the active deploying player
+  let validSet=new Set();
+  let hoverCells=new Set(); // all 4 cells of hovered placement
+  if (G.phase==='deploy'&&pi===G.currentPlayer&&G.selCardId!==null&&!player.eliminated) {
+    validSet=validTL(terr);
+    if (G.hoverPos) {
+      const [hx,hy]=G.hoverPos;
+      cardPos(hx,hy).forEach(([x,y])=>hoverCells.add(`${x},${y}`));
+    }
+  }
+
+  // Expand bounding box to include valid TL positions + their full 2×2 footprint
+  let vminX=minX,vmaxX=maxX,vminY=minY,vmaxY=maxY;
+  for (const k of validSet) {
+    const [x,y]=k.split(',').map(Number);
+    if(x<vminX)vminX=x;if(x+1>vmaxX)vmaxX=x+1;
+    if(y<vminY)vminY=y;if(y+1>vmaxY)vmaxY=y+1;
+  }
+
+  const cols=vmaxX-vminX+1;
+  const rows=vmaxY-vminY+1;
+
+  let cells='';
+  for (let y=vminY;y<=vmaxY;y++) {
+    for (let x=vminX;x<=vmaxX;x++) {
+      const k=`${x},${y}`;
+      const cell=terr.get(k);
+      const isValid=validSet.has(k);
+      const isHover=hoverCells.has(k);
+
+      if (isHover) {
+        // Hover preview takes highest priority (shows card being placed)
+        const previewCells=G.selCardId!==null?rotCells(CARDS[G.selCardId],G.selRot):null;
+        const [hx,hy]=G.hoverPos;
+        const posIdx=cardPos(hx,hy).findIndex(([px,py])=>px===x&&py===y);
+        const previewCell=previewCells&&posIdx>=0?previewCells[posIdx]:null;
+        const bg=previewCell?COLORS[previewCell[0]]+'cc':'#2a3a2a';
+        const ic=previewCell?ICONS[previewCell[0]]:'';
+        cells+=`<div class="tc tc-preview" style="background:${bg}" title="預覽">
+          <span style="font-size:1.1rem">${ic}</span>
+          ${previewCell&&previewCell[1]>1?`<span style="font-size:.5rem;color:#fff">×${previewCell[1]}</span>`:''}
+        </div>`;
+      } else if (cell) {
+        cells+=`<div class="tc" style="background:${COLORS[cell.type]}" title="${ICONS[cell.type]}×${cell.count}">
+          <span style="font-size:1.1rem">${ICONS[cell.type]}</span>
+          ${cell.count>1?`<span style="font-size:.5rem;position:absolute;bottom:2px;right:3px;color:#fff">×${cell.count}</span>`:''}
+        </div>`;
+      } else if (isValid) {
+        cells+=`<div class="tc tc-valid" data-p="${pi}" data-x="${x}" data-y="${y}" title="點擊放置">＋</div>`;
+      } else {
+        cells+=`<div class="tc tc-empty"></div>`;
+      }
+    }
+  }
+  return `<div class="tgrid" style="grid-template-columns:repeat(${cols},42px)">${cells}</div>`;
+}
+
+function renderRow() {
+  const cp=G.players[G.currentPlayer];
+  const lblCls=['lbl-2','lbl-1','lbl-free'];
+  const lblTxt=['2🪙','1🪙','免費'];
+
+  let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+    <div class="deck-pile"><span style="font-size:1.4rem">🎴</span><span>${G.deck.length}</span></div>
+    <div style="font-size:.65rem;color:#666">牌堆</div>
+  </div><span style="color:#444;font-size:1.1rem;align-self:center">→</span>`;
+
+  G.row.forEach((cid,idx)=>{
+    if(cid==null) return;
+    const cost=rowCost(idx);
+    const canBuy=G.phase==='deploy'&&!cp.eliminated&&cp.coins>=cost;
+    const isSel=G.selRowIdx===idx;
+    const rot=isSel?G.selRot:0;
+    html+=`<div class="rslot">
+      <div class="rslot-lbl ${lblCls[idx]}">${lblTxt[idx]}</div>
+      <div onclick="selectCard(${idx})" style="cursor:${canBuy?'pointer':'default'}">
+        ${cardHTML(CARDS[cid],rot,88,isSel?'gsel':canBuy?'':'gdis')}
+      </div>
+    </div>`;
+    if(idx<G.row.length-1) html+=`<span style="color:#444;font-size:1.1rem;align-self:center">→</span>`;
+  });
+
+  document.getElementById('rowcards').innerHTML=html;
+}
+
+function renderActBar() {
+  const cp=G.players[G.currentPlayer];
+  const e=id=>document.getElementById(id);
+  e('phase').textContent=G.phase==='deploy'?'▶ 部屬':G.phase==='combat'?'⚔ 戰鬥':'🔄 盤整';
+  e('turnlbl').textContent=G.phase==='deploy'?`輪到：${cp.name}`:`第${G.roundNum}回合`;
+  e('decklbl').textContent=`牌堆：${G.deck.length}張`;
+
+  if (G.phase==='deploy') {
+    e('bskip').disabled=false; e('bnext').disabled=true;
+    e('brot').disabled=G.selCardId===null;
+    e('bok').disabled=!(G.selCardId!==null&&G.pendingPos);
+    e('actmsg').textContent=G.selCardId!==null
+      ?`已選牌，點陣地綠格放置（可先旋轉）`
+      :`${cp.name} 選牌（💰 ${cp.coins}枚）`;
+  } else if (G.phase==='combat') {
+    e('brot').disabled=true;e('bok').disabled=true;e('bskip').disabled=true;
+    e('bnext').disabled=false;
+    e('actmsg').textContent='⚔ 戰鬥結算完畢，按「下一步」進入盤整';
+  } else {
+    e('brot').disabled=true;e('bok').disabled=true;e('bskip').disabled=true;
+    e('bnext').disabled=false;
+    e('actmsg').textContent='🔄 盤整完畢，按「下一步」開始下一回合';
+  }
+}
+
+// ══════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════
+function addLog(msg,cls='') {
+  const box=document.getElementById('logbox');
+  const s=document.createElement('span');
+  if(cls) s.className=cls;
+  s.textContent=msg;
+  box.appendChild(s);
+  const w=document.getElementById('logwrap');
+  w.scrollTop=w.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+// START
+// ══════════════════════════════════════════
+function startGame(n) {
+  document.getElementById('title').style.display='none';
+  document.getElementById('game').style.display='flex';
+  newGame(n);
+  addLog(`🐔 全軍出雞開始！${n}人局`,'lp');
+  addLog(`第1回合 — ${G.players[0].name} 先手`,'lp');
+  render();
+}
+</script>
+</body>
+</html>
