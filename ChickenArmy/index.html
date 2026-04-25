@@ -89,9 +89,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 .rslot{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
 .rslot-lbl{font-size:.65rem}
 .lbl-free{color:#27ae60}.lbl-1{color:#f1c40f}.lbl-2{color:#e74c3c}
-.deck-pile{width:52px;height:52px;background:#0f3460;border:2px solid #334;border-radius:7px;
+.deck-pile{width:66px;height:66px;background:#0f3460;border:2px solid #334;border-radius:7px;
   display:flex;align-items:center;justify-content:center;flex-direction:column;
-  font-size:.6rem;color:#aaa;cursor:pointer;touch-action:manipulation;transition:all .15s;flex-shrink:0}
+  font-size:.7rem;color:#aaa;cursor:pointer;touch-action:manipulation;transition:all .15s;flex-shrink:0}
 .deck-pile:active,.deck-pile:hover{border-color:#f1c40f}
 .deck-pile.dsel{border-color:#f1c40f;box-shadow:0 0 10px #f1c40f;background:#163060}
 .deck-pile.dempty{cursor:default;opacity:.4}
@@ -812,17 +812,17 @@ function renderRow(){
   const deckSel=G.selFromDeck;
 
   const deckInner = deckSel && G.selCardId!==null
-    ? cardHTML(CARDS[G.selCardId], G.selRot, 52, 'gsel')
-    : `<span style="font-size:1.2rem">🎴</span><span>${G.deck.length}</span>`;
+    ? cardHTML(CARDS[G.selCardId], G.selRot, 66, 'gsel')
+    : `<span style="font-size:1.6rem">🎴</span><span>${G.deck.length}</span>`;
   const deckStyle = deckSel && G.selCardId!==null
     ? 'background:transparent;border:none;padding:0;width:auto;height:auto'
     : '';
-  let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+  let html=`<div class="rslot">
+    <div class="rslot-lbl lbl-free">免費抽</div>
     <div class="deck-pile${deckSel?' dsel':deckEmpty?' dempty':''}"
          onclick="selectDeckTop()" title="免費抽牌堆頂" style="${deckStyle}">
       ${deckInner}
     </div>
-    <div style="font-size:.6rem;color:${deckSel?'#f1c40f':'#27ae60'}">免費抽</div>
   </div>
   <span class="sep">→</span>`;
 
