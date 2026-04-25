@@ -680,11 +680,11 @@ function renderFocusPlayer(){
 
   document.getElementById('mp-name').innerHTML=
     `<span style="color:${p.color}">● ${p.name}${p.eliminated?' ✕':''}</span>`+
-    `<span class="cv-inline"> ⚔${cv.PA} 🔮${cv.MA} 🛡${cv.PD} ✨${cv.MD}</span>`;
+    `<span class="cv-inline"> ⚔${cv.PA} ${ICONS.MA}${cv.MA} 🛡${cv.PD} ${ICONS.MD}${cv.MD} 🧪${res.potions}</span>`;
   document.getElementById('mp-hp').textContent=`❤${p.hp}`;
   document.getElementById('mp-coins').textContent=`🪙×${res.coins}`;
   document.getElementById('mp-hpbar').style.cssText=`width:${hpPct}%;background:${hpC}`;
-  document.getElementById('mp-lbl').textContent=`陣地${p.territory.size}格 🧪${res.potions}`;
+  document.getElementById('mp-lbl').textContent=`陣地${p.territory.size}格`;
   document.getElementById('mp-terr').innerHTML=renderTerr(p,pi);
 }
 
@@ -773,6 +773,7 @@ function renderThumbs(){
   const area=document.getElementById('thumbs');
   area.innerHTML=G.players.map((p,i)=>{
     const cv=calcCV(p.territory);
+    const res=countRes(p.territory);
     const hpPct=Math.max(0,p.hp/30*100);
     const hpC=p.hp>20?'#27ae60':p.hp>10?'#f1c40f':'#e74c3c';
     const isCur=G.phase==='deploy'&&i===G.currentPlayer&&!p.eliminated;
@@ -782,7 +783,7 @@ function renderThumbs(){
     return `<div class="${cls}" onclick="setFocus(${i})" style="border-color:${isCur?'#f1c40f':isFoc?'#3498db':p.color}">
       <div class="th-name" style="color:${p.color}">● ${p.name}${p.eliminated?' ✕':''}</div>
       <div class="th-hp"><div class="th-hpbar" style="width:${hpPct}%;background:${hpC}"></div></div>
-      <div class="th-cv">⚔${cv.PA} 🔮${cv.MA} 🛡${cv.PD} ✨${cv.MD} ❤${p.hp}</div>
+      <div class="th-cv">⚔${cv.PA} ${ICONS.MA}${cv.MA} 🛡${cv.PD} ${ICONS.MD}${cv.MD} 🧪${res.potions} ❤${p.hp}</div>
       ${mini}
     </div>`;
   }).join('');
@@ -810,10 +811,16 @@ function renderRow(){
   const deckEmpty=G.deck.length===0;
   const deckSel=G.selFromDeck;
 
+  const deckInner = deckSel && G.selCardId!==null
+    ? cardHTML(CARDS[G.selCardId], G.selRot, 52, 'gsel')
+    : `<span style="font-size:1.2rem">🎴</span><span>${G.deck.length}</span>`;
+  const deckStyle = deckSel && G.selCardId!==null
+    ? 'background:transparent;border:none;padding:0;width:auto;height:auto'
+    : '';
   let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
     <div class="deck-pile${deckSel?' dsel':deckEmpty?' dempty':''}"
-         onclick="selectDeckTop()" title="免費抽牌堆頂">
-      <span style="font-size:1.2rem">🎴</span><span>${G.deck.length}</span>
+         onclick="selectDeckTop()" title="免費抽牌堆頂" style="${deckStyle}">
+      ${deckInner}
     </div>
     <div style="font-size:.6rem;color:${deckSel?'#f1c40f':'#27ae60'}">免費抽</div>
   </div>
