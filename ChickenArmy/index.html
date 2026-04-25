@@ -431,7 +431,8 @@ function calcCV(terr){
           if(!visited.has(nk)&&tCells.has(nk)){visited.add(nk);q.push(nk);}
         }
       }
-      if(comp.length>=2)comp.forEach(k=>{res[t]+=tCells.get(k);});
+      const qualifies=comp.length>=2||(comp.length===1&&tCells.get(comp[0])>=2);
+      if(qualifies)comp.forEach(k=>{res[t]+=tCells.get(k);});
     }
   }
   return res;
