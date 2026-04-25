@@ -107,7 +107,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 .gcard.dragging{opacity:.5}
 .ccell{display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:.7rem;gap:1px}
 .cPA{background:var(--PA)}.cMA{background:var(--MA)}.cPD{background:var(--PD)}
-.cMD{background:var(--MD)}.cCOIN{background:var(--CO)}.cPOTION{background:var(--PT)}
+.cMD{background:var(--MD)}.cCO{background:var(--CO)}.cPOTION{background:var(--PT)}
 .cPC{background:linear-gradient(135deg,#27ae60 55%,#d4ac0d 55%)}
 
 /* drag ghost */
@@ -224,10 +224,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 <script>
 // ══════════════════════════════════════════
 // CUSTOM ICON SUPPORT
-// PNG files in same folder: PA.png MA.png PD.png MD.png COIN.png PC.png
+// PNG files in same folder: PA.png MA.png PD.png MD.png CO.png PC.png
 // ══════════════════════════════════════════
 const CUSTOM_ICONS = {};
-const ICON_TYPES = ['PA','MA','PD','MD','COIN','PC'];
+const ICON_TYPES = ['PA','MA','PD','MD','CO','PC'];
 function loadCustomIcons() {
   ICON_TYPES.forEach(t => {
     const img = new Image();
@@ -240,8 +240,8 @@ loadCustomIcons();
 // ══════════════════════════════════════════
 // 56 CARD DEFINITIONS
 // Rules: each card's 4 cells use distinct types
-// Types: PA MA PD MD COIN(×2) PC(藥幣，×1)
-// COIN cells: exactly 5 in deck, all count:2
+// Types: PA MA PD MD CO(×2) PC(藥幣，×1)
+// CO cells: exactly 5 in deck, all count:2
 // PC   cells: exactly 5 in deck, all count:1
 // ══════════════════════════════════════════
 const CARDS = [
@@ -310,13 +310,13 @@ const CARDS = [
   // Extra arrangement (1 card)
   [['PA',1],['PD',1],['MA',1],['MD',1]],   // 45 — total pure = 46
 
-  // ── COIN (×2) cards — 5 cards ──
-  // COIN replaces one combat type; COIN always count:2
-  [['PA',1],['MA',1],['PD',1],['COIN',2]], // 46 — no MD
-  [['PA',1],['MA',1],['COIN',2],['MD',1]], // 47 — no PD
-  [['PA',1],['COIN',2],['PD',1],['MD',1]], // 48 — no MA
-  [['COIN',2],['MA',1],['PD',1],['MD',1]], // 49 — no PA
-  [['PA',2],['MA',1],['COIN',2],['MD',1]], // 50 — no PD, PA heavy
+  // ── CO (×2) cards — 5 cards ──
+  // CO replaces one combat type; CO always count:2
+  [['PA',1],['MA',1],['PD',1],['CO',2]], // 46 — no MD
+  [['PA',1],['MA',1],['CO',2],['MD',1]], // 47 — no PD
+  [['PA',1],['CO',2],['PD',1],['MD',1]], // 48 — no MA
+  [['CO',2],['MA',1],['PD',1],['MD',1]], // 49 — no PA
+  [['PA',2],['MA',1],['CO',2],['MD',1]], // 50 — no PD, PA heavy
 
   // ── PC (藥幣) cards — 5 cards ──
   // PC = 1 potion + 1 coin; count always 1
@@ -331,9 +331,9 @@ while(CARDS.length>56) CARDS.pop();
 while(CARDS.length<56) CARDS.push([['PA',1],['MA',1],['PD',1],['MD',1]]);
 console.assert(CARDS.length===56,'Card count should be 56');
 
-const ICONS  = {PA:'⚔',MA:'🧙',PD:'🛡',MD:'🪟',COIN:'🪙',POTION:'🧪',PC:'🧪'};
+const ICONS  = {PA:'⚔',MA:'🧙',PD:'🛡',MD:'🪟',CO:'🪙',POTION:'🧪',PC:'🧪'};
 const COLORS  = {PA:'#e74c3c',MA:'#3498db',PD:'#e67e22',MD:'#9b59b6',
-                 COIN:'#f1c40f',POTION:'#27ae60',
+                 CO:'#f1c40f',POTION:'#27ae60',
                  PC:'linear-gradient(135deg,#27ae60 55%,#d4ac0d 55%)'};
 const PCOLORS = ['#e74c3c','#3498db','#27ae60','#9b59b6'];
 const PNAMES  = ['玩家1','玩家2','玩家3','玩家4'];
@@ -429,7 +429,7 @@ function calcCV(terr){
 function countRes(terr){
   let coins=0,potions=0;
   for(const v of terr.values()){
-    if(v.type==='COIN')  {coins+=v.count;}          // COIN×2 = 2幣
+    if(v.type==='CO')  {coins+=v.count;}          // CO×2 = 2幣
     if(v.type==='POTION'){potions+=v.count;}
     if(v.type==='PC')    {coins+=1;potions+=1;}     // 藥幣：1藥+1幣
   }
