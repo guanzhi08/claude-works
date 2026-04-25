@@ -48,8 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 .sco{color:#f1c40f;font-weight:bold}
 .hpbar-w{height:5px;background:#333;border-radius:3px}
 .hpbar{height:5px;border-radius:3px;transition:width .4s}
-.cvrow{display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:.72rem}
-.cv{display:flex;justify-content:space-between;padding:2px 5px;border-radius:3px}
+.cv-inline{font-size:.72rem;font-weight:normal;color:#bbb;margin-left:5px;white-space:nowrap}
 .tPA{background:var(--PA-l);color:var(--PA)}.tMA{background:var(--MA-l);color:var(--MA)}
 .tPD{background:var(--PD-l);color:var(--PD)}.tMD{background:var(--MD-l);color:var(--MD)}
 .terrlbl{font-size:.7rem;color:#888}
@@ -72,7 +71,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 .rslot{display:flex;flex-direction:column;align-items:center;gap:3px}
 .rslot-lbl{font-size:.72rem}
 .lbl-free{color:#27ae60}.lbl-1{color:#f1c40f}.lbl-2{color:#e74c3c}
-.deck-pile{width:64px;height:64px;background:#0f3460;border:2px solid #334;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:.65rem;color:#aaa}
+.deck-pile{width:64px;height:64px;background:#0f3460;border:2px solid #334;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:.65rem;color:#aaa;cursor:pointer;transition:all .15s;touch-action:manipulation}
+.deck-pile:hover{border-color:#f1c40f;box-shadow:0 0 8px #f1c40f66}
+.deck-pile.dsel{border-color:#f1c40f;box-shadow:0 0 14px #f1c40f;background:#163060}
+.deck-pile.dempty{cursor:default;opacity:.4}
 
 /* CARD */
 .gcard{width:88px;height:88px;border-radius:7px;border:2px solid #444;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px;background:#111;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
@@ -106,14 +108,33 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 #mbox p{color:#ccc;margin-bottom:18px;white-space:pre-line;font-size:.9rem}
 #mbox button{padding:10px 28px;background:#f1c40f;border:none;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;color:#1a1a2e}
 
-/* 浮動卡片預覽（跟著滑鼠，pointer-events:none 不擋點擊） */
+/* 浮動放置預覽面板（觸控友善，含旋轉/放置按鈕） */
 #cpreview{
-  display:none;position:fixed;pointer-events:none;z-index:200;
-  border:2px solid #f1c40f;border-radius:6px;overflow:hidden;
-  background:#111;box-shadow:0 4px 16px #000c;
-  grid-template-columns:1fr 1fr;gap:1px;
-  opacity:.9;
+  display:none;position:fixed;z-index:200;
+  flex-direction:column;align-items:stretch;gap:6px;
+  pointer-events:none;
 }
+#cpreview .pv-card{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  border:2px solid #f1c40f;border-radius:6px;overflow:hidden;
+  box-shadow:0 4px 20px #000d;opacity:.92;
+  pointer-events:none;   /* 視覺層不擋點擊 */
+}
+#cpreview .pv-btns{
+  display:flex;gap:6px;
+  pointer-events:auto;
+}
+#cpreview .pv-btn{
+  flex:1;border:none;border-radius:7px;
+  font-size:1.4rem;font-weight:bold;cursor:pointer;
+  min-height:46px;min-width:46px;
+  touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;
+}
+#cpreview .pv-rot{background:#3498db;color:#fff}
+#cpreview .pv-rot:active{background:#2471a3}
+#cpreview .pv-ok {background:#27ae60;color:#fff}
+#cpreview .pv-ok:active {background:#1e8449}
 </style>
 </head>
 <body>
@@ -155,7 +176,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
   </div>
   <div id="actbar">
     <div id="actmsg">請選擇一張牌</div>
-    <button class="abtn b-rot"  id="brot"  onclick="doRotate()"   disabled>↻ 旋轉</button>
     <button class="abtn b-ok"   id="bok"   onclick="doConfirm()"  disabled style="display:none">✓ 放置</button>
     <button class="abtn b-skip" id="bskip" onclick="doSkip()"     disabled>跳過</button>
     <button class="abtn b-next" id="bnext" onclick="doNext()"     disabled>下一步 ▶</button>
@@ -184,7 +204,7 @@ const CARDS = [
   [['PA',2],['PA',1],['MA',1],['POTION',1]],
   [['PA',1],['PA',2],['PA',1],['MD',1]],
   [['PA',2],['PD',1],['PA',2],['COIN',1]],
-  [['PA',1],['PA',1],['COIN',1],['COIN',1]],
+  [['PA',1],['PA',1],['PD',1],['COIN',1]],
   [['PA',2],['PA',1],['PD',1],['MD',1]],
   // Heavy MA (8)
   [['MA',2],['MA',1],['MA',1],['MD',1]],
@@ -193,7 +213,7 @@ const CARDS = [
   [['MA',2],['MA',1],['PA',1],['POTION',1]],
   [['MA',1],['MA',2],['MA',1],['PD',1]],
   [['MA',2],['MD',1],['MA',2],['COIN',1]],
-  [['MA',1],['MA',1],['COIN',1],['COIN',1]],
+  [['MA',1],['MA',1],['MD',1],['COIN',1]],
   [['MA',2],['MA',1],['MD',1],['PD',1]],
   // Heavy PD (6)
   [['PD',2],['PD',1],['PD',1],['PA',1]],
@@ -219,14 +239,14 @@ const CARDS = [
   [['PA',1],['PD',2],['MA',1],['MD',1]],
   [['MA',1],['MD',2],['PA',1],['PD',1]],
   // Resource (8)
-  [['COIN',1],['COIN',1],['POTION',1],['PA',1]],
-  [['COIN',1],['COIN',1],['POTION',1],['MA',1]],
+  [['PA',1],['COIN',1],['POTION',1],['PA',1]],
+  [['MA',1],['COIN',1],['POTION',1],['MA',1]],
   [['COIN',1],['POTION',1],['PD',1],['MD',1]],
   [['POTION',1],['POTION',1],['PA',1],['MA',1]],
-  [['COIN',1],['COIN',1],['PA',1],['PD',1]],
+  [['PA',1],['COIN',1],['PA',1],['PD',1]],
   [['POTION',1],['POTION',1],['PD',1],['MD',1]],
   [['COIN',1],['POTION',1],['PA',1],['MA',1]],
-  [['COIN',1],['COIN',1],['COIN',1],['POTION',1]],
+  [['PA',1],['PD',1],['COIN',1],['POTION',1]],
   // Mixed (12)
   [['PA',2],['MA',2],['COIN',1],['POTION',1]],
   [['PD',2],['MD',2],['COIN',1],['POTION',1]],
@@ -263,13 +283,12 @@ function newGame(n) {
     id: i, name: PNAMES[i], color: PCOLORS[i],
     hp: 30, coins: 0, eliminated: false,
     // territory: Map<"x,y" -> {type,count}>
-    // Starting card (clockwise TL): PD, MA, PD, PA
-    // TL=(0,0), TR=(1,0), BL=(0,1), BR=(1,1)
+    // Starting card: PA(TL) MA(TR) PD(BL) MD(BR)
     territory: new Map([
-      ['0,0',{type:'PD',count:1}],
+      ['0,0',{type:'PA',count:1}],
       ['1,0',{type:'MA',count:1}],
       ['0,1',{type:'PD',count:1}],
-      ['1,1',{type:'PA',count:1}],
+      ['1,1',{type:'MD',count:1}],
     ]),
   }));
 
@@ -282,9 +301,10 @@ function newGame(n) {
     deployIdx: 0,          // how many players have deployed this round
     currentPlayer: 0,      // index of current deploying player
     // placement state
-    selRowIdx: null,       // which row slot selected
-    selCardId: null,       // card id from row
+    selRowIdx: null,       // which row slot selected (null if from deck)
+    selCardId: null,       // card id
     selRot: 0,             // 0-3
+    selFromDeck: false,    // selected top-of-deck card
     pendingPos: null,      // [gx,gy] chosen position
     hoverPos: null,        // [gx,gy] hovering
   };
@@ -431,7 +451,7 @@ function nextDeployPlayer() {
 
 function resetSelection() {
   G.selRowIdx=null; G.selCardId=null; G.selRot=0;
-  G.pendingPos=null; G.hoverPos=null;
+  G.selFromDeck=false; G.pendingPos=null; G.hoverPos=null;
 }
 
 function runCombat() {
@@ -459,9 +479,8 @@ function runRegroup() {
   addLog('═══ 🔄 盤整 ═══','lp');
   G.players.forEach(p=>{
     if(p.eliminated) return;
-    const {coins,potions}=countRes(p.territory);
+    const {potions}=countRes(p.territory);
     if(potions>0){ p.hp=Math.min(30,p.hp+potions); addLog(`${p.name} +${potions}HP藥瓶→${p.hp}`,'lh'); }
-    if(coins>0){ p.coins+=coins; addLog(`${p.name} +${coins}🪙→${p.coins}🪙`); }
   });
   G.players.forEach(p=>{
     if(!p.eliminated&&p.hp<=0){ p.eliminated=true; addLog(`💀 ${p.name} 淘汰`,'le'); }
@@ -508,15 +527,29 @@ function endByScore() {
 // ══════════════════════════════════════════
 // USER ACTIONS
 // ══════════════════════════════════════════
+function terrCoins(terr){ return countRes(terr).coins; }
+
 function selectCard(rowIdx) {
   if(G.phase!=='deploy') return;
+  if(G.selFromDeck) return; // 已翻牌堆頂，不可再選
   const cp=G.players[G.currentPlayer];
   const cost=rowCost(rowIdx);
-  if(cp.coins<cost){ addLog(`金幣不足（需${cost}枚）`,'ld'); return; }
-  G.selRowIdx=rowIdx;
-  G.selCardId=G.row[rowIdx];
-  G.selRot=0;
+  const coins=terrCoins(cp.territory);
+  if(coins<cost){ addLog(`陣地金幣格不足（需${cost}個，現有${coins}個）`,'ld'); return; }
+  hidePreview();
+  G.selRowIdx=rowIdx; G.selCardId=G.row[rowIdx];
+  G.selRot=0; G.selFromDeck=false;
   G.pendingPos=null; G.hoverPos=null;
+  render();
+}
+
+function selectDeckTop() {
+  if(G.phase!=='deploy') return;
+  if(G.deck.length===0) return;
+  hidePreview();
+  G.selFromDeck=true; G.selRowIdx=null;
+  G.selCardId=G.deck[G.deck.length-1]; // 偷看頂牌（尚未實際抽走）
+  G.selRot=0; G.pendingPos=null; G.hoverPos=null;
   render();
 }
 
@@ -531,16 +564,22 @@ function doConfirm() {
   if(G.selCardId===null||!G.pendingPos) return;
   const cp=G.players[G.currentPlayer];
   const [gx,gy]=G.pendingPos;
-  cp.coins-=rowCost(G.selRowIdx);
   placeCard(cp.territory,gx,gy,CARDS[G.selCardId],G.selRot);
-  takeFromRow(G.selRowIdx);
-  addLog(`${cp.name} 花${rowCost(G.selRowIdx)}🪙，放牌(${gx},${gy})`);
+  if(G.selFromDeck){
+    G.deck.pop();
+    addLog(`${cp.name} 抽牌堆頂，放牌(${gx},${gy})`);
+  } else {
+    const cost=rowCost(G.selRowIdx);
+    takeFromRow(G.selRowIdx);
+    addLog(`${cp.name} 取${cost>0?cost+'🪙':'免費'}牌，放牌(${gx},${gy})`);
+  }
   resetSelection();
   nextDeployPlayer();
 }
 
 function doSkip() {
   addLog(`${G.players[G.currentPlayer].name} 跳過部屬`);
+  hidePreview();
   resetSelection();
   nextDeployPlayer();
 }
@@ -583,18 +622,15 @@ function renderPlayers() {
     const hpPct=Math.max(0,p.hp/30*100);
     const hpC=p.hp>20?'#27ae60':p.hp>10?'#f1c40f':'#e74c3c';
 
+    const tcoins = res.coins;
     return `<div class="pp${isAct?' active':''}${p.eliminated?' dead':''}" id="pp${i}">
       <div class="ph">
-        <div class="pname" style="color:${p.color}">● ${p.name}${p.eliminated?' ✕':''}</div>
-        <div class="pstats"><span class="shp">❤ ${p.hp}</span><span class="sco">🪙 ${p.coins}</span></div>
+        <div class="pname" style="color:${p.color}">● ${p.name}${p.eliminated?' ✕':''}
+          <span class="cv-inline">⚔${cv.PA} 🔮${cv.MA} 🛡${cv.PD} ✨${cv.MD}</span>
+        </div>
+        <div class="pstats"><span class="shp">❤ ${p.hp}</span><span class="sco">🪙×${tcoins}</span></div>
       </div>
       <div class="hpbar-w"><div class="hpbar" style="width:${hpPct}%;background:${hpC}"></div></div>
-      <div class="cvrow">
-        <div class="cv tPA">⚔ 物攻 <b>${cv.PA}</b></div>
-        <div class="cv tMA">🔮 魔攻 <b>${cv.MA}</b></div>
-        <div class="cv tPD">🛡 物防 <b>${cv.PD}</b></div>
-        <div class="cv tMD">✨ 魔防 <b>${cv.MD}</b></div>
-      </div>
       <div class="terrlbl">陣地${p.territory.size}格 🧪${res.potions}</div>
       <div class="terr-wrap">${renderTerr(p,i)}</div>
     </div>`;
@@ -603,17 +639,11 @@ function renderPlayers() {
 }
 
 // ── 陣地格子的 inline handler（不依賴 addEventListener，DOM 重建也不會失效）──
-function terrClick(pi, gx, gy) {
+function terrClick(pi, gx, gy, el) {
   if(pi!==G.currentPlayer || G.selCardId===null) return;
-  hidePreview();
-  const cp=G.players[G.currentPlayer];
-  const cost=rowCost(G.selRowIdx);
-  cp.coins -= cost;
-  placeCard(cp.territory, gx, gy, CARDS[G.selCardId], G.selRot);
-  takeFromRow(G.selRowIdx);
-  addLog(`${cp.name} 花${cost}🪙，放牌(${gx},${gy})`);
-  resetSelection();
-  nextDeployPlayer();
+  G.pendingPos=[gx,gy];
+  showPreview(pi, gx, gy, el);
+  renderActBar();
 }
 
 function renderTerr(player, pi) {
@@ -645,9 +675,8 @@ function renderTerr(player, pi) {
         html+=`<div class="tc tc-valid-over" style="background:${COLORS[cell.type]}"
           data-pi="${pi}" data-x="${x}" data-y="${y}"
           title="點擊放置（覆蓋）"
-          onclick="terrClick(${pi},${x},${y})"
-          onmouseenter="showPreview(${pi},${x},${y},this)"
-          onmouseleave="hidePreview()">
+          onclick="terrClick(${pi},${x},${y},this)"
+          onmouseenter="if(!G.pendingPos)showPreview(${pi},${x},${y},this)">
           <span style="font-size:1.1rem">${ICONS[cell.type]}</span>
           ${cell.count>1?`<span style="font-size:.45rem;position:absolute;bottom:1px;left:2px;color:#fff">×${cell.count}</span>`:''}
         </div>`;
@@ -655,9 +684,8 @@ function renderTerr(player, pi) {
         html+=`<div class="tc tc-valid"
           data-pi="${pi}" data-x="${x}" data-y="${y}"
           title="點擊放置"
-          onclick="terrClick(${pi},${x},${y})"
-          onmouseenter="showPreview(${pi},${x},${y},this)"
-          onmouseleave="hidePreview()">＋</div>`;
+          onclick="terrClick(${pi},${x},${y},this)"
+          onmouseenter="if(!G.pendingPos)showPreview(${pi},${x},${y},this)">＋</div>`;
       } else if (cell) {
         html+=`<div class="tc" style="background:${COLORS[cell.type]}"
           data-x="${x}" data-y="${y}"
@@ -675,18 +703,27 @@ function renderTerr(player, pi) {
 
 function renderRow() {
   const cp=G.players[G.currentPlayer];
+  const coins=terrCoins(cp.territory);
   const lblCls=['lbl-2','lbl-1','lbl-free'];
-  const lblTxt=['2🪙','1🪙','免費'];
+  const lblTxt=[`需🪙×2`,`需🪙×1`,`免費`];
 
+  // 牌堆頂端（可免費抽）
+  const deckEmpty=G.deck.length===0;
+  const deckSel=G.selFromDeck;
   let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-    <div class="deck-pile"><span style="font-size:1.4rem">🎴</span><span>${G.deck.length}</span></div>
-    <div style="font-size:.65rem;color:#666">牌堆</div>
-  </div><span style="color:#444;font-size:1.1rem;align-self:center">→</span>`;
+    <div class="deck-pile${deckSel?' dsel':deckEmpty?' dempty':''}"
+         onclick="selectDeckTop()" title="免費抽牌堆頂端">
+      <span style="font-size:1.4rem">🎴</span>
+      <span>${G.deck.length}</span>
+    </div>
+    <div style="font-size:.65rem;color:${deckSel?'#f1c40f':'#27ae60'}">免費抽</div>
+  </div>
+  <span style="color:#444;font-size:1.1rem;align-self:center">→</span>`;
 
   G.row.forEach((cid,idx)=>{
     if(cid==null) return;
     const cost=rowCost(idx);
-    const canBuy=G.phase==='deploy'&&!cp.eliminated&&cp.coins>=cost;
+    const canBuy=G.phase==='deploy'&&!cp.eliminated&&coins>=cost&&!G.selFromDeck;
     const isSel=G.selRowIdx===idx;
     const rot=isSel?G.selRot:0;
     html+=`<div class="rslot">
@@ -709,23 +746,22 @@ function renderActBar() {
   e('decklbl').textContent=`牌堆：${G.deck.length}張`;
 
   if (G.phase==='deploy') {
+    const coins=terrCoins(cp.territory);
     e('bskip').disabled=false; e('bnext').disabled=true;
-    e('brot').disabled=G.selCardId===null;
-    e('bok').disabled=!(G.selCardId!==null && G.pendingPos!=null);
     if (G.pendingPos) {
-      e('actmsg').textContent=`準備放置於(${G.pendingPos[0]},${G.pendingPos[1]})，按✓確認`;
+      e('actmsg').textContent=`已選位置(${G.pendingPos[0]},${G.pendingPos[1]})，按預覽上的↻旋轉或✓放置`;
+    } else if (G.selFromDeck) {
+      e('actmsg').textContent=`${cp.name} 已翻牌堆頂，點陣地綠格放置（不可再選排列牌）`;
     } else if (G.selCardId!==null) {
-      e('actmsg').textContent=`已選牌，點陣地綠格放置（↻可旋轉）`;
+      e('actmsg').textContent=`${cp.name} 已選牌，點陣地綠格預覽放置位置`;
     } else {
-      e('actmsg').textContent=`${cp.name} 選牌（💰 ${cp.coins}枚）`;
+      e('actmsg').textContent=`${cp.name} 請選牌｜陣地🪙×${coins}，可選需${coins>=2?'2🪙':coins>=1?'1🪙':'0'}以下的排列牌`;
     }
   } else if (G.phase==='combat') {
-    e('brot').disabled=true;e('bok').disabled=true;e('bskip').disabled=true;
-    e('bnext').disabled=false;
+    e('bskip').disabled=true; e('bnext').disabled=false;
     e('actmsg').textContent='⚔ 戰鬥結算完畢，按「下一步」進入盤整';
   } else {
-    e('brot').disabled=true;e('bok').disabled=true;e('bskip').disabled=true;
-    e('bnext').disabled=false;
+    e('bskip').disabled=true; e('bnext').disabled=false;
     e('actmsg').textContent='🔄 盤整完畢，按「下一步」開始下一回合';
   }
 }
@@ -744,36 +780,87 @@ function addLog(msg,cls='') {
 }
 
 // ══════════════════════════════════════════
-// 浮動預覽卡：定位在實際放置格子上
+// 浮動放置預覽（貼齊目標格，含旋轉/放置按鈕）
 // ══════════════════════════════════════════
 function showPreview(pi, gx, gy, tlEl) {
-  if (pi !== G.currentPlayer || G.selCardId === null) return;
+  if (G.selCardId === null) return;
 
-  // 取得 TL 格子的實際畫面位置
+  // 若沒傳 element，從 DOM 找
+  if (!tlEl) {
+    tlEl = document.querySelector(`[data-pi="${pi}"][data-x="${gx}"][data-y="${gy}"]`);
+  }
+  if (!tlEl) return;
+
   const rect = tlEl.getBoundingClientRect();
-  const cs = Math.round(rect.width); // 格子實際像素大小（含邊框）
+  const cs   = Math.round(rect.width);   // 單格像素寬（含邊框）
+  const sz   = cs * 2 + 1;              // 2×2 預覽框寬高
 
   const rotated = rotCells(CARDS[G.selCardId], G.selRot);
   const p = document.getElementById('cpreview');
 
-  // 尺寸：2 格 + 1px gap
-  const sz = cs * 2 + 1;
-  p.style.display  = 'grid';
-  p.style.left     = rect.left + 'px';
-  p.style.top      = rect.top  + 'px';
-  p.style.width    = sz + 'px';
-  p.style.height   = sz + 'px';
+  // 預設貼左上角；若超出右/下視窗邊緣則翻轉
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const btnH = 50;
+  let left = rect.left;
+  let top  = rect.top;
+  // 右邊超出：靠右對齊
+  if (left + sz > vw - 4) left = rect.right - sz;
+  // 下方超出（含按鈕）：將按鈕放在預覽上方
+  const btnAbove = top + sz + btnH > vh - 4;
 
-  p.innerHTML = rotated.map(([t,c]) =>
-    `<div style="width:${cs}px;height:${cs}px;background:${COLORS[t]};display:flex;align-items:center;justify-content:center;flex-direction:column">
+  // btnAbove: 把按鈕放在預覽上方，並向上移 btnH 讓按鈕在視窗內
+  if (btnAbove) top = Math.max(4, top - btnH - 6);
+
+  p.style.left = left + 'px';
+  p.style.top  = top  + 'px';
+  p.style.display = 'flex';
+
+  const cardGrid = rotated.map(([t,c]) =>
+    `<div style="width:${cs}px;height:${cs}px;background:${COLORS[t]};
+       display:flex;align-items:center;justify-content:center;flex-direction:column">
        <span style="font-size:${Math.round(cs*.4)}px;line-height:1">${ICONS[t]}</span>
        ${c>1?`<span style="font-size:.42rem;color:#fff">×${c}</span>`:''}
      </div>`
   ).join('');
+
+  const btns = `<div class="pv-btns" style="width:${sz}px">
+    <button class="pv-btn pv-rot" onclick="previewRotate(${pi},${gx},${gy})">↻</button>
+    <button class="pv-btn pv-ok"  onclick="executePlacement()">✓</button>
+  </div>`;
+
+  p.innerHTML = btnAbove
+    ? `${btns}<div class="pv-card" style="width:${sz}px;height:${sz}px">${cardGrid}</div>`
+    : `<div class="pv-card" style="width:${sz}px;height:${sz}px">${cardGrid}</div>${btns}`;
 }
 
 function hidePreview() {
   document.getElementById('cpreview').style.display = 'none';
+}
+
+// 旋轉並更新預覽（不重繪整個陣地）
+function previewRotate(pi, gx, gy) {
+  G.selRot = (G.selRot + 1) % 4;
+  showPreview(pi, gx, gy, null);
+  renderRow(); // 更新牌列上的旋轉預覽
+}
+
+// 確認放置
+function executePlacement() {
+  if (G.selCardId === null || !G.pendingPos) return;
+  hidePreview();
+  const cp = G.players[G.currentPlayer];
+  const [gx, gy] = G.pendingPos;
+  placeCard(cp.territory, gx, gy, CARDS[G.selCardId], G.selRot);
+  if (G.selFromDeck) {
+    G.deck.pop();
+    addLog(`${cp.name} 抽牌堆頂，放牌(${gx},${gy})`);
+  } else {
+    const cost = rowCost(G.selRowIdx);
+    takeFromRow(G.selRowIdx);
+    addLog(`${cp.name} 取${cost>0?cost+'🪙':'免費'}牌，放牌(${gx},${gy})`);
+  }
+  resetSelection();
+  nextDeployPlayer();
 }
 
 // ══════════════════════════════════════════
