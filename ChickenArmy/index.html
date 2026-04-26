@@ -431,8 +431,7 @@ function calcCV(terr){
           if(!visited.has(nk)&&tCells.has(nk)){visited.add(nk);q.push(nk);}
         }
       }
-      const qualifies=comp.length>=2||(comp.length===1&&tCells.get(comp[0])>=2);
-      if(qualifies)comp.forEach(k=>{res[t]+=tCells.get(k);});
+      if(comp.length>=2)comp.forEach(k=>{res[t]+=tCells.get(k);});
     }
   }
   return res;
@@ -491,7 +490,11 @@ function runCombat(){
       const ph=Math.max(0,cvs[a].PA-cvs[d].PD);
       const mg=Math.max(0,cvs[a].MA-cvs[d].MD);
       const tot=ph+mg;
-      if(tot>0)addLog(`${G.players[a].name}→${G.players[d].name}: ⚔${ph}+🔮${mg}=-${tot}HP`,'ld');
+      if(tot>0||cvs[a].PA>0||cvs[a].MA>0){
+        const phStr=`⚔${cvs[a].PA}-🛡${cvs[d].PD}=${ph>0?'-'+ph:'0'}`;
+        const mgStr=`${ICONS.MA}${cvs[a].MA}-${ICONS.MD}${cvs[d].MD}=${mg>0?'-'+mg:'0'}`;
+        addLog(`${G.players[a].name}→${G.players[d].name}: ${phStr} ${mgStr}${tot>0?' ('+tot+'傷)':''}`, tot>0?'ld':'');
+      }
       dmg[d]+=tot;
     }
   }
@@ -518,9 +521,10 @@ function runRegroup(){
 
 function startNextRound(){
   G.roundNum++;G.phase='deploy';G.deployIdx=0;
-  let fp=(G.firstPlayer+1)%G.n;
+  G.firstPlayer=0;
+  let fp=0;
   while(G.players[fp].eliminated)fp=(fp+1)%G.n;
-  G.firstPlayer=fp;G.currentPlayer=fp;G.focusPlayer=fp;
+  G.currentPlayer=fp;G.focusPlayer=fp;
   resetSelection();
   addLog(`══ 第${G.roundNum}回合 ══`,'lp');
   render();
@@ -747,9 +751,7 @@ function renderTerr(player,pi){
       }
 
       const pendingClass=isPending?' tc-pending':'';
-      const dragAttrs=isActiveDeploy?`ondragover="event.preventDefault();this.classList.add('drag-over')"
-        ondragleave="this.classList.remove('drag-over')"
-        ondrop="terrDrop(event,${pi},${x},${y},this)"`:'' ;
+      const dragAttrs='';
 
       if(isValidTL&&cell&&!isPending){
         html+=`<div class="tc tc-valid-over"
@@ -847,9 +849,6 @@ function renderRow(){
     html+=`<div class="rslot">
       <div class="rslot-lbl ${lblCls[idx]}">${lblTxt[idx]}</div>
       <div onclick="selectCard(${idx})"
-           draggable="${canBuy?'true':'false'}"
-           ondragstart="dragCardStart(event,${idx})"
-           ontouchstart="cardTouchStart(event,${idx})"
            style="cursor:${canBuy?'pointer':'default'}">
         ${cardHTML(CARDS[cid],rot,66,isSel?'gsel':canBuy?'':'gdis')}
       </div>
@@ -893,93 +892,6 @@ function renderActBar(){
   }
 }
 
-// ══════════════════════════════════════════
-// DRAG & DROP — Mouse
-// ══════════════════════════════════════════
-let dragRowIdx=null;
-
-function dragCardStart(e,rowIdx){
-  dragRowIdx=rowIdx;
-  selectCard(rowIdx);
-  e.currentTarget.querySelector('.gcard')?.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
-  // ghost image
-  const ghost=document.getElementById('drag-ghost');
-  ghost.innerHTML=cardHTML(CARDS[G.row[rowIdx]],G.selRot,66);
-  ghost.style.display='block';
-  ghost.style.top='-200px';ghost.style.left='-200px';
-  try{e.dataTransfer.setDragImage(ghost,33,33);}catch(err){}
-}
-
-function terrDrop(e,pi,gx,gy,el){
-  e.preventDefault();
-  el.classList.remove('drag-over');
-  if(pi!==G.currentPlayer||G.selCardId===null)return;
-  G.pendingPos=[gx,gy];
-  doConfirm(); // auto-place on drop
-}
-
-// ══════════════════════════════════════════
-// DRAG — Touch
-// ══════════════════════════════════════════
-let touchDragState=null;
-
-function cardTouchStart(e,rowIdx){
-  selectCard(rowIdx);
-  if(G.selCardId===null)return;
-
-  const ghost=document.getElementById('drag-ghost');
-  ghost.innerHTML=cardHTML(CARDS[G.row[rowIdx]],G.selRot,66);
-  ghost.style.display='block';
-  const t=e.touches[0];
-  ghost.style.left=(t.clientX-33)+'px';
-  ghost.style.top=(t.clientY-66)+'px';
-  touchDragState={rowIdx};
-
-  // bind move/end to document
-  document.addEventListener('touchmove',onTouchDragMove,{passive:false});
-  document.addEventListener('touchend',onTouchDragEnd,{once:true});
-  e.preventDefault();
-}
-
-function onTouchDragMove(e){
-  if(!touchDragState)return;
-  const t=e.touches[0];
-  const ghost=document.getElementById('drag-ghost');
-  ghost.style.left=(t.clientX-33)+'px';
-  ghost.style.top=(t.clientY-66)+'px';
-
-  // highlight cell under finger
-  ghost.style.display='none';
-  const el=document.elementFromPoint(t.clientX,t.clientY);
-  ghost.style.display='block';
-  document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
-  if(el?.dataset.pi!==undefined)el.classList.add('drag-over');
-  e.preventDefault();
-}
-
-function onTouchDragEnd(e){
-  document.removeEventListener('touchmove',onTouchDragMove);
-  const ghost=document.getElementById('drag-ghost');
-  ghost.style.display='none';
-  document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
-
-  if(!touchDragState){return;}
-  touchDragState=null;
-
-  const t=e.changedTouches[0];
-  ghost.style.display='none';
-  const el=document.elementFromPoint(t.clientX,t.clientY);
-  const cell=el?.closest?.('[data-pi]')||el;
-  if(!cell)return;
-  const pi=parseInt(cell.dataset?.pi);
-  const gx=parseInt(cell.dataset?.x);
-  const gy=parseInt(cell.dataset?.y);
-  if(isNaN(pi)||isNaN(gx)||isNaN(gy))return;
-  if(pi!==G.currentPlayer||G.selCardId===null)return;
-  G.pendingPos=[gx,gy];
-  doConfirm(); // auto-place on touch drop
-}
 
 // ══════════════════════════════════════════
 // LOG
