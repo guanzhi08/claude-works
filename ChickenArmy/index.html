@@ -23,6 +23,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 .pbtn:active{background:#f1c40f22}
 .legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;font-size:.75rem}
 .li{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:#222}
+#name-entry{display:none;flex-direction:column;align-items:center;gap:8px;margin-top:4px;width:100%;max-width:260px}
+#name-entry label{font-size:.75rem;color:#888;align-self:flex-start}
+.name-inp{background:#0f3460;border:2px solid #334;border-radius:7px;color:#eee;
+  padding:8px 12px;font-size:1rem;width:100%;text-align:center;outline:none;
+  transition:border-color .15s;-webkit-appearance:none}
+.name-inp:focus{border-color:#f1c40f}
+.rename-btn{background:none;border:none;color:#666;cursor:pointer;font-size:.8rem;
+  padding:0 3px;line-height:1;vertical-align:middle;touch-action:manipulation}
+.rename-btn:hover,.rename-btn:active{color:#f1c40f}
 
 /* ── GAME LAYOUT ── */
 #game{display:none;flex-direction:column;height:100dvh;padding:4px;gap:4px;overflow:hidden}
@@ -89,9 +98,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 .rslot{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
 .rslot-lbl{font-size:.65rem}
 .lbl-free{color:#27ae60}.lbl-1{color:#f1c40f}.lbl-2{color:#e74c3c}
-.deck-pile{width:52px;height:52px;background:#0f3460;border:2px solid #334;border-radius:7px;
+.deck-pile{width:66px;height:66px;background:#0f3460;border:2px solid #334;border-radius:7px;
   display:flex;align-items:center;justify-content:center;flex-direction:column;
-  font-size:.6rem;color:#aaa;cursor:pointer;touch-action:manipulation;transition:all .15s;flex-shrink:0}
+  font-size:.7rem;color:#aaa;cursor:pointer;touch-action:manipulation;transition:all .15s;flex-shrink:0}
 .deck-pile:active,.deck-pile:hover{border-color:#f1c40f}
 .deck-pile.dsel{border-color:#f1c40f;box-shadow:0 0 10px #f1c40f;background:#163060}
 .deck-pile.dempty{cursor:default;opacity:.4}
@@ -163,10 +172,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
   </div>
   <p style="color:#888;font-size:.8rem">每格至少2個相鄰同類符號才計入戰力｜初始HP 30</p>
   <div class="psel">
-    <button class="pbtn" onclick="startGame(2)">2 人</button>
-    <button class="pbtn" onclick="startGame(3)">3 人</button>
-    <button class="pbtn" onclick="startGame(4)">4 人</button>
+    <button class="pbtn" onclick="selectCount(2)">2 人</button>
+    <button class="pbtn" onclick="selectCount(3)">3 人</button>
+    <button class="pbtn" onclick="selectCount(4)">4 人</button>
   </div>
+  <div id="name-entry"></div>
 </div>
 
 <!-- GAME -->
@@ -343,11 +353,11 @@ const PNAMES  = ['玩家1','玩家2','玩家3','玩家4'];
 // ══════════════════════════════════════════
 let G;
 
-function newGame(n) {
+function newGame(n, names=PNAMES) {
   const deck = shuffle([...Array(56).keys()]);
   const row  = [deck.pop(), deck.pop(), deck.pop()];
   const players = Array.from({length:n},(_,i)=>({
-    id:i, name:PNAMES[i], color:PCOLORS[i],
+    id:i, name:(names[i]||PNAMES[i]).trim()||PNAMES[i], color:PCOLORS[i],
     hp:30, coins:0, eliminated:false,
     territory: new Map([
       ['0,0',{type:'PA',count:1}],['1,0',{type:'MA',count:1}],
@@ -480,7 +490,11 @@ function runCombat(){
       const ph=Math.max(0,cvs[a].PA-cvs[d].PD);
       const mg=Math.max(0,cvs[a].MA-cvs[d].MD);
       const tot=ph+mg;
-      if(tot>0)addLog(`${G.players[a].name}→${G.players[d].name}: ⚔${ph}+🔮${mg}=-${tot}HP`,'ld');
+      if(tot>0||cvs[a].PA>0||cvs[a].MA>0){
+        const phStr=`⚔${cvs[a].PA}-🛡${cvs[d].PD}=${ph>0?'-'+ph:'0'}`;
+        const mgStr=`${ICONS.MA}${cvs[a].MA}-${ICONS.MD}${cvs[d].MD}=${mg>0?'-'+mg:'0'}`;
+        addLog(`${G.players[a].name}→${G.players[d].name}: ${phStr} ${mgStr}${tot>0?' ('+tot+'傷)':''}`, tot>0?'ld':'');
+      }
       dmg[d]+=tot;
     }
   }
@@ -507,9 +521,10 @@ function runRegroup(){
 
 function startNextRound(){
   G.roundNum++;G.phase='deploy';G.deployIdx=0;
-  let fp=(G.firstPlayer+1)%G.n;
+  G.firstPlayer=0;
+  let fp=0;
   while(G.players[fp].eliminated)fp=(fp+1)%G.n;
-  G.firstPlayer=fp;G.currentPlayer=fp;G.focusPlayer=fp;
+  G.currentPlayer=fp;G.focusPlayer=fp;
   resetSelection();
   addLog(`══ 第${G.roundNum}回合 ══`,'lp');
   render();
@@ -680,6 +695,7 @@ function renderFocusPlayer(){
 
   document.getElementById('mp-name').innerHTML=
     `<span style="color:${p.color}">● ${p.name}${p.eliminated?' ✕':''}</span>`+
+    `<button class="rename-btn" onclick="renamePlayer(${pi})" title="修改名稱">✏️</button>`+
     `<span class="cv-inline"> ⚔${cv.PA} ${ICONS.MA}${cv.MA} 🛡${cv.PD} ${ICONS.MD}${cv.MD} 🧪${res.potions}</span>`;
   document.getElementById('mp-hp').textContent=`❤${p.hp}`;
   document.getElementById('mp-coins').textContent=`🪙×${res.coins}`;
@@ -735,9 +751,7 @@ function renderTerr(player,pi){
       }
 
       const pendingClass=isPending?' tc-pending':'';
-      const dragAttrs=isActiveDeploy?`ondragover="event.preventDefault();this.classList.add('drag-over')"
-        ondragleave="this.classList.remove('drag-over')"
-        ondrop="terrDrop(event,${pi},${x},${y},this)"`:'' ;
+      const dragAttrs='';
 
       if(isValidTL&&cell&&!isPending){
         html+=`<div class="tc tc-valid-over"
@@ -812,17 +826,17 @@ function renderRow(){
   const deckSel=G.selFromDeck;
 
   const deckInner = deckSel && G.selCardId!==null
-    ? cardHTML(CARDS[G.selCardId], G.selRot, 52, 'gsel')
-    : `<span style="font-size:1.2rem">🎴</span><span>${G.deck.length}</span>`;
+    ? cardHTML(CARDS[G.selCardId], G.selRot, 66, 'gsel')
+    : `<span style="font-size:1.6rem">🎴</span><span>${G.deck.length}</span>`;
   const deckStyle = deckSel && G.selCardId!==null
     ? 'background:transparent;border:none;padding:0;width:auto;height:auto'
     : '';
-  let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+  let html=`<div class="rslot">
+    <div class="rslot-lbl lbl-free">免費抽</div>
     <div class="deck-pile${deckSel?' dsel':deckEmpty?' dempty':''}"
          onclick="selectDeckTop()" title="免費抽牌堆頂" style="${deckStyle}">
       ${deckInner}
     </div>
-    <div style="font-size:.6rem;color:${deckSel?'#f1c40f':'#27ae60'}">免費抽</div>
   </div>
   <span class="sep">→</span>`;
 
@@ -835,9 +849,6 @@ function renderRow(){
     html+=`<div class="rslot">
       <div class="rslot-lbl ${lblCls[idx]}">${lblTxt[idx]}</div>
       <div onclick="selectCard(${idx})"
-           draggable="${canBuy?'true':'false'}"
-           ondragstart="dragCardStart(event,${idx})"
-           ontouchstart="cardTouchStart(event,${idx})"
            style="cursor:${canBuy?'pointer':'default'}">
         ${cardHTML(CARDS[cid],rot,66,isSel?'gsel':canBuy?'':'gdis')}
       </div>
@@ -881,93 +892,6 @@ function renderActBar(){
   }
 }
 
-// ══════════════════════════════════════════
-// DRAG & DROP — Mouse
-// ══════════════════════════════════════════
-let dragRowIdx=null;
-
-function dragCardStart(e,rowIdx){
-  dragRowIdx=rowIdx;
-  selectCard(rowIdx);
-  e.currentTarget.querySelector('.gcard')?.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
-  // ghost image
-  const ghost=document.getElementById('drag-ghost');
-  ghost.innerHTML=cardHTML(CARDS[G.row[rowIdx]],G.selRot,66);
-  ghost.style.display='block';
-  ghost.style.top='-200px';ghost.style.left='-200px';
-  try{e.dataTransfer.setDragImage(ghost,33,33);}catch(err){}
-}
-
-function terrDrop(e,pi,gx,gy,el){
-  e.preventDefault();
-  el.classList.remove('drag-over');
-  if(pi!==G.currentPlayer||G.selCardId===null)return;
-  G.pendingPos=[gx,gy];
-  doConfirm(); // auto-place on drop
-}
-
-// ══════════════════════════════════════════
-// DRAG — Touch
-// ══════════════════════════════════════════
-let touchDragState=null;
-
-function cardTouchStart(e,rowIdx){
-  selectCard(rowIdx);
-  if(G.selCardId===null)return;
-
-  const ghost=document.getElementById('drag-ghost');
-  ghost.innerHTML=cardHTML(CARDS[G.row[rowIdx]],G.selRot,66);
-  ghost.style.display='block';
-  const t=e.touches[0];
-  ghost.style.left=(t.clientX-33)+'px';
-  ghost.style.top=(t.clientY-66)+'px';
-  touchDragState={rowIdx};
-
-  // bind move/end to document
-  document.addEventListener('touchmove',onTouchDragMove,{passive:false});
-  document.addEventListener('touchend',onTouchDragEnd,{once:true});
-  e.preventDefault();
-}
-
-function onTouchDragMove(e){
-  if(!touchDragState)return;
-  const t=e.touches[0];
-  const ghost=document.getElementById('drag-ghost');
-  ghost.style.left=(t.clientX-33)+'px';
-  ghost.style.top=(t.clientY-66)+'px';
-
-  // highlight cell under finger
-  ghost.style.display='none';
-  const el=document.elementFromPoint(t.clientX,t.clientY);
-  ghost.style.display='block';
-  document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
-  if(el?.dataset.pi!==undefined)el.classList.add('drag-over');
-  e.preventDefault();
-}
-
-function onTouchDragEnd(e){
-  document.removeEventListener('touchmove',onTouchDragMove);
-  const ghost=document.getElementById('drag-ghost');
-  ghost.style.display='none';
-  document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
-
-  if(!touchDragState){return;}
-  touchDragState=null;
-
-  const t=e.changedTouches[0];
-  ghost.style.display='none';
-  const el=document.elementFromPoint(t.clientX,t.clientY);
-  const cell=el?.closest?.('[data-pi]')||el;
-  if(!cell)return;
-  const pi=parseInt(cell.dataset?.pi);
-  const gx=parseInt(cell.dataset?.x);
-  const gy=parseInt(cell.dataset?.y);
-  if(isNaN(pi)||isNaN(gx)||isNaN(gy))return;
-  if(pi!==G.currentPlayer||G.selCardId===null)return;
-  G.pendingPos=[gx,gy];
-  doConfirm(); // auto-place on touch drop
-}
 
 // ══════════════════════════════════════════
 // LOG
@@ -985,13 +909,41 @@ function addLog(msg,cls=''){
 // ══════════════════════════════════════════
 // START
 // ══════════════════════════════════════════
-function startGame(n){
+function selectCount(n){
+  const div=document.getElementById('name-entry');
+  div.style.display='flex';
+  div.innerHTML=
+    `<div style="color:#aaa;font-size:.8rem;margin-bottom:2px">輸入玩家名稱</div>`+
+    Array.from({length:n},(_,i)=>
+      `<input class="name-inp" id="ni${i}" value="${PNAMES[i]}" maxlength="10"
+       style="border-color:${PCOLORS[i]}"
+       onkeydown="if(event.key==='Enter'){var nx=document.getElementById('ni${i+1}');nx?nx.focus():startWithNames(${n})}">`
+    ).join('')+
+    `<button class="pbtn" style="margin-top:4px;padding:9px 30px" onclick="startWithNames(${n})">開始遊戲 ▶</button>`;
+  setTimeout(()=>{const el=document.getElementById('ni0');if(el)el.select();},60);
+}
+
+function startWithNames(n){
+  const names=Array.from({length:n},(_,i)=>{
+    const v=(document.getElementById(`ni${i}`)?.value||'').trim();
+    return v||PNAMES[i];
+  });
+  startGame(n,names);
+}
+
+function startGame(n, names=PNAMES){
   document.getElementById('title').style.display='none';
   document.getElementById('game').style.display='flex';
-  newGame(n);
+  newGame(n,names);
   addLog(`🐔 全軍出雞開始！${n}人局`,'lp');
   addLog(`第1回合 — ${G.players[0].name} 先手`,'lp');
   render();
+}
+
+function renamePlayer(pi){
+  const cur=G.players[pi].name;
+  const nw=(prompt(`玩家${pi+1} 新名稱：`,cur)||'').trim();
+  if(nw&&nw!==cur){G.players[pi].name=nw;render();}
 }
 </script>
 </body>
