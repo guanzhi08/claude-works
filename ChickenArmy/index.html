@@ -133,9 +133,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
   font-weight:bold;transition:all .15s;white-space:nowrap;flex-shrink:0;touch-action:manipulation;
   min-height:36px}
 .abtn:disabled{opacity:.3;cursor:default}
-.b-rot{background:#3498db;color:#fff}.b-rot:active:not(:disabled){background:#2471a3}
-.b-ok{background:#27ae60;color:#fff}.b-ok:active:not(:disabled){background:#1e8449}
-.b-skip{background:#555;color:#ccc}.b-skip:active:not(:disabled){background:#666}
+.b-rot{background:#3498db;color:#fff;padding:10px 20px;font-size:1.3rem;min-height:48px;min-width:52px}
+.b-rot:active:not(:disabled){background:#2471a3}
+.b-ok{background:#27ae60;color:#fff;padding:10px 20px;font-size:1.3rem;min-height:48px;min-width:52px}
+.b-ok:active:not(:disabled){background:#1e8449}
 .b-next{background:#f1c40f;color:#1a1a2e}.b-next:active:not(:disabled){background:#d4ac0d}
 
 /* ── LOG ── */
@@ -211,12 +212,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
     <div id="rowcards"></div>
   </div>
 
-  <!-- action bar: msg + rotate + place + skip + next -->
+  <!-- action bar: msg + rotate + place + next -->
   <div id="actbar">
     <div id="actmsg">請選牌</div>
     <button class="abtn b-rot" id="brot" onclick="doRotate()" disabled>↻</button>
     <button class="abtn b-ok"  id="bok"  onclick="doConfirm()" disabled>✓</button>
-    <button class="abtn b-skip" id="bskip" onclick="doSkip()" disabled>跳過</button>
     <button class="abtn b-next" id="bnext" onclick="doNext()" disabled>下一步▶</button>
   </div>
   <div id="logwrap"><div id="logbox"></div></div>
@@ -848,7 +848,7 @@ function renderActBar(){
 
   if(G.phase==='deploy'){
     const coins=terrCoins(cp.territory);
-    e('bskip').disabled=false; e('bnext').disabled=true;
+    e('bnext').disabled=true;
     e('brot').disabled=G.selCardId===null;
     e('bok').disabled=!(G.selCardId!==null&&G.pendingPos);
     if(G.pendingPos){
@@ -862,11 +862,11 @@ function renderActBar(){
     }
   }else if(G.phase==='combat'){
     e('brot').disabled=true; e('bok').disabled=true;
-    e('bskip').disabled=true; e('bnext').disabled=false;
+    e('bnext').disabled=false;
     e('actmsg').textContent='⚔ 戰鬥結算，按下一步進入盤整';
   }else{
     e('brot').disabled=true; e('bok').disabled=true;
-    e('bskip').disabled=true; e('bnext').disabled=false;
+    e('bnext').disabled=false;
     e('actmsg').textContent='🔄 盤整完畢，按下一步開始下回合';
   }
 }
