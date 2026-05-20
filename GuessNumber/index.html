@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>猜數字對戰</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -310,14 +310,17 @@ function createRoom(){
   showScreen('waiting-screen');
   $('wait-status').textContent = '房間建立中…';
   if(peer){ peer.destroy(); }
-  peer = new Peer('gn-' + roomCode);
-  peer.on('open', function(){ $('wait-status').textContent = '房間已就緒，等待對手加入…'; });
+  // Deterministic peer ID (same pattern as brave-rats)
+  peer = new Peer('gn-' + roomCode + '-h');
+  peer.on('open', function(){
+    $('wait-status').textContent = '房間已就緒，等待對手加入…';
+  });
   peer.on('connection', function(c){
     conn = c;
-    setupConn();
+    setupConn();       // exactly like brave-rats: conn = c; setupGame();
     startCoinFlip();
   });
-  peer.on('error', function(e){ setErr('連線錯誤：' + e.type); backToLobby(); });
+  peer.on('error', function(e){ setErr('連線錯誤：' + e.type); });
 }
 
 function joinRoom(){
@@ -326,13 +329,14 @@ function joinRoom(){
   setErr('連線中…');
   roomCode = code; isHost = false;
   if(peer){ peer.destroy(); }
-  peer = new Peer();
+  // Deterministic peer ID (same pattern as brave-rats)
+  peer = new Peer('gn-' + code + '-g');
   peer.on('open', function(){
-    conn = peer.connect('gn-' + code);
-    setupConn();
+    conn = peer.connect('gn-' + code + '-h');
+    setupConn();       // exactly like brave-rats: conn = peer.connect(...); setupGame();
     startCoinFlip();
   });
-  peer.on('error', function(){ setErr('找不到房間或連線失敗'); });
+  peer.on('error', function(e){ setErr('連線錯誤：' + e.type); });
 }
 
 function setupConn(){
@@ -340,7 +344,6 @@ function setupConn(){
   conn.on('close', function(){
     if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
   });
-  conn.on('error', function(e){ showModal('連線錯誤', String(e), '返回大廳', backToLobby); });
 }
 
 function backToLobby(){
