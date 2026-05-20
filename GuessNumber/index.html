@@ -310,8 +310,11 @@ function createRoom(){
   peer = new Peer('gn-' + roomCode);
   peer.on('open', function(){ $('wait-status').textContent = '房間已就緒，等待對手加入…'; });
   peer.on('connection', function(c){
-    conn = c; setupConn();
-    $('wait-status').textContent = '對手已連線！';
+    conn = c;
+    setupConn();
+    // Host starts coin flip immediately; actual send() happens after 1.5s animation
+    // so DataChannel is guaranteed open by then
+    startCoinFlip();
   });
   peer.on('error', function(e){ setErr('連線錯誤：' + e.type); backToLobby(); });
 }
@@ -331,16 +334,13 @@ function joinRoom(){
 }
 
 function setupConn(){
-  var flipStarted = false;
-  function onOpen(){
-    if(flipStarted) return;
-    flipStarted = true;
-    setErr('');
-    startCoinFlip();
+  // Guest waits for DataChannel open; host calls startCoinFlip() directly
+  if(!isHost){
+    conn.on('open', function(){
+      setErr('');
+      startCoinFlip();
+    });
   }
-  conn.on('open', onOpen);
-  // Host's DataChannel may already be open by the time we register the handler
-  if(conn.open) onOpen();
   conn.on('data', handleMsg);
   conn.on('close', function(){
     if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
