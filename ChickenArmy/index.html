@@ -461,31 +461,52 @@ function runCombat(){
       dmg[d]+=tot;
     }
   }
-  G.players.forEach((p,i)=>{if(!p.eliminated)p.hp=Math.max(0,p.hp-dmg[i]);});
-  render();
-  const lines=G.players
-    .map((p,i)=>(!p.eliminated&&dmg[i]>0)?`${p.name}  -${dmg[i]}HP → ❤${p.hp}`:null)
-    .filter(Boolean);
-  showModal('⚔ 戰鬥結算',lines.length?lines.join('\n'):'本回合無傷害','確認',()=>{
-    hideModal();runRegroup();
-  });
-}
 
-function runRegroup(){
-  G.phase='regroup';
-  addLog('═══ 🔄 盤整 ═══','lp');
+  // 1. 扣血
+  G.players.forEach((p,i)=>{if(!p.eliminated)p.hp=Math.max(0,p.hp-dmg[i]);});
+
+  // 2. 先淘汰 HP≤0 的玩家（藥水不能救）
+  const deadLines=[];
+  G.players.forEach(p=>{
+    if(!p.eliminated&&p.hp<=0){
+      p.eliminated=true;
+      addLog(`💀 ${p.name} 淘汰`,'le');
+      deadLines.push(`💀 ${p.name} 淘汰`);
+    }
+  });
+
+  // 3. 存活者回血
+  const healLines=[];
   G.players.forEach(p=>{
     if(p.eliminated)return;
     const{potions}=countRes(p.territory);
-    if(potions>0){p.hp=Math.min(30,p.hp+potions);addLog(`${p.name} +${potions}HP→${p.hp}`,'lh');}
+    if(potions>0){
+      p.hp=Math.min(30,p.hp+potions);
+      addLog(`${p.name} 🧪+${potions}HP→${p.hp}`,'lh');
+      healLines.push(`${p.name} 🧪+${potions}HP → ❤${p.hp}`);
+    }
   });
-  G.players.forEach(p=>{
-    if(!p.eliminated&&p.hp<=0){p.eliminated=true;addLog(`💀 ${p.name} 淘汰`,'le');}
-  });
+
+  render();
+
+  // 組合 Modal 內容
+  const dmgLines=G.players
+    .map((p,i)=>(!p.eliminated||deadLines.some(l=>l.includes(p.name)))&&dmg[i]>0
+      ?`${p.name}  -${dmg[i]}HP`:null)
+    .filter(Boolean);
+  const parts=[];
+  if(dmgLines.length) parts.push(dmgLines.join('\n'));
+  if(healLines.length) parts.push(healLines.join('\n'));
+  if(deadLines.length) parts.push(deadLines.join('\n'));
+  if(!parts.length) parts.push('本回合無傷害');
+
   const alive=activePlayers();
-  if(alive.length<=1){endGame(alive[0]||null);return;}
-  if(G.deck.length===0&&G.row.filter(x=>x!=null).length===0){endByScore();return;}
-  startNextRound();
+  showModal('⚔ 戰鬥結算',parts.join('\n\n'),alive.length<=1?'查看結果':'確認，開始下回合',()=>{
+    hideModal();
+    if(alive.length<=1){endGame(alive[0]||null);return;}
+    if(G.deck.length===0&&G.row.filter(x=>x!=null).length===0){endByScore();return;}
+    startNextRound();
+  });
 }
 
 function startNextRound(){
