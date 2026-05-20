@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v6</title>
+<title>猜數字對戰 v7</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -31,48 +31,83 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
 #qrbox{background:#fff;padding:10px;border-radius:10px}
 .room-code{font-size:2.2rem;font-weight:700;letter-spacing:10px;color:#818cf8;text-align:center}
 
-/* digit slots */
-.drow{display:flex;gap:8px;justify-content:center}
-.ds{width:54px;height:66px;background:#1e293b;border:2px solid #334155;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#f8fafc;transition:.12s}
+/* slots row — shared by set-screen and guess-area */
+.slots-row{display:flex;align-items:center;gap:7px;justify-content:center;margin-bottom:6px}
+.ds{width:52px;height:56px;background:#1e293b;border:2px solid #334155;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:700;color:#f8fafc;transition:.12s}
 .ds.on{border-color:#6366f1;color:#818cf8}
 
-/* numpad */
-.np{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:100%}
-.nk{aspect-ratio:1;background:#1e293b;border:2px solid #334155;border-radius:10px;color:#f1f5f9;font-size:1.2rem;font-weight:600;cursor:pointer;transition:.1s;display:flex;align-items:center;justify-content:center;user-select:none;border:none}
+/* small delete button right of slots */
+.del-btn{width:34px;height:56px;background:#7f1d1d;color:#fca5a5;border:none;border-radius:8px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.1s}
+.del-btn:active{background:#991b1b;transform:scale(.92)}
+
+/* numpad — digits only (no del inside grid) */
+.np{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;width:100%;max-width:320px;margin:0 auto}
+.nk{aspect-ratio:1;background:#1e293b;border:none;border-radius:10px;color:#f1f5f9;font-size:1.15rem;font-weight:600;cursor:pointer;transition:.1s;display:flex;align-items:center;justify-content:center;user-select:none}
 .nk:active{background:#334155;transform:scale(.93)}
-.nk.dim{background:#0f172a;border:none;color:#1e3a5f;pointer-events:none}
-.nk.del{background:#7f1d1d;color:#fca5a5;grid-column:span 2}
-.nk.del:active{background:#991b1b}
-.nk.sub{background:#6366f1;color:#fff;grid-column:span 5;aspect-ratio:auto;padding:11px;font-size:1rem}
+.nk.dim{background:#0f172a;color:#1e3a5f;pointer-events:none}
+.nk.sub{background:#6366f1;color:#fff;grid-column:span 5;aspect-ratio:auto;padding:10px;font-size:.95rem}
 .nk.sub:active{background:#4f46e5}
 .nk.sub:disabled{opacity:.35;pointer-events:none}
 
-/* ── GAME ── */
-#game-screen{height:100dvh;max-width:480px;overflow:hidden;padding:6px 10px;justify-content:flex-start;gap:6px}
+/* ── GAME SCREEN ── */
+#game-screen{height:100dvh;max-width:480px;overflow:hidden;padding:5px 8px;justify-content:flex-start;gap:4px}
 .ghdr{display:flex;align-items:center;justify-content:space-between;width:100%;flex-shrink:0}
-.tpill{padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+.tpill{padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:700}
 .tm{background:#166534;color:#86efac}.to{background:#7f1d1d;color:#fca5a5}
-.ans-lbl{font-size:.7rem;color:#64748b}
-.ans-val{font-size:.85rem;color:#818cf8;letter-spacing:3px;font-weight:700}
+.ans-lbl{font-size:.68rem;color:#64748b}
+.ans-val{font-size:.82rem;color:#818cf8;letter-spacing:3px;font-weight:700}
 
-.efrow{display:flex;gap:4px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:20px}
-.eb{font-size:.68rem;padding:2px 7px;border-radius:12px;background:#1c1917;color:#fbbf24;border:1px solid #78350f}
+.efrow{display:flex;gap:4px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:14px}
+.eb{font-size:.63rem;padding:2px 6px;border-radius:12px;background:#1c1917;color:#fbbf24;border:1px solid #78350f}
 
-.panel{background:#1e293b;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;min-height:0}
-.pttl{font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;flex-shrink:0;display:flex;align-items:center;gap:6px}
-.hbadge{background:#dc2626;color:#fff;padding:1px 6px;border-radius:8px;font-size:.6rem}
-.log{flex:1;overflow-y:auto;font-size:.8rem;line-height:1.6;color:#cbd5e1}
-.log::-webkit-scrollbar{width:3px}.log::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+/* three-column log */
+.log-area{display:flex;gap:4px;width:100%;flex:1;min-height:0}
+.log-col{flex:1;background:#1e293b;border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.lcttl{font-size:.56rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;flex-shrink:0;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.hbadge{background:#dc2626;color:#fff;padding:1px 4px;border-radius:5px;font-size:.52rem}
+.log{flex:1;overflow-y:auto;font-size:.7rem;line-height:1.5;color:#cbd5e1;word-break:break-all}
+.log::-webkit-scrollbar{width:2px}.log::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
 .le{color:#93c5fd}.lr{color:#a7f3d0}.lt{color:#fde68a}.ls{color:#64748b;font-style:italic}
+/* guess entry: number left, result right */
+.lg{display:flex;justify-content:space-between;align-items:baseline;gap:2px}
+.lg-n{letter-spacing:2px;font-weight:600;flex-shrink:0;color:#93c5fd}
+.le .lg-r{color:#475569}
+.lr .lg-r{color:#a7f3d0}
 
-.trow{display:flex;gap:6px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:28px}
-.tc{background:#1e3a5f;border:1.5px solid #2563eb;border-radius:8px;padding:5px 11px;font-size:.75rem;font-weight:600;color:#93c5fd;cursor:pointer;transition:.12s;white-space:nowrap;user-select:none}
-.tc:active{background:#1d4ed8;transform:scale(.95)}
-.tc.passive{border-color:#475569;color:#94a3b8;pointer-events:none;background:#1a2030}
-.tc.spent{opacity:.3;pointer-events:none}
+/* ── POKER CARD TOOLS ── */
+.trow{display:flex;gap:6px;width:100%;flex-shrink:0;overflow-x:auto;padding-bottom:2px;align-items:center}
+.trow:empty{display:none}
+.trow::-webkit-scrollbar{height:2px}.trow::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+.tc{
+  width:52px;height:68px;flex-shrink:0;position:relative;
+  background:linear-gradient(155deg,#1e3a5f 0%,#172554 100%);
+  border:2px solid #2563eb;border-radius:8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:7px 4px 6px;cursor:pointer;transition:.12s;user-select:none;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.tc:active{transform:scale(.9);border-color:#60a5fa;box-shadow:0 0 12px rgba(96,165,250,.4)}
+.tc.spent{opacity:.25;pointer-events:none}
+.tc.passive{background:linear-gradient(155deg,#1a2535 0%,#111827 100%);border-color:#475569;cursor:default}
+.tc.passive:active{transform:none;box-shadow:none}
+.tc-icon{font-size:1.45rem;line-height:1}
+.tc-name{font-size:.58rem;font-weight:700;color:#93c5fd;text-align:center;line-height:1.2}
+.tc.passive .tc-name{color:#64748b}
+/* card corner dot */
+.tc::before{content:'';position:absolute;top:3px;right:3px;width:4px;height:4px;background:#2563eb;border-radius:50%}
+.tc.passive::before{background:#475569}
 
+/* card info panel (below card row) */
+.card-info{display:none;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:8px 10px;width:100%;flex-shrink:0;align-items:center;gap:8px;cursor:pointer}
+.card-info.show{display:flex}
+.ci-icon{font-size:1.5rem;flex-shrink:0}
+.ci-body{flex:1;min-width:0}
+.ci-name{font-size:.82rem;font-weight:700;color:#f8fafc}
+.ci-desc{font-size:.68rem;color:#94a3b8;line-height:1.4;margin-top:2px}
+#ci-use-btn{width:auto;padding:6px 13px;font-size:.8rem;flex-shrink:0}
+
+/* guess area */
 .ga{flex-shrink:0;width:100%}
-.gslots{display:flex;gap:7px;justify-content:center;margin-bottom:7px}
 .gsl{width:46px;height:56px;background:#0f172a;border:2px solid #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#f8fafc;transition:.12s}
 .gsl.on{border-color:#6366f1;color:#818cf8}
 
@@ -97,7 +132,7 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
 <div id="lobby-screen" class="screen active">
   <h1>🔢 猜數字對戰</h1>
   <p class="sub">WebRTC 雙人即時對戰・道具策略</p>
-  <p style="font-size:.65rem;color:#475569">v6</p>
+  <p style="font-size:.65rem;color:#475569">v7</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:8px;width:100%">
     <div style="flex:1;height:1px;background:#334155"></div>
@@ -120,18 +155,17 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
   <button class="btn bs" style="width:auto;padding:9px 24px" id="cancel-btn">取消</button>
 </div>
 
-<!-- COIN screen removed: host always goes first -->
-
 <!-- SET ANSWER -->
 <div id="set-screen" class="screen">
   <h2>設定你的答案</h2>
   <p class="sub">4 位不重複數字（0–9）</p>
-  <div class="drow" id="ans-slots">
+  <div class="slots-row">
     <div class="ds" id="as0"></div><div class="ds" id="as1"></div>
     <div class="ds" id="as2"></div><div class="ds" id="as3"></div>
+    <button class="del-btn" id="ans-del">⌫</button>
   </div>
   <div class="np" id="ans-np"></div>
-  <div class="row">
+  <div class="row" style="max-width:320px;width:100%">
     <button class="btn bs" id="rnd-btn">🎲 隨機</button>
     <button class="btn bp" id="ans-ok" disabled>確認答案</button>
   </div>
@@ -145,19 +179,34 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
     <div><span class="ans-lbl">我的答案 </span><span class="ans-val" id="my-ans"></span></div>
   </div>
   <div class="efrow" id="efrow"></div>
-  <div class="panel" style="flex:1.2">
-    <div class="pttl">對手猜測紀錄 <span class="hbadge" id="opp-hbadge" style="display:none">隱藏中</span></div>
-    <div class="log" id="opp-log"></div>
-  </div>
-  <div class="panel" style="flex:1">
-    <div class="pttl">我的猜測紀錄</div>
-    <div class="log" id="my-log"></div>
+  <div class="log-area">
+    <div class="log-col">
+      <div class="lcttl">對手 <span class="hbadge" id="opp-hbadge" style="display:none">藏</span></div>
+      <div class="log" id="opp-log"></div>
+    </div>
+    <div class="log-col">
+      <div class="lcttl">訊息</div>
+      <div class="log" id="sys-log"></div>
+    </div>
+    <div class="log-col">
+      <div class="lcttl">我的猜測</div>
+      <div class="log" id="my-log"></div>
+    </div>
   </div>
   <div class="trow" id="tools-row"></div>
+  <div class="card-info" id="card-info">
+    <span class="ci-icon" id="ci-icon"></span>
+    <div class="ci-body">
+      <div class="ci-name" id="ci-name"></div>
+      <div class="ci-desc" id="ci-desc"></div>
+    </div>
+    <button class="btn bp" id="ci-use-btn">使用</button>
+  </div>
   <div class="ga" id="guess-area">
-    <div class="gslots">
+    <div class="slots-row">
       <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
       <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
+      <button class="del-btn" id="guess-del">⌫</button>
     </div>
     <div class="np" id="guess-np"></div>
   </div>
@@ -205,12 +254,16 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
 // CARD DEFINITIONS
 // ═══════════════════════════════════════════
 var CARDS = {
-  interrogation: { name:'審訊',   desc:'宣告一個數字，對手選擇：告知有無，或跳過本回合猜測' },
-  extortion:     { name:'勒索',   desc:'指定一個位置，對手選擇：告知確切數字，或跳過本回合' },
-  fog:           { name:'霧化',   desc:'對手下一次猜測只看到模糊結果（共幾個數字出現）' },
-  focus:         { name:'聚焦',   desc:'對手下一次猜測時，你額外看到詳細位置（對手只看正常）' },
-  peek:          { name:'偷窺',   desc:'可以看到對手猜測紀錄 2 回合' },
-  secret:        { name:'保密',   desc:'你的猜測紀錄對對手隱藏 2 回合' },
+  interrogation: { name:'審訊', icon:'🔍', desc:'宣告一個數字，對手選擇：告知有無，或跳過本回合猜測' },
+  extortion:     { name:'勒索', icon:'💰', desc:'指定一個位置，對手選擇：告知確切數字，或跳過本回合' },
+  fog:           { name:'霧化', icon:'🌀', desc:'對手下一次猜測只看到模糊結果（共幾個數字出現）' },
+  focus:         { name:'聚焦', icon:'🎯', desc:'對手下一次猜測時，你額外看到詳細位置（對手只看正常）' },
+  peek:          { name:'偷窺', icon:'🔭', desc:'可以看到對手猜測紀錄 2 回合' },
+  secret:        { name:'保密', icon:'🔐', desc:'你的猜測紀錄對對手隱藏 2 回合' },
+};
+var PASSIVE_CARDS = {
+  shield:  { name:'護盾', icon:'🛡', desc:'對手出牌時可使用：取消對方效果（僅一次）' },
+  reflect: { name:'反射', icon:'↩',  desc:'對手出牌時可使用：將效果反彈回對手（僅一次）' },
 };
 var POOL = Object.keys(CARDS);
 
@@ -220,7 +273,6 @@ var POOL = Object.keys(CARDS);
 var peer = null, conn = null, isHost = false, roomCode = '';
 var myReady = false, oppReady = false;
 
-// Per-game state
 var G = {};
 function resetG(myTurn){
   G = {
@@ -230,18 +282,16 @@ function resetG(myTurn){
     myCards:     [],
     myLog:       [],
     oppLog:      [],
+    sysLog:      [],
     input:       [],
     lastGuess:   [],
     milestone:   { 1:false, 2:false, 3:false },
-    // Effects (my perspective as defender when opp guesses):
-    fogOppNext:    false,  // fog opponent's next guess result
-    focusOppNext:  false,  // see detail of opponent's next guess
-    peekRounds:    0,      // rounds left to see opp log
-    // Effects on me (as guesser):
-    secretRounds:  0,      // my log hidden from opp for N rounds
+    fogOppNext:    false,
+    focusOppNext:  false,
+    peekRounds:    0,
+    secretRounds:  0,
     skipMe:        false,
     skipOpp:       false,
-    // Counter resources
     myShield:  true,
     myReflect: true,
     usedTool:  false,
@@ -295,7 +345,6 @@ function createRoom(){
   showScreen('waiting-screen');
   $('wait-status').textContent = '房間建立中…';
   if(peer){ peer.destroy(); }
-  // Deterministic peer ID (same pattern as brave-rats)
   peer = new Peer('gn-' + roomCode + '-h');
   peer.on('open', function(){
     $('wait-status').textContent = '房間已就緒，等待對手加入…';
@@ -314,7 +363,6 @@ function joinRoom(){
   setErr('連線中…');
   roomCode = code; isHost = false;
   if(peer){ peer.destroy(); }
-  // Random peer ID for guest to avoid re-use conflicts on retry
   peer = new Peer();
   peer.on('open', function(){
     conn = peer.connect('gn-' + code + '-h');
@@ -335,6 +383,7 @@ function backToLobby(){
   if(peer){ peer.destroy(); peer = null; }
   conn = null; myReady = false; oppReady = false;
   $('qrbox').innerHTML = '';
+  hideCardInfo();
   showScreen('lobby-screen');
 }
 
@@ -355,13 +404,11 @@ function initSetScreen(){
   $('ans-ok').disabled = true;
   buildNumpad('ans-np', function(d){
     if(ansDigits.length < 4 && !ansDigits.includes(d)){ ansDigits.push(d); renderAns(); }
-  }, function(){
-    ansDigits.pop(); renderAns();
   });
   renderAns();
 }
 
-function buildNumpad(npId, onDigit, onDel){
+function buildNumpad(npId, onDigit){
   var np = $(npId); np.innerHTML = '';
   for(var i = 0; i < 10; i++){
     (function(d){
@@ -371,10 +418,6 @@ function buildNumpad(npId, onDigit, onDel){
       np.appendChild(b);
     })(i);
   }
-  var del = document.createElement('button');
-  del.className = 'nk del'; del.textContent = '⌫';
-  del.addEventListener('click', onDel);
-  np.appendChild(del);
 }
 
 function renderAns(){
@@ -443,37 +486,70 @@ function renderGame(){
   $('opp-hbadge').style.display = oppHide ? '' : 'none';
   renderLog('opp-log', G.oppLog, oppHide);
   renderLog('my-log',  G.myLog,  false);
+  renderLog('sys-log', G.sysLog, false);
 
   renderTools();
   renderEffects();
   renderGuessSlots();
 }
 
+function renderLogEntry(e){
+  if((e.c === 'le' || e.c === 'lr') && e.t.indexOf('  ') !== -1){
+    var idx = e.t.indexOf('  ');
+    var num = e.t.substring(0, idx);
+    var res = e.t.substring(idx + 2);
+    return '<div class="lg '+e.c+'"><span class="lg-n">'+num+'</span><span class="lg-r">'+res+'</span></div>';
+  }
+  return '<div class="'+e.c+'">'+e.t+'</div>';
+}
+
 function renderLog(id, log, hidden){
   var el = $(id);
-  if(hidden){ el.innerHTML = '<span class="ls">紀錄已隱藏</span>'; return; }
-  el.innerHTML = log.map(function(e){ return '<div class="'+e.c+'">'+e.t+'</div>'; }).join('');
+  if(!el || !log) return;
+  if(hidden){ el.innerHTML = '<span class="ls">隱藏中</span>'; return; }
+  el.innerHTML = log.map(renderLogEntry).join('');
   el.scrollTop = el.scrollHeight;
 }
 
+// ═══════════════════════════════════════════
+// POKER CARD TOOLS
+// ═══════════════════════════════════════════
 function renderTools(){
   var row = $('tools-row'); row.innerHTML = '';
-  if(!G.myTurn) return;
-  G.myCards.forEach(function(card){
-    var b = document.createElement('button');
-    b.className = 'tc' + (G.usedTool ? ' spent' : '');
-    b.textContent = CARDS[card].name; b.title = CARDS[card].desc;
-    b.addEventListener('click', function(){ playTool(card); });
-    row.appendChild(b);
+  hideCardInfo();
+  if(G.myTurn){
+    G.myCards.forEach(function(card){
+      row.appendChild(makeCard(card, false, G.usedTool));
+    });
+  }
+  if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
+  if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
+}
+
+function makeCard(cardId, passive, spent){
+  var info = passive ? PASSIVE_CARDS[cardId] : CARDS[cardId];
+  var el = document.createElement('div');
+  el.className = 'tc' + (passive ? ' passive' : '') + (spent ? ' spent' : '');
+  el.innerHTML = '<span class="tc-icon">'+info.icon+'</span><span class="tc-name">'+info.name+'</span>';
+  el.addEventListener('click', function(){
+    showCardInfo(cardId, info.icon, info.name, info.desc, !passive && !spent && G.myTurn);
   });
-  if(G.myShield){
-    var bs = document.createElement('button'); bs.className='tc passive';
-    bs.textContent='🛡 護盾'; bs.title='對手出牌時被動觸發'; row.appendChild(bs);
-  }
-  if(G.myReflect){
-    var br = document.createElement('button'); br.className='tc passive';
-    br.textContent='↩ 反射'; br.title='對手出牌時被動觸發'; row.appendChild(br);
-  }
+  return el;
+}
+
+function showCardInfo(cardId, icon, name, desc, canUse){
+  $('ci-icon').textContent = icon;
+  $('ci-name').textContent = name;
+  $('ci-desc').textContent = desc;
+  var useBtn = $('ci-use-btn');
+  useBtn.style.display = canUse ? '' : 'none';
+  $('card-info').dataset.card = canUse ? cardId : '';
+  $('card-info').classList.add('show');
+}
+
+function hideCardInfo(){
+  $('card-info').classList.remove('show');
+  $('card-info').dataset.card = '';
 }
 
 function renderEffects(){
@@ -503,11 +579,6 @@ function buildGuessNumpad(){
       np.appendChild(b);
     })(i);
   }
-  var del = document.createElement('button');
-  del.className='nk del'; del.textContent='⌫';
-  del.addEventListener('click', function(){ G.input.pop(); renderGuessSlots(); });
-  np.appendChild(del);
-
   var sub = document.createElement('button');
   sub.className='nk sub'; sub.id='gsub'; sub.textContent='送出猜測';
   sub.addEventListener('click', submitGuess);
@@ -538,7 +609,7 @@ function submitGuess(){
   if(!G.myTurn || G.input.length!==4) return;
   G.lastGuess = G.input.slice();
   send({ type:'guess', digits:G.lastGuess });
-  addLog('my', '我猜 '+G.lastGuess.join('')+' → …', 'le');
+  addLog('my', G.lastGuess.join('') + '  …', 'le');
   G.input = [];
   renderGuessSlots();
 }
@@ -562,86 +633,39 @@ function resolveMyTool(card, action){
   if(action==='shield'){
     addLog('my','🛡 對手護盾，'+CARDS[card].name+' 被取消','lt');
   } else if(action==='reflect'){
-    addLog('my','↩ 對手反射了「'+CARDS[card].name+'」，效果轉向自己','lt');
-    applyToolEffect(card, true);  // reflected → hits me
+    addLog('my','↩ 對手反射了「'+CARDS[card].name+'」','lt');
+    applyToolEffect(card, true);
   } else {
-    applyToolEffect(card, false); // hits opponent
+    applyToolEffect(card, false);
   }
   renderTools();
 }
 
-// Apply a tool effect from MY perspective
-// hitMe=false → I played it on opp; hitMe=true → reflected back on me
 function applyToolEffect(card, hitMe){
   if(!hitMe){
-    // Effect on opponent
     switch(card){
-      case 'fog':
-        G.fogOppNext = true;
-        send({type:'fx_fog'});
-        addLog('my','霧化：對手下次猜測只看模糊結果','lt');
-        break;
-      case 'focus':
-        G.focusOppNext = true;
-        send({type:'fx_focus'});
-        addLog('my','聚焦：對手下次猜測你將看到詳細位置','lt');
-        break;
-      case 'peek':
-        G.peekRounds = 2;
-        send({type:'fx_peek'});
-        addLog('my','偷窺：你可看到對手紀錄 2 回合','lt');
-        break;
-      case 'secret':
-        // My log hidden from opp for 2 rounds
-        send({type:'fx_secret'});
-        addLog('my','保密：對手的猜測紀錄對你隱藏 2 回合','lt');
-        break;
-      case 'interrogation':
-        openInterrogation();
-        break;
-      case 'extortion':
-        openExtortion();
-        break;
+      case 'fog':    G.fogOppNext=true; send({type:'fx_fog'}); addLog('my','霧化：對手下次猜測模糊','lt'); break;
+      case 'focus':  G.focusOppNext=true; send({type:'fx_focus'}); addLog('my','聚焦：對手猜測你將看到詳細位置','lt'); break;
+      case 'peek':   G.peekRounds=2; send({type:'fx_peek'}); addLog('my','偷窺：看對手紀錄 2 回合','lt'); break;
+      case 'secret': send({type:'fx_secret'}); addLog('my','保密：對手猜測紀錄對你隱藏 2 回合','lt'); break;
+      case 'interrogation': openInterrogation(); break;
+      case 'extortion':     openExtortion(); break;
     }
   } else {
-    // Reflected: effect hits me
     switch(card){
-      case 'fog':
-        // My next guess result will be fogged — opponent needs to know
-        send({type:'fx_fog_me'});
-        addLog('my','霧化反射：你的下次猜測結果模糊','lt');
-        break;
-      case 'focus':
-        // Opponent will see detail of my next guess
-        send({type:'fx_focus_me'});
-        addLog('my','聚焦反射：對手將看到你的詳細猜測結果','lt');
-        break;
-      case 'peek':
-        // Opponent sees my log for 2 rounds
-        send({type:'fx_peek_me'});
-        addLog('my','偷窺反射：對手看到你的紀錄 2 回合','lt');
-        break;
-      case 'secret':
-        G.secretRounds = 2;
-        send({type:'fx_secret_me'});
-        addLog('my','保密反射：你的紀錄對對手隱藏 2 回合','lt');
-        break;
-      case 'interrogation':
-        // Interrogation reflected: opp will query us
-        send({type:'fx_interrogation_me'});
-        addLog('my','審訊反射：對手將向你發問','lt');
-        break;
-      case 'extortion':
-        send({type:'fx_extortion_me'});
-        addLog('my','勒索反射：對手將向你發問','lt');
-        break;
+      case 'fog':    send({type:'fx_fog_me'}); addLog('my','霧化反射：你的下次猜測結果模糊','lt'); break;
+      case 'focus':  send({type:'fx_focus_me'}); addLog('my','聚焦反射：對手將看到你的詳細猜測結果','lt'); break;
+      case 'peek':   send({type:'fx_peek_me'}); addLog('my','偷窺反射：對手看到你的紀錄 2 回合','lt'); break;
+      case 'secret': G.secretRounds=2; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手隱藏 2 回合','lt'); break;
+      case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：對手將向你發問','lt'); break;
+      case 'extortion':     send({type:'fx_extortion_me'}); addLog('my','勒索反射：對手將向你發問','lt'); break;
     }
   }
   renderEffects();
 }
 
 // ═══════════════════════════════════════════
-// INTERROGATION & EXTORTION (asker side)
+// INTERROGATION & EXTORTION
 // ═══════════════════════════════════════════
 function openInterrogation(){
   var box=$('query-box'); box.innerHTML='';
@@ -688,7 +712,7 @@ function sendExtortion(pos){
 }
 
 // ═══════════════════════════════════════════
-// COUNTER (my turn to respond to opp's card)
+// COUNTER
 // ═══════════════════════════════════════════
 var ctrInterval = null, ctrCard = null, ctrCb = null;
 
@@ -716,7 +740,6 @@ function doCounter(action){
   if(ctrCb) ctrCb(action);
 }
 
-// Wire counter buttons
 document.getElementById('cbtn-pass').addEventListener('click',    function(){ doCounter('pass'); });
 document.getElementById('cbtn-shield').addEventListener('click',  function(){ doCounter('shield'); });
 document.getElementById('cbtn-reflect').addEventListener('click', function(){ doCounter('reflect'); });
@@ -728,9 +751,10 @@ function showOffer(cards){
   var el=$('offer-list'); el.innerHTML='';
   cards.forEach(function(card){
     var d=document.createElement('div');
-    d.style.cssText='background:#1e3a5f;border:2px solid #2563eb;border-radius:10px;padding:12px;cursor:pointer';
-    d.innerHTML='<div style="color:#93c5fd;font-weight:700;margin-bottom:4px">'+CARDS[card].name+'</div>'
-               +'<div style="color:#94a3b8;font-size:.8rem">'+CARDS[card].desc+'</div>';
+    d.style.cssText='background:#1e3a5f;border:2px solid #2563eb;border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:10px';
+    d.innerHTML='<span style="font-size:1.5rem">'+CARDS[card].icon+'</span>'
+      +'<div><div style="color:#93c5fd;font-weight:700;margin-bottom:3px">'+CARDS[card].name+'</div>'
+      +'<div style="color:#94a3b8;font-size:.78rem">'+CARDS[card].desc+'</div></div>';
     d.addEventListener('click',function(){ pickCard(card, cards); });
     el.appendChild(d);
   });
@@ -782,11 +806,19 @@ function checkMilestone(a){
 // LOGGING
 // ═══════════════════════════════════════════
 function addLog(side, text, cls){
-  var arr = side==='my' ? G.myLog : G.oppLog;
+  var arr;
+  if(side === 'opp'){
+    arr = G.oppLog;
+  } else if(cls === 'lt' || cls === 'ls'){
+    arr = G.sysLog;
+  } else {
+    arr = G.myLog;
+  }
   arr.push({t:text, c:cls||'ls'});
   if(arr.length>80) arr.splice(0, arr.length-80);
-  if(side==='my') renderLog('my-log', G.myLog, false);
-  else renderLog('opp-log', G.oppLog, G.secretRounds>0);
+  renderLog('opp-log', G.oppLog, G.secretRounds > 0);
+  renderLog('my-log',  G.myLog,  false);
+  renderLog('sys-log', G.sysLog, false);
 }
 
 // ═══════════════════════════════════════════
@@ -802,8 +834,8 @@ function evalGuess(guess, answer){
 }
 
 function fmtResult(a, b, gran, detail){
-  if(gran==='fog') return '共 '+(a+b)+' 個數字出現（模糊）';
-  if(detail) return a+'A'+b+'B ['+detail+']';
+  if(gran==='fog') return '~'+(a+b)+'個';
+  if(detail) return a+'A'+b+'B['+detail+']';
   return a+'A'+b+'B';
 }
 
@@ -823,27 +855,18 @@ function handleMsg(msg){
       oppReady=true; checkBothReady(); break;
 
     case 'guess': {
-      // Opponent guessed MY answer
       var digits = msg.digits;
       var ev = evalGuess(digits, G.myAnswer);
       var gran = 'normal', detail = '';
-
       if(G.fogOppNext){ gran='fog'; G.fogOppNext=false; }
-      if(G.focusOppNext){
-        detail = posDetail(digits, G.myAnswer);
-        G.focusOppNext = false;
-      }
-
+      if(G.focusOppNext){ detail = posDetail(digits, G.myAnswer); G.focusOppNext=false; }
       send({type:'result', a:ev.a, b:ev.b, granularity:gran, detail:detail||undefined});
-
-      // Log in opp panel
       var gStr = digits.join('');
       if(G.peekRounds>0){
-        addLog('opp','對手猜 '+gStr+' → '+fmtResult(ev.a,ev.b,gran,detail),'le');
+        addLog('opp', gStr + '  ' + fmtResult(ev.a,ev.b,gran,detail), 'le');
       } else {
-        addLog('opp','對手猜 ????','ls');
+        addLog('opp', '????', 'ls');
       }
-
       if(ev.a===4){
         G.gameOver=true;
         showModal('遊戲結束','對手猜中了你的答案 '+G.myAnswer.join('')+'！\n你輸了 😢','返回大廳',backToLobby);
@@ -854,18 +877,16 @@ function handleMsg(msg){
     }
 
     case 'result': {
-      // My guess result
       var a=msg.a, b=msg.b, gran=msg.granularity, detail=msg.detail||'';
       var gStr=G.lastGuess.join('');
       var rStr=fmtResult(a,b,gran,detail);
-      // Update last log entry
       var log=G.myLog;
       if(log.length>0 && log[log.length-1].t.endsWith('…')){
-        log[log.length-1].t='我猜 '+gStr+' → '+rStr;
-        log[log.length-1].c='lr';
+        log[log.length-1].t = gStr + '  ' + rStr;
+        log[log.length-1].c = 'lr';
         renderLog('my-log', G.myLog, false);
       } else {
-        addLog('my','我猜 '+gStr+' → '+rStr,'lr');
+        addLog('my', gStr + '  ' + rStr, 'lr');
       }
       if(a===4){
         G.gameOver=true;
@@ -880,54 +901,34 @@ function handleMsg(msg){
 
     case 'play_tool': {
       var card=msg.card;
-      addLog('opp','對手打出「'+CARDS[card].name+'」','lt');
+      addLog('my','對手打出「'+CARDS[card].name+'」','lt');
       showCounter(card, function(action){
         if(action==='shield'){
-          addLog('my','🛡 使用護盾，「'+CARDS[card].name+'」被取消','lt');
-          // no effect on us
+          addLog('my','🛡 護盾，「'+CARDS[card].name+'」被取消','lt');
         } else if(action==='reflect'){
           addLog('my','↩ 反射「'+CARDS[card].name+'」回對手','lt');
-          // effect goes to opponent; their 'counter' message triggers resolve
         } else {
-          // effect hits us
           applyIncomingTool(card, false);
         }
       });
       break;
     }
 
-    case 'counter': {
-      // Response to our own play_tool
-      resolveMyTool(msg.card || G.pendCard, msg.action);
-      break;
-    }
+    case 'counter':
+      resolveMyTool(msg.card || G.pendCard, msg.action); break;
 
-    // ── Incoming fx from opponent's tools ──
-    case 'fx_fog':
-      G.fogOppNext=true; addLog('my','霧化：對手下次猜測結果模糊','lt'); renderEffects(); break;
-    case 'fx_focus':
-      G.focusOppNext=true; addLog('my','聚焦：對手猜測時你將看到詳細結果','lt'); renderEffects(); break;
-    case 'fx_peek':
-      addLog('my','偷窺：對手看到你的紀錄 2 回合','lt'); break;
-    case 'fx_secret':
-      G.secretRounds=2; addLog('my','保密：對手的猜測紀錄對你隱藏 2 回合','lt'); renderEffects(); break;
+    case 'fx_fog':    G.fogOppNext=true;   addLog('my','霧化：對手下次猜測結果模糊','lt'); renderEffects(); break;
+    case 'fx_focus':  G.focusOppNext=true; addLog('my','聚焦：對手猜測你將看到詳細結果','lt'); renderEffects(); break;
+    case 'fx_peek':   addLog('my','偷窺：對手看到你的紀錄 2 回合','lt'); break;
+    case 'fx_secret': G.secretRounds=2;   addLog('my','保密：對手猜測紀錄對你隱藏 2 回合','lt'); renderEffects(); break;
 
-    // ── Reflected fx (effect hits opp = me) ──
-    case 'fx_fog_me':
-      G.fogOppNext=true; addLog('my','霧化（反射）：對手下次猜測結果模糊','lt'); renderEffects(); break;
-    case 'fx_focus_me':
-      G.focusOppNext=true; addLog('my','聚焦（反射）：對手猜測時你將看到詳細結果','lt'); renderEffects(); break;
-    case 'fx_peek_me':
-      addLog('my','偷窺（反射）：對手看到你的紀錄 2 回合','lt'); break;
-    case 'fx_secret_me':
-      G.secretRounds=2; addLog('my','保密（反射）：你的紀錄對對手隱藏 2 回合','lt'); renderEffects(); break;
-    case 'fx_interrogation_me':
-      // Interrogation reflected; opp will send interrogation_q to us
-      addLog('my','審訊（反射）：等待對手向你發問','lt'); break;
-    case 'fx_extortion_me':
-      addLog('my','勒索（反射）：等待對手向你發問','lt'); break;
+    case 'fx_fog_me':    G.fogOppNext=true;   addLog('my','霧化（反射）：對手下次猜測模糊','lt'); renderEffects(); break;
+    case 'fx_focus_me':  G.focusOppNext=true; addLog('my','聚焦（反射）：對手將看到詳細結果','lt'); renderEffects(); break;
+    case 'fx_peek_me':   addLog('my','偷窺（反射）：對手看到你的紀錄 2 回合','lt'); break;
+    case 'fx_secret_me': G.secretRounds=2; addLog('my','保密（反射）：你的紀錄對對手隱藏 2 回合','lt'); renderEffects(); break;
+    case 'fx_interrogation_me': addLog('my','審訊（反射）：等待對手向你發問','lt'); break;
+    case 'fx_extortion_me':     addLog('my','勒索（反射）：等待對手向你發問','lt'); break;
 
-    // ── Interrogation / Extortion query (I am the asked) ──
     case 'interrogation_q': {
       var d=msg.digit, hasIt=G.myAnswer.indexOf(d)>=0;
       var box=$('query-box'); box.innerHTML='';
@@ -942,14 +943,9 @@ function handleMsg(msg){
       break;
     }
     case 'interrogation_a': {
-      $('query-ov').classList.remove('show');
-      hideModal();
-      if(msg.reveal){
-        addLog('my','審訊結果：數字 '+msg.digit+' '+(msg.hasDigit?'在':'不在')+'對手答案中','lt');
-      } else {
-        addLog('my','對手拒絕回答，下回合跳過','lt');
-        G.skipOpp=true; renderEffects();
-      }
+      $('query-ov').classList.remove('show'); hideModal();
+      if(msg.reveal){ addLog('my','審訊：數字 '+msg.digit+' '+(msg.hasDigit?'在':'不在')+'對手答案中','lt'); }
+      else { addLog('my','對手拒絕，下回合跳過','lt'); G.skipOpp=true; renderEffects(); }
       break;
     }
 
@@ -967,14 +963,9 @@ function handleMsg(msg){
       break;
     }
     case 'extortion_a': {
-      $('query-ov').classList.remove('show');
-      hideModal();
-      if(msg.reveal){
-        addLog('my','勒索結果：對手答案第 '+msg.position+' 位是 '+msg.digit,'lt');
-      } else {
-        addLog('my','對手拒絕回答，下回合跳過','lt');
-        G.skipOpp=true; renderEffects();
-      }
+      $('query-ov').classList.remove('show'); hideModal();
+      if(msg.reveal){ addLog('my','勒索：對手第 '+msg.position+' 位是 '+msg.digit,'lt'); }
+      else { addLog('my','對手拒絕，下回合跳過','lt'); G.skipOpp=true; renderEffects(); }
       break;
     }
 
@@ -994,7 +985,6 @@ function handleMsg(msg){
   }
 }
 
-// ─── apply tool that hits me (from opponent) ───
 function applyIncomingTool(card, reflected){
   switch(card){
     case 'fog':    G.fogOppNext=true;   addLog('my','霧化：你的下次猜測結果模糊','lt'); break;
@@ -1005,29 +995,17 @@ function applyIncomingTool(card, reflected){
   renderEffects();
 }
 
-// ─── reply to interrogation/extortion query ───
 function replyInterrogation(reveal, digit, hasDigit){
   $('query-ov').classList.remove('show');
   send({type:'interrogation_a', reveal:reveal, digit:digit, hasDigit:reveal?hasDigit:undefined});
-  if(!reveal){
-    G.skipMe=true;
-    addLog('my','你拒絕了審訊，本回合跳過','ls');
-    renderEffects();
-    advanceTurn();
-  }
+  if(!reveal){ G.skipMe=true; addLog('my','你拒絕了審訊，本回合跳過','ls'); renderEffects(); advanceTurn(); }
 }
 function replyExtortion(reveal, pos, digit){
   $('query-ov').classList.remove('show');
   send({type:'extortion_a', reveal:reveal, position:pos, digit:reveal?digit:undefined});
-  if(!reveal){
-    G.skipMe=true;
-    addLog('my','你拒絕了勒索，本回合跳過','ls');
-    renderEffects();
-    advanceTurn();
-  }
+  if(!reveal){ G.skipMe=true; addLog('my','你拒絕了勒索，本回合跳過','ls'); renderEffects(); advanceTurn(); }
 }
 
-// ─── helper ───
 function appendEl(parent, tag, cls, text){
   var el=document.createElement(tag);
   el.className=cls; if(text) el.textContent=text;
@@ -1035,13 +1013,21 @@ function appendEl(parent, tag, cls, text){
 }
 
 // ═══════════════════════════════════════════
-// INIT & URL PARAM
+// INIT
 // ═══════════════════════════════════════════
 document.getElementById('create-btn').addEventListener('click', createRoom);
 document.getElementById('join-btn').addEventListener('click', joinRoom);
 document.getElementById('cancel-btn').addEventListener('click', backToLobby);
 document.getElementById('rnd-btn').addEventListener('click', randomAnswer);
 document.getElementById('ans-ok').addEventListener('click', confirmAnswer);
+document.getElementById('ans-del').addEventListener('click', function(){ ansDigits.pop(); renderAns(); });
+document.getElementById('guess-del').addEventListener('click', function(){ G.input.pop(); renderGuessSlots(); });
+document.getElementById('card-info').addEventListener('click', hideCardInfo);
+document.getElementById('ci-use-btn').addEventListener('click', function(e){
+  e.stopPropagation();
+  var card = $('card-info').dataset.card;
+  if(card){ hideCardInfo(); playTool(card); }
+});
 
 (function(){
   var p=new URLSearchParams(location.search).get('join');
