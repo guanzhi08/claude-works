@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>猜數字對戰</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+.screen{display:none;width:100%;max-width:480px;padding:20px;flex-direction:column;align-items:center;gap:14px}
+.screen.active{display:flex}
+h1{font-size:1.7rem;font-weight:700;color:#f8fafc;text-align:center}
+h2{font-size:1.2rem;font-weight:600;color:#cbd5e1;text-align:center}
+p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
+
+.inp{width:100%;padding:13px 14px;background:#1e293b;border:2px solid #334155;border-radius:10px;color:#f1f5f9;font-size:1.1rem;outline:none;text-align:center;letter-spacing:6px}
+.inp:focus{border-color:#6366f1}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:.15s;user-select:none}
+.bp{background:#6366f1;color:#fff}.bp:active{background:#4f46e5}
+.bs{background:#334155;color:#e2e8f0}.bs:active{background:#475569}
+.bd{background:#dc2626;color:#fff}.bd:active{background:#b91c1c}
+.btn:disabled{opacity:.35;pointer-events:none}
+.row{display:flex;gap:8px;width:100%}.row .btn{flex:1}
+
+#qrbox{background:#fff;padding:10px;border-radius:10px}
+.room-code{font-size:2.2rem;font-weight:700;letter-spacing:10px;color:#818cf8;text-align:center}
+
+/* coin */
+#coin{width:88px;height:88px;perspective:600px;margin:4px auto}
+#ci{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+#ci.flip{animation:cf 1.5s cubic-bezier(.4,0,.2,1) forwards}
+.cf{position:absolute;width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;backface-visibility:hidden;border:4px solid #475569}
+#cf{background:radial-gradient(circle at 35% 35%,#fde68a,#d97706)}
+#cb{background:radial-gradient(circle at 35% 35%,#a5f3fc,#0e7490);transform:rotateY(180deg)}
+@keyframes cf{0%{transform:rotateY(0)}100%{transform:rotateY(var(--d))}}
+
+/* digit slots */
+.drow{display:flex;gap:8px;justify-content:center}
+.ds{width:54px;height:66px;background:#1e293b;border:2px solid #334155;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#f8fafc;transition:.12s}
+.ds.on{border-color:#6366f1;color:#818cf8}
+
+/* numpad */
+.np{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:100%}
+.nk{aspect-ratio:1;background:#1e293b;border:2px solid #334155;border-radius:10px;color:#f1f5f9;font-size:1.2rem;font-weight:600;cursor:pointer;transition:.1s;display:flex;align-items:center;justify-content:center;user-select:none;border:none}
+.nk:active{background:#334155;transform:scale(.93)}
+.nk.dim{background:#0f172a;border:none;color:#1e3a5f;pointer-events:none}
+.nk.del{background:#7f1d1d;color:#fca5a5;grid-column:span 2}
+.nk.del:active{background:#991b1b}
+.nk.sub{background:#6366f1;color:#fff;grid-column:span 5;aspect-ratio:auto;padding:11px;font-size:1rem}
+.nk.sub:active{background:#4f46e5}
+.nk.sub:disabled{opacity:.35;pointer-events:none}
+
+/* ── GAME ── */
+#game-screen{height:100dvh;max-width:480px;overflow:hidden;padding:6px 10px;justify-content:flex-start;gap:6px}
+.ghdr{display:flex;align-items:center;justify-content:space-between;width:100%;flex-shrink:0}
+.tpill{padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:700}
+.tm{background:#166534;color:#86efac}.to{background:#7f1d1d;color:#fca5a5}
+.ans-lbl{font-size:.7rem;color:#64748b}
+.ans-val{font-size:.85rem;color:#818cf8;letter-spacing:3px;font-weight:700}
+
+.efrow{display:flex;gap:4px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:20px}
+.eb{font-size:.68rem;padding:2px 7px;border-radius:12px;background:#1c1917;color:#fbbf24;border:1px solid #78350f}
+
+.panel{background:#1e293b;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;min-height:0}
+.pttl{font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.hbadge{background:#dc2626;color:#fff;padding:1px 6px;border-radius:8px;font-size:.6rem}
+.log{flex:1;overflow-y:auto;font-size:.8rem;line-height:1.6;color:#cbd5e1}
+.log::-webkit-scrollbar{width:3px}.log::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+.le{color:#93c5fd}.lr{color:#a7f3d0}.lt{color:#fde68a}.ls{color:#64748b;font-style:italic}
+
+.trow{display:flex;gap:6px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:28px}
+.tc{background:#1e3a5f;border:1.5px solid #2563eb;border-radius:8px;padding:5px 11px;font-size:.75rem;font-weight:600;color:#93c5fd;cursor:pointer;transition:.12s;white-space:nowrap;user-select:none}
+.tc:active{background:#1d4ed8;transform:scale(.95)}
+.tc.passive{border-color:#475569;color:#94a3b8;pointer-events:none;background:#1a2030}
+.tc.spent{opacity:.3;pointer-events:none}
+
+.ga{flex-shrink:0;width:100%}
+.gslots{display:flex;gap:7px;justify-content:center;margin-bottom:7px}
+.gsl{width:46px;height:56px;background:#0f172a;border:2px solid #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#f8fafc;transition:.12s}
+.gsl.on{border-color:#6366f1;color:#818cf8}
+
+/* overlays */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.ov.show{display:flex}
+.ob{background:#1e293b;border-radius:16px;padding:20px 18px;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.ottl{font-size:1.1rem;font-weight:700;color:#f8fafc;text-align:center}
+.odesc{font-size:.88rem;color:#94a3b8;text-align:center}
+.otmr{font-size:3rem;font-weight:700;color:#f59e0b}
+.obrow{display:flex;gap:8px;width:100%}.obrow .btn{flex:1}
+#modal{z-index:100}
+.mb{font-size:.9rem;color:#cbd5e1;text-align:center;white-space:pre-line;line-height:1.7}
+
+.spinner{width:34px;height:34px;border:4px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby-screen" class="screen active">
+  <h1>🔢 猜數字對戰</h1>
+  <p class="sub">WebRTC 雙人即時對戰・道具策略</p>
+  <button class="btn bp" id="create-btn">建立房間</button>
+  <div style="display:flex;align-items:center;gap:8px;width:100%">
+    <div style="flex:1;height:1px;background:#334155"></div>
+    <span style="color:#64748b;font-size:.82rem">或</span>
+    <div style="flex:1;height:1px;background:#334155"></div>
+  </div>
+  <input class="inp" id="join-inp" placeholder="輸入 4 位房號" maxlength="4" inputmode="numeric">
+  <button class="btn bs" id="join-btn">加入房間</button>
+  <p id="lobby-err" style="color:#f87171;font-size:.85rem;min-height:18px;text-align:center"></p>
+</div>
+
+<!-- WAITING -->
+<div id="waiting-screen" class="screen">
+  <h2>等待對手加入</h2>
+  <div id="qrbox"></div>
+  <p class="sub">掃碼或分享房號給對手</p>
+  <div class="room-code" id="show-code"></div>
+  <div class="spinner"></div>
+  <p id="wait-status" class="sub">等待連線…</p>
+  <button class="btn bs" style="width:auto;padding:9px 24px" id="cancel-btn">取消</button>
+</div>
+
+<!-- COIN -->
+<div id="coin-screen" class="screen">
+  <h2>決定先手</h2>
+  <div id="coin"><div id="ci">
+    <div class="cf" id="cf">🐔</div>
+    <div class="cf" id="cb">🥚</div>
+  </div></div>
+  <p id="coin-result" class="sub" style="min-height:22px;font-size:1rem;font-weight:600;color:#f1f5f9"></p>
+  <p id="coin-wait" class="sub">擲硬幣中…</p>
+</div>
+
+<!-- SET ANSWER -->
+<div id="set-screen" class="screen">
+  <h2>設定你的答案</h2>
+  <p class="sub">4 位不重複數字（0–9）</p>
+  <div class="drow" id="ans-slots">
+    <div class="ds" id="as0"></div><div class="ds" id="as1"></div>
+    <div class="ds" id="as2"></div><div class="ds" id="as3"></div>
+  </div>
+  <div class="np" id="ans-np"></div>
+  <div class="row">
+    <button class="btn bs" id="rnd-btn">🎲 隨機</button>
+    <button class="btn bp" id="ans-ok" disabled>確認答案</button>
+  </div>
+  <p id="set-msg" class="sub" style="min-height:18px"></p>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div class="ghdr">
+    <span id="turn-pill" class="tpill tm">我的回合</span>
+    <div><span class="ans-lbl">我的答案 </span><span class="ans-val" id="my-ans"></span></div>
+  </div>
+  <div class="efrow" id="efrow"></div>
+  <div class="panel" style="flex:1.2">
+    <div class="pttl">對手猜測紀錄 <span class="hbadge" id="opp-hbadge" style="display:none">隱藏中</span></div>
+    <div class="log" id="opp-log"></div>
+  </div>
+  <div class="panel" style="flex:1">
+    <div class="pttl">我的猜測紀錄</div>
+    <div class="log" id="my-log"></div>
+  </div>
+  <div class="trow" id="tools-row"></div>
+  <div class="ga" id="guess-area">
+    <div class="gslots">
+      <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
+      <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
+    </div>
+    <div class="np" id="guess-np"></div>
+  </div>
+</div>
+
+<!-- COUNTER OVERLAY -->
+<div class="ov" id="ctr-ov">
+  <div class="ob">
+    <div class="ottl" id="ctr-title"></div>
+    <div class="odesc" id="ctr-desc"></div>
+    <div class="otmr" id="ctr-tmr">10</div>
+    <div class="obrow">
+      <button class="btn bs" id="cbtn-pass">略過</button>
+      <button class="btn bp" id="cbtn-shield">🛡 護盾</button>
+      <button class="btn bd" id="cbtn-reflect">↩ 反射</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUERY OVERLAY -->
+<div class="ov" id="query-ov">
+  <div class="ob" id="query-box"></div>
+</div>
+
+<!-- CARD OFFER OVERLAY -->
+<div class="ov" id="offer-ov">
+  <div class="ob">
+    <div class="ottl">✨ 選一張道具牌</div>
+    <div class="odesc" style="font-size:.78rem">未選的放回牌池</div>
+    <div id="offer-list" style="width:100%;display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="modal">
+  <div class="ob">
+    <div class="ottl" id="m-title"></div>
+    <div class="mb"   id="m-body"></div>
+    <button class="btn bp" id="m-btn">確認</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CARD DEFINITIONS
+// ═══════════════════════════════════════════
+var CARDS = {
+  interrogation: { name:'審訊',   desc:'宣告一個數字，對手選擇：告知有無，或跳過本回合猜測' },
+  extortion:     { name:'勒索',   desc:'指定一個位置，對手選擇：告知確切數字，或跳過本回合' },
+  fog:           { name:'霧化',   desc:'對手下一次猜測只看到模糊結果（共幾個數字出現）' },
+  focus:         { name:'聚焦',   desc:'對手下一次猜測時，你額外看到詳細位置（對手只看正常）' },
+  peek:          { name:'偷窺',   desc:'可以看到對手猜測紀錄 2 回合' },
+  secret:        { name:'保密',   desc:'你的猜測紀錄對對手隱藏 2 回合' },
+};
+var POOL = Object.keys(CARDS);
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+var peer = null, conn = null, isHost = false, roomCode = '';
+var myReady = false, oppReady = false;
+
+// Per-game state
+var G = {};
+function resetG(myTurn){
+  G = {
+    myAnswer:    [],
+    myTurn:      !!myTurn,
+    deck:        POOL.slice(),
+    myCards:     [],
+    myLog:       [],
+    oppLog:      [],
+    input:       [],
+    lastGuess:   [],
+    milestone:   { 1:false, 2:false, 3:false },
+    // Effects (my perspective as defender when opp guesses):
+    fogOppNext:    false,  // fog opponent's next guess result
+    focusOppNext:  false,  // see detail of opponent's next guess
+    peekRounds:    0,      // rounds left to see opp log
+    // Effects on me (as guesser):
+    secretRounds:  0,      // my log hidden from opp for N rounds
+    skipMe:        false,
+    skipOpp:       false,
+    // Counter resources
+    myShield:  true,
+    myReflect: true,
+    usedTool:  false,
+    pendCard:  null,
+    gameOver:  false,
+  };
+}
+
+// ═══════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════
+function $(id){ return document.getElementById(id); }
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  $(id).classList.add('active');
+}
+function send(msg){ if(conn && conn.open) conn.send(msg); }
+function setErr(t){ $('lobby-err').textContent = t; }
+
+// ═══════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════
+function showModal(title, body, btnText, action){
+  $('m-title').textContent = title;
+  $('m-body').textContent  = body || '';
+  var btn = $('m-btn');
+  btn.textContent   = btnText || '確認';
+  btn.style.display = (btnText === '') ? 'none' : '';
+  btn.onclick       = action || hideModal;
+  $('modal').classList.add('show');
+}
+function hideModal(){
+  $('modal').classList.remove('show');
+  $('m-btn').style.display = '';
+}
+
+// ═══════════════════════════════════════════
+// CONNECTION
+// ═══════════════════════════════════════════
+function createRoom(){
+  setErr('');
+  roomCode = String(Math.floor(1000 + Math.random() * 9000));
+  isHost   = true;
+  $('show-code').textContent = roomCode;
+  $('qrbox').innerHTML = '';
+  var url = location.origin + location.pathname + '?join=' + roomCode;
+  new QRCode($('qrbox'), { text: url, width: 140, height: 140 });
+  showScreen('waiting-screen');
+  $('wait-status').textContent = '房間建立中…';
+  if(peer){ peer.destroy(); }
+  peer = new Peer('gn-' + roomCode);
+  peer.on('open', function(){ $('wait-status').textContent = '房間已就緒，等待對手加入…'; });
+  peer.on('connection', function(c){
+    conn = c; setupConn();
+    $('wait-status').textContent = '對手已連線！';
+  });
+  peer.on('error', function(e){ setErr('連線錯誤：' + e.type); backToLobby(); });
+}
+
+function joinRoom(){
+  var code = $('join-inp').value.trim();
+  if(!/^\d{4}$/.test(code)){ setErr('請輸入 4 位數字房號'); return; }
+  setErr('連線中…');
+  roomCode = code; isHost = false;
+  if(peer){ peer.destroy(); }
+  peer = new Peer();
+  peer.on('open', function(){
+    conn = peer.connect('gn-' + code);
+    setupConn();
+  });
+  peer.on('error', function(){ setErr('找不到房間或連線失敗'); });
+}
+
+function setupConn(){
+  conn.on('open', function(){
+    if(!isHost){ setErr(''); startCoinFlip(); }
+  });
+  conn.on('data', handleMsg);
+  conn.on('close', function(){
+    if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
+  });
+  conn.on('error', function(e){ showModal('連線錯誤', String(e), '返回大廳', backToLobby); });
+}
+
+function backToLobby(){
+  if(peer){ peer.destroy(); peer = null; }
+  conn = null; myReady = false; oppReady = false;
+  $('qrbox').innerHTML = '';
+  showScreen('lobby-screen');
+}
+
+// ═══════════════════════════════════════════
+// COIN FLIP
+// ═══════════════════════════════════════════
+function startCoinFlip(){
+  showScreen('coin-screen');
+  $('coin-result').textContent = '';
+  $('coin-wait').textContent   = '擲硬幣中…';
+  if(isHost){
+    var firstIsHost = Math.random() < .5;
+    animateCoin(firstIsHost, function(){
+      $('coin-result').textContent = firstIsHost ? '🐔 你先手！' : '🥚 對手先手';
+      $('coin-wait').textContent   = '';
+      send({ type:'coin_result', firstIsHost: firstIsHost });
+      setTimeout(function(){ goSetAnswer(firstIsHost); }, 1800);
+    });
+  }
+  // guest waits for coin_result message
+}
+
+function animateCoin(headsWin, cb){
+  var ci = $('ci');
+  var deg = headsWin ? 720 : 900;
+  ci.style.setProperty('--d', deg + 'deg');
+  ci.classList.remove('flip');
+  void ci.offsetWidth;
+  ci.classList.add('flip');
+  setTimeout(cb, 1550);
+}
+
+function goSetAnswer(firstIsHost){
+  G.myTurn = (isHost === firstIsHost);
+  showScreen('set-screen');
+  initSetScreen();
+}
+
+// ═══════════════════════════════════════════
+// SET ANSWER
+// ═══════════════════════════════════════════
+var ansDigits = [];
+
+function initSetScreen(){
+  ansDigits = [];
+  $('set-msg').textContent = '';
+  $('ans-ok').disabled = true;
+  buildNumpad('ans-np', function(d){
+    if(ansDigits.length < 4 && !ansDigits.includes(d)){ ansDigits.push(d); renderAns(); }
+  }, function(){
+    ansDigits.pop(); renderAns();
+  });
+  renderAns();
+}
+
+function buildNumpad(npId, onDigit, onDel){
+  var np = $(npId); np.innerHTML = '';
+  for(var i = 0; i < 10; i++){
+    (function(d){
+      var b = document.createElement('button');
+      b.className = 'nk'; b.textContent = d; b.dataset.d = d;
+      b.addEventListener('click', function(){ onDigit(d); });
+      np.appendChild(b);
+    })(i);
+  }
+  var del = document.createElement('button');
+  del.className = 'nk del'; del.textContent = '⌫';
+  del.addEventListener('click', onDel);
+  np.appendChild(del);
+}
+
+function renderAns(){
+  for(var i = 0; i < 4; i++){
+    var sl = $('as' + i);
+    sl.textContent = i < ansDigits.length ? ansDigits[i] : '';
+    sl.classList.toggle('on', i < ansDigits.length);
+  }
+  var np = $('ans-np');
+  np.querySelectorAll('.nk[data-d]').forEach(function(b){
+    b.classList.toggle('dim', ansDigits.includes(+b.dataset.d));
+  });
+  $('ans-ok').disabled = ansDigits.length !== 4;
+}
+
+function randomAnswer(){
+  var pool = [0,1,2,3,4,5,6,7,8,9];
+  for(var i = pool.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t = pool[i]; pool[i]=pool[j]; pool[j]=t;
+  }
+  ansDigits = pool.slice(0,4);
+  renderAns();
+}
+
+function confirmAnswer(){
+  G.myAnswer = ansDigits.slice();
+  $('set-msg').textContent = '等待對手準備…';
+  $('ans-ok').disabled = true;
+  myReady = true;
+  send({ type:'ready' });
+  checkBothReady();
+}
+
+function checkBothReady(){
+  if(myReady && oppReady) startGame();
+}
+
+// ═══════════════════════════════════════════
+// GAME START
+// ═══════════════════════════════════════════
+function startGame(){
+  var turn = G.myTurn;
+  resetG(turn);
+  G.myAnswer = ansDigits.slice();
+  myReady = false; oppReady = false;
+  showScreen('game-screen');
+  $('my-ans').textContent = G.myAnswer.join('');
+  buildGuessNumpad();
+  renderGame();
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function renderGame(){
+  var tp = $('turn-pill');
+  tp.textContent = G.myTurn ? '我的回合' : '對手回合';
+  tp.className   = 'tpill ' + (G.myTurn ? 'tm' : 'to');
+
+  var ga = $('guess-area');
+  ga.style.opacity      = G.myTurn ? '1' : '.4';
+  ga.style.pointerEvents = G.myTurn ? 'auto' : 'none';
+
+  var oppHide = G.secretRounds > 0;
+  $('opp-hbadge').style.display = oppHide ? '' : 'none';
+  renderLog('opp-log', G.oppLog, oppHide);
+  renderLog('my-log',  G.myLog,  false);
+
+  renderTools();
+  renderEffects();
+  renderGuessSlots();
+}
+
+function renderLog(id, log, hidden){
+  var el = $(id);
+  if(hidden){ el.innerHTML = '<span class="ls">紀錄已隱藏</span>'; return; }
+  el.innerHTML = log.map(function(e){ return '<div class="'+e.c+'">'+e.t+'</div>'; }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderTools(){
+  var row = $('tools-row'); row.innerHTML = '';
+  if(!G.myTurn) return;
+  G.myCards.forEach(function(card){
+    var b = document.createElement('button');
+    b.className = 'tc' + (G.usedTool ? ' spent' : '');
+    b.textContent = CARDS[card].name; b.title = CARDS[card].desc;
+    b.addEventListener('click', function(){ playTool(card); });
+    row.appendChild(b);
+  });
+  if(G.myShield){
+    var bs = document.createElement('button'); bs.className='tc passive';
+    bs.textContent='🛡 護盾'; bs.title='對手出牌時被動觸發'; row.appendChild(bs);
+  }
+  if(G.myReflect){
+    var br = document.createElement('button'); br.className='tc passive';
+    br.textContent='↩ 反射'; br.title='對手出牌時被動觸發'; row.appendChild(br);
+  }
+}
+
+function renderEffects(){
+  var row = $('efrow'); row.innerHTML = '';
+  function badge(t,bg,c){
+    var s=document.createElement('span'); s.className='eb'; s.textContent=t;
+    if(bg) s.style.background=bg; if(c) s.style.color=c; row.appendChild(s);
+  }
+  if(G.fogOppNext)   badge('霧化（下次）');
+  if(G.focusOppNext) badge('聚焦（下次）');
+  if(G.peekRounds>0) badge('偷窺 ×'+G.peekRounds);
+  if(G.secretRounds>0) badge('保密 ×'+G.secretRounds);
+  if(G.skipMe)       badge('我將跳過','#7f1d1d','#fca5a5');
+  if(G.skipOpp)      badge('對手將跳過','#166534','#86efac');
+}
+
+// ═══════════════════════════════════════════
+// GUESS NUMPAD
+// ═══════════════════════════════════════════
+function buildGuessNumpad(){
+  var np = $('guess-np'); np.innerHTML = '';
+  for(var i = 0; i < 10; i++){
+    (function(d){
+      var b = document.createElement('button');
+      b.className='nk'; b.textContent=d; b.id='gk'+d;
+      b.addEventListener('click', function(){ pressGuess(d); });
+      np.appendChild(b);
+    })(i);
+  }
+  var del = document.createElement('button');
+  del.className='nk del'; del.textContent='⌫';
+  del.addEventListener('click', function(){ G.input.pop(); renderGuessSlots(); });
+  np.appendChild(del);
+
+  var sub = document.createElement('button');
+  sub.className='nk sub'; sub.id='gsub'; sub.textContent='送出猜測';
+  sub.addEventListener('click', submitGuess);
+  np.appendChild(sub);
+  renderGuessSlots();
+}
+
+function pressGuess(d){
+  if(!G.myTurn || G.input.length>=4 || G.input.includes(d)) return;
+  G.input.push(d); renderGuessSlots();
+}
+
+function renderGuessSlots(){
+  for(var i=0;i<4;i++){
+    var sl=$('gs'+i);
+    sl.textContent = i<G.input.length ? G.input[i] : '';
+    sl.classList.toggle('on', i<G.input.length);
+  }
+  var np=$('guess-np');
+  np.querySelectorAll('.nk[id^=gk]').forEach(function(b){
+    b.classList.toggle('dim', G.input.includes(+b.textContent));
+  });
+  var sub=$('gsub');
+  if(sub) sub.disabled = G.input.length!==4;
+}
+
+function submitGuess(){
+  if(!G.myTurn || G.input.length!==4) return;
+  G.lastGuess = G.input.slice();
+  send({ type:'guess', digits:G.lastGuess });
+  addLog('my', '我猜 '+G.lastGuess.join('')+' → …', 'le');
+  G.input = [];
+  renderGuessSlots();
+}
+
+// ═══════════════════════════════════════════
+// TOOL PLAY
+// ═══════════════════════════════════════════
+function playTool(card){
+  if(G.usedTool){ showModal('提示','本回合已使用過一張道具了'); return; }
+  if(!G.myCards.includes(card)) return;
+  G.usedTool = true; G.pendCard = card;
+  send({ type:'play_tool', card:card });
+  addLog('my','▶ 使用「'+CARDS[card].name+'」','lt');
+  showModal('等待反制','已打出「'+CARDS[card].name+'」\n等待對手回應…','');
+}
+
+function resolveMyTool(card, action){
+  hideModal();
+  G.pendCard = null;
+  G.myCards = G.myCards.filter(function(c){ return c!==card; });
+  if(action==='shield'){
+    addLog('my','🛡 對手護盾，'+CARDS[card].name+' 被取消','lt');
+  } else if(action==='reflect'){
+    addLog('my','↩ 對手反射了「'+CARDS[card].name+'」，效果轉向自己','lt');
+    applyToolEffect(card, true);  // reflected → hits me
+  } else {
+    applyToolEffect(card, false); // hits opponent
+  }
+  renderTools();
+}
+
+// Apply a tool effect from MY perspective
+// hitMe=false → I played it on opp; hitMe=true → reflected back on me
+function applyToolEffect(card, hitMe){
+  if(!hitMe){
+    // Effect on opponent
+    switch(card){
+      case 'fog':
+        G.fogOppNext = true;
+        send({type:'fx_fog'});
+        addLog('my','霧化：對手下次猜測只看模糊結果','lt');
+        break;
+      case 'focus':
+        G.focusOppNext = true;
+        send({type:'fx_focus'});
+        addLog('my','聚焦：對手下次猜測你將看到詳細位置','lt');
+        break;
+      case 'peek':
+        G.peekRounds = 2;
+        send({type:'fx_peek'});
+        addLog('my','偷窺：你可看到對手紀錄 2 回合','lt');
+        break;
+      case 'secret':
+        // My log hidden from opp for 2 rounds
+        send({type:'fx_secret'});
+        addLog('my','保密：對手的猜測紀錄對你隱藏 2 回合','lt');
+        break;
+      case 'interrogation':
+        openInterrogation();
+        break;
+      case 'extortion':
+        openExtortion();
+        break;
+    }
+  } else {
+    // Reflected: effect hits me
+    switch(card){
+      case 'fog':
+        // My next guess result will be fogged — opponent needs to know
+        send({type:'fx_fog_me'});
+        addLog('my','霧化反射：你的下次猜測結果模糊','lt');
+        break;
+      case 'focus':
+        // Opponent will see detail of my next guess
+        send({type:'fx_focus_me'});
+        addLog('my','聚焦反射：對手將看到你的詳細猜測結果','lt');
+        break;
+      case 'peek':
+        // Opponent sees my log for 2 rounds
+        send({type:'fx_peek_me'});
+        addLog('my','偷窺反射：對手看到你的紀錄 2 回合','lt');
+        break;
+      case 'secret':
+        G.secretRounds = 2;
+        send({type:'fx_secret_me'});
+        addLog('my','保密反射：你的紀錄對對手隱藏 2 回合','lt');
+        break;
+      case 'interrogation':
+        // Interrogation reflected: opp will query us
+        send({type:'fx_interrogation_me'});
+        addLog('my','審訊反射：對手將向你發問','lt');
+        break;
+      case 'extortion':
+        send({type:'fx_extortion_me'});
+        addLog('my','勒索反射：對手將向你發問','lt');
+        break;
+    }
+  }
+  renderEffects();
+}
+
+// ═══════════════════════════════════════════
+// INTERROGATION & EXTORTION (asker side)
+// ═══════════════════════════════════════════
+function openInterrogation(){
+  var box=$('query-box'); box.innerHTML='';
+  var ttl=document.createElement('div'); ttl.className='ottl'; ttl.textContent='審訊'; box.appendChild(ttl);
+  var desc=document.createElement('div'); desc.className='odesc'; desc.textContent='選一個數字，詢問對手答案中有無'; box.appendChild(desc);
+  var np=document.createElement('div'); np.className='np';
+  for(var i=0;i<10;i++){
+    (function(d){
+      var b=document.createElement('button'); b.className='nk'; b.textContent=d;
+      b.addEventListener('click',function(){ sendInterrogation(d); });
+      np.appendChild(b);
+    })(i);
+  }
+  box.appendChild(np);
+  $('query-ov').classList.add('show');
+}
+
+function sendInterrogation(d){
+  $('query-ov').classList.remove('show');
+  send({type:'interrogation_q', digit:d});
+  addLog('my','審訊：詢問數字 '+d+'，等待回應…','lt');
+  showModal('等待回應','已詢問數字「'+d+'」，等待對手選擇…','');
+}
+
+function openExtortion(){
+  var box=$('query-box'); box.innerHTML='';
+  var ttl=document.createElement('div'); ttl.className='ottl'; ttl.textContent='勒索'; box.appendChild(ttl);
+  var desc=document.createElement('div'); desc.className='odesc'; desc.textContent='選一個位置（1–4 位），詢問確切數字'; box.appendChild(desc);
+  var row=document.createElement('div'); row.style.cssText='display:flex;gap:10px;justify-content:center;width:100%';
+  [1,2,3,4].forEach(function(p){
+    var b=document.createElement('button'); b.className='nk'; b.style.cssText='width:60px;height:60px;font-size:1.5rem'; b.textContent=p;
+    b.addEventListener('click',function(){ sendExtortion(p); });
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  $('query-ov').classList.add('show');
+}
+
+function sendExtortion(pos){
+  $('query-ov').classList.remove('show');
+  send({type:'extortion_q', position:pos});
+  addLog('my','勒索：詢問第 '+pos+' 位，等待回應…','lt');
+  showModal('等待回應','已詢問第「'+pos+'」位，等待對手選擇…','');
+}
+
+// ═══════════════════════════════════════════
+// COUNTER (my turn to respond to opp's card)
+// ═══════════════════════════════════════════
+var ctrInterval = null, ctrCard = null, ctrCb = null;
+
+function showCounter(card, cb){
+  ctrCard=card; ctrCb=cb;
+  $('ctr-title').textContent = '對手使用了「'+CARDS[card].name+'」';
+  $('ctr-desc').textContent  = CARDS[card].desc;
+  $('cbtn-shield').style.display  = G.myShield  ? '' : 'none';
+  $('cbtn-reflect').style.display = G.myReflect ? '' : 'none';
+  var s=10; $('ctr-tmr').textContent=s;
+  $('ctr-ov').classList.add('show');
+  clearInterval(ctrInterval);
+  ctrInterval=setInterval(function(){
+    s--; $('ctr-tmr').textContent=s;
+    if(s<=0){ clearInterval(ctrInterval); doCounter('pass'); }
+  },1000);
+}
+
+function doCounter(action){
+  clearInterval(ctrInterval);
+  $('ctr-ov').classList.remove('show');
+  if(action==='shield')  G.myShield  = false;
+  if(action==='reflect') G.myReflect = false;
+  send({type:'counter', action:action, card:ctrCard});
+  if(ctrCb) ctrCb(action);
+}
+
+// Wire counter buttons
+document.getElementById('cbtn-pass').addEventListener('click',    function(){ doCounter('pass'); });
+document.getElementById('cbtn-shield').addEventListener('click',  function(){ doCounter('shield'); });
+document.getElementById('cbtn-reflect').addEventListener('click', function(){ doCounter('reflect'); });
+
+// ═══════════════════════════════════════════
+// CARD OFFER
+// ═══════════════════════════════════════════
+function showOffer(cards){
+  var el=$('offer-list'); el.innerHTML='';
+  cards.forEach(function(card){
+    var d=document.createElement('div');
+    d.style.cssText='background:#1e3a5f;border:2px solid #2563eb;border-radius:10px;padding:12px;cursor:pointer';
+    d.innerHTML='<div style="color:#93c5fd;font-weight:700;margin-bottom:4px">'+CARDS[card].name+'</div>'
+               +'<div style="color:#94a3b8;font-size:.8rem">'+CARDS[card].desc+'</div>';
+    d.addEventListener('click',function(){ pickCard(card, cards); });
+    el.appendChild(d);
+  });
+  $('offer-ov').classList.add('show');
+}
+
+function pickCard(picked, offered){
+  $('offer-ov').classList.remove('show');
+  G.myCards.push(picked);
+  offered.forEach(function(c){ if(c!==picked && !G.deck.includes(c)) G.deck.push(c); });
+  G.deck = G.deck.filter(function(c){ return c!==picked; });
+  send({type:'card_pick', card:picked, returned: offered.filter(function(c){return c!==picked;})});
+  addLog('my','✨ 取得道具：'+CARDS[picked].name,'lt');
+  renderTools();
+}
+
+// ═══════════════════════════════════════════
+// TURN / MILESTONE
+// ═══════════════════════════════════════════
+function advanceTurn(){
+  G.myTurn = !G.myTurn;
+  G.usedTool = false;
+  G.input = [];
+  if(G.peekRounds > 0)  G.peekRounds--;
+  if(G.secretRounds > 0) G.secretRounds--;
+  if(G.myTurn && G.skipMe){
+    G.skipMe = false;
+    addLog('my','你的回合被跳過','ls');
+    send({type:'skip_ack'});
+    advanceTurn();
+    return;
+  }
+  renderGame();
+}
+
+function checkMilestone(a){
+  var key = (a===1||a===2||a===3) ? a : 0;
+  if(!key || G.milestone[key]) return;
+  G.milestone[key] = true;
+  if(G.deck.length===0) return;
+  var pool = G.deck.slice();
+  for(var i=pool.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+  var offer=pool.slice(0, Math.min(2, pool.length));
+  addLog('my','🎴 達到 '+a+'A！抽牌中…','lt');
+  showOffer(offer);
+}
+
+// ═══════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════
+function addLog(side, text, cls){
+  var arr = side==='my' ? G.myLog : G.oppLog;
+  arr.push({t:text, c:cls||'ls'});
+  if(arr.length>80) arr.splice(0, arr.length-80);
+  if(side==='my') renderLog('my-log', G.myLog, false);
+  else renderLog('opp-log', G.oppLog, G.secretRounds>0);
+}
+
+// ═══════════════════════════════════════════
+// EVAL
+// ═══════════════════════════════════════════
+function evalGuess(guess, answer){
+  var a=0,b=0;
+  guess.forEach(function(d,i){
+    if(d===answer[i]) a++;
+    else if(answer.indexOf(d)>=0) b++;
+  });
+  return {a:a,b:b};
+}
+
+function fmtResult(a, b, gran, detail){
+  if(gran==='fog') return '共 '+(a+b)+' 個數字出現（模糊）';
+  if(detail) return a+'A'+b+'B ['+detail+']';
+  return a+'A'+b+'B';
+}
+
+function posDetail(guess, answer){
+  return guess.map(function(d,i){
+    return d===answer[i]?'A': answer.indexOf(d)>=0?'B':'X';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// MESSAGE HANDLER
+// ═══════════════════════════════════════════
+function handleMsg(msg){
+  switch(msg.type){
+
+    case 'ready':
+      oppReady=true; checkBothReady(); break;
+
+    case 'coin_result':
+      // Guest receives coin result
+      G.myTurn = (isHost === msg.firstIsHost);
+      animateCoin(!msg.firstIsHost, function(){
+        $('coin-result').textContent = msg.firstIsHost ? '🐔 對手先手' : '🥚 你先手！';
+        $('coin-wait').textContent   = '';
+        setTimeout(function(){ goSetAnswer(msg.firstIsHost); }, 1800);
+      });
+      break;
+
+    case 'guess': {
+      // Opponent guessed MY answer
+      var digits = msg.digits;
+      var ev = evalGuess(digits, G.myAnswer);
+      var gran = 'normal', detail = '';
+
+      if(G.fogOppNext){ gran='fog'; G.fogOppNext=false; }
+      if(G.focusOppNext){
+        detail = posDetail(digits, G.myAnswer);
+        G.focusOppNext = false;
+      }
+
+      send({type:'result', a:ev.a, b:ev.b, granularity:gran, detail:detail||undefined});
+
+      // Log in opp panel
+      var gStr = digits.join('');
+      if(G.peekRounds>0){
+        addLog('opp','對手猜 '+gStr+' → '+fmtResult(ev.a,ev.b,gran,detail),'le');
+      } else {
+        addLog('opp','對手猜 ????','ls');
+      }
+
+      if(ev.a===4){
+        G.gameOver=true;
+        showModal('遊戲結束','對手猜中了你的答案 '+G.myAnswer.join('')+'！\n你輸了 😢','返回大廳',backToLobby);
+        return;
+      }
+      advanceTurn();
+      break;
+    }
+
+    case 'result': {
+      // My guess result
+      var a=msg.a, b=msg.b, gran=msg.granularity, detail=msg.detail||'';
+      var gStr=G.lastGuess.join('');
+      var rStr=fmtResult(a,b,gran,detail);
+      // Update last log entry
+      var log=G.myLog;
+      if(log.length>0 && log[log.length-1].t.endsWith('…')){
+        log[log.length-1].t='我猜 '+gStr+' → '+rStr;
+        log[log.length-1].c='lr';
+        renderLog('my-log', G.myLog, false);
+      } else {
+        addLog('my','我猜 '+gStr+' → '+rStr,'lr');
+      }
+      if(a===4){
+        G.gameOver=true;
+        send({type:'game_over'});
+        showModal('遊戲結束','你猜中了！🎉\n答案是 '+gStr,'返回大廳',backToLobby);
+        return;
+      }
+      checkMilestone(a);
+      advanceTurn();
+      break;
+    }
+
+    case 'play_tool': {
+      var card=msg.card;
+      addLog('opp','對手打出「'+CARDS[card].name+'」','lt');
+      showCounter(card, function(action){
+        if(action==='shield'){
+          addLog('my','🛡 使用護盾，「'+CARDS[card].name+'」被取消','lt');
+          // no effect on us
+        } else if(action==='reflect'){
+          addLog('my','↩ 反射「'+CARDS[card].name+'」回對手','lt');
+          // effect goes to opponent; their 'counter' message triggers resolve
+        } else {
+          // effect hits us
+          applyIncomingTool(card, false);
+        }
+      });
+      break;
+    }
+
+    case 'counter': {
+      // Response to our own play_tool
+      resolveMyTool(msg.card || G.pendCard, msg.action);
+      break;
+    }
+
+    // ── Incoming fx from opponent's tools ──
+    case 'fx_fog':
+      G.fogOppNext=true; addLog('my','霧化：對手下次猜測結果模糊','lt'); renderEffects(); break;
+    case 'fx_focus':
+      G.focusOppNext=true; addLog('my','聚焦：對手猜測時你將看到詳細結果','lt'); renderEffects(); break;
+    case 'fx_peek':
+      addLog('my','偷窺：對手看到你的紀錄 2 回合','lt'); break;
+    case 'fx_secret':
+      G.secretRounds=2; addLog('my','保密：對手的猜測紀錄對你隱藏 2 回合','lt'); renderEffects(); break;
+
+    // ── Reflected fx (effect hits opp = me) ──
+    case 'fx_fog_me':
+      G.fogOppNext=true; addLog('my','霧化（反射）：對手下次猜測結果模糊','lt'); renderEffects(); break;
+    case 'fx_focus_me':
+      G.focusOppNext=true; addLog('my','聚焦（反射）：對手猜測時你將看到詳細結果','lt'); renderEffects(); break;
+    case 'fx_peek_me':
+      addLog('my','偷窺（反射）：對手看到你的紀錄 2 回合','lt'); break;
+    case 'fx_secret_me':
+      G.secretRounds=2; addLog('my','保密（反射）：你的紀錄對對手隱藏 2 回合','lt'); renderEffects(); break;
+    case 'fx_interrogation_me':
+      // Interrogation reflected; opp will send interrogation_q to us
+      addLog('my','審訊（反射）：等待對手向你發問','lt'); break;
+    case 'fx_extortion_me':
+      addLog('my','勒索（反射）：等待對手向你發問','lt'); break;
+
+    // ── Interrogation / Extortion query (I am the asked) ──
+    case 'interrogation_q': {
+      var d=msg.digit, hasIt=G.myAnswer.indexOf(d)>=0;
+      var box=$('query-box'); box.innerHTML='';
+      appendEl(box,'div','ottl','審訊');
+      appendEl(box,'div','odesc','對手問：你的答案中有沒有數字 '+d+' ？');
+      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.75rem';
+      var b1=appendEl(box,'button','btn bp','回答（'+(hasIt?'有':'沒有')+'）');
+      var b2=appendEl(box,'button','btn bd','拒絕（跳過本回合）');
+      b1.addEventListener('click',function(){ replyInterrogation(true,d,hasIt); });
+      b2.addEventListener('click',function(){ replyInterrogation(false,d,false); });
+      $('query-ov').classList.add('show');
+      break;
+    }
+    case 'interrogation_a': {
+      $('query-ov').classList.remove('show');
+      hideModal();
+      if(msg.reveal){
+        addLog('my','審訊結果：數字 '+msg.digit+' '+(msg.hasDigit?'在':'不在')+'對手答案中','lt');
+      } else {
+        addLog('my','對手拒絕回答，下回合跳過','lt');
+        G.skipOpp=true; renderEffects();
+      }
+      break;
+    }
+
+    case 'extortion_q': {
+      var pos=msg.position, dig=G.myAnswer[pos-1];
+      var box=$('query-box'); box.innerHTML='';
+      appendEl(box,'div','ottl','勒索');
+      appendEl(box,'div','odesc','對手問：你答案的第 '+pos+' 位是什麼？');
+      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.75rem';
+      var b1=appendEl(box,'button','btn bp','回答（'+dig+'）');
+      var b2=appendEl(box,'button','btn bd','拒絕（跳過本回合）');
+      b1.addEventListener('click',function(){ replyExtortion(true,pos,dig); });
+      b2.addEventListener('click',function(){ replyExtortion(false,pos,dig); });
+      $('query-ov').classList.add('show');
+      break;
+    }
+    case 'extortion_a': {
+      $('query-ov').classList.remove('show');
+      hideModal();
+      if(msg.reveal){
+        addLog('my','勒索結果：對手答案第 '+msg.position+' 位是 '+msg.digit,'lt');
+      } else {
+        addLog('my','對手拒絕回答，下回合跳過','lt');
+        G.skipOpp=true; renderEffects();
+      }
+      break;
+    }
+
+    case 'card_pick':
+      if(msg.returned) msg.returned.forEach(function(c){ if(!G.deck.includes(c)) G.deck.push(c); });
+      G.deck=G.deck.filter(function(c){ return c!==msg.card; });
+      addLog('my','對手取得了一張道具','lt');
+      break;
+
+    case 'skip_ack':
+      G.skipOpp=false; renderEffects(); break;
+
+    case 'game_over':
+      G.gameOver=true;
+      showModal('遊戲結束','恭喜你猜中了！🎉','返回大廳',backToLobby);
+      break;
+  }
+}
+
+// ─── apply tool that hits me (from opponent) ───
+function applyIncomingTool(card, reflected){
+  switch(card){
+    case 'fog':    G.fogOppNext=true;   addLog('my','霧化：你的下次猜測結果模糊','lt'); break;
+    case 'focus':  G.focusOppNext=true; addLog('my','聚焦：對手將看到你的詳細猜測結果','lt'); break;
+    case 'peek':   addLog('my','偷窺：對手看到你的猜測紀錄 2 回合','lt'); break;
+    case 'secret': G.secretRounds=2;   addLog('my','保密：你的猜測紀錄對對手隱藏 2 回合','lt'); break;
+  }
+  renderEffects();
+}
+
+// ─── reply to interrogation/extortion query ───
+function replyInterrogation(reveal, digit, hasDigit){
+  $('query-ov').classList.remove('show');
+  send({type:'interrogation_a', reveal:reveal, digit:digit, hasDigit:reveal?hasDigit:undefined});
+  if(!reveal){
+    G.skipMe=true;
+    addLog('my','你拒絕了審訊，本回合跳過','ls');
+    renderEffects();
+    advanceTurn();
+  }
+}
+function replyExtortion(reveal, pos, digit){
+  $('query-ov').classList.remove('show');
+  send({type:'extortion_a', reveal:reveal, position:pos, digit:reveal?digit:undefined});
+  if(!reveal){
+    G.skipMe=true;
+    addLog('my','你拒絕了勒索，本回合跳過','ls');
+    renderEffects();
+    advanceTurn();
+  }
+}
+
+// ─── helper ───
+function appendEl(parent, tag, cls, text){
+  var el=document.createElement(tag);
+  el.className=cls; if(text) el.textContent=text;
+  parent.appendChild(el); return el;
+}
+
+// ═══════════════════════════════════════════
+// INIT & URL PARAM
+// ═══════════════════════════════════════════
+document.getElementById('create-btn').addEventListener('click', createRoom);
+document.getElementById('join-btn').addEventListener('click', joinRoom);
+document.getElementById('cancel-btn').addEventListener('click', backToLobby);
+document.getElementById('rnd-btn').addEventListener('click', randomAnswer);
+document.getElementById('ans-ok').addEventListener('click', confirmAnswer);
+
+(function(){
+  var p=new URLSearchParams(location.search).get('join');
+  if(p && /^\d{4}$/.test(p)) $('join-inp').value=p;
+})();
+</script>
+</body>
+</html>
