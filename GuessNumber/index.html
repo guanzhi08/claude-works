@@ -273,7 +273,10 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   $(id).classList.add('active');
 }
-function send(msg){ if(conn && conn.open) conn.send(msg); }
+function send(msg){
+  if(conn && conn.open){ conn.send(msg); return; }
+  if(conn){ setTimeout(function(){ send(msg); }, 80); }
+}
 function setErr(t){ $('lobby-err').textContent = t; }
 
 // ═══════════════════════════════════════════
@@ -312,8 +315,6 @@ function createRoom(){
   peer.on('connection', function(c){
     conn = c;
     setupConn();
-    // Host starts coin flip immediately; actual send() happens after 1.5s animation
-    // so DataChannel is guaranteed open by then
     startCoinFlip();
   });
   peer.on('error', function(e){ setErr('連線錯誤：' + e.type); backToLobby(); });
@@ -329,18 +330,12 @@ function joinRoom(){
   peer.on('open', function(){
     conn = peer.connect('gn-' + code);
     setupConn();
+    startCoinFlip();
   });
   peer.on('error', function(){ setErr('找不到房間或連線失敗'); });
 }
 
 function setupConn(){
-  // Guest waits for DataChannel open; host calls startCoinFlip() directly
-  if(!isHost){
-    conn.on('open', function(){
-      setErr('');
-      startCoinFlip();
-    });
-  }
   conn.on('data', handleMsg);
   conn.on('close', function(){
     if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
