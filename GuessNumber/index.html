@@ -31,15 +31,6 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
 #qrbox{background:#fff;padding:10px;border-radius:10px}
 .room-code{font-size:2.2rem;font-weight:700;letter-spacing:10px;color:#818cf8;text-align:center}
 
-/* coin */
-#coin{width:88px;height:88px;perspective:600px;margin:4px auto}
-#ci{width:100%;height:100%;position:relative;transform-style:preserve-3d}
-#ci.flip{animation:cf 1.5s cubic-bezier(.4,0,.2,1) forwards}
-.cf{position:absolute;width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;backface-visibility:hidden;border:4px solid #475569}
-#cf{background:radial-gradient(circle at 35% 35%,#fde68a,#d97706)}
-#cb{background:radial-gradient(circle at 35% 35%,#a5f3fc,#0e7490);transform:rotateY(180deg)}
-@keyframes cf{0%{transform:rotateY(0)}100%{transform:rotateY(var(--d))}}
-
 /* digit slots */
 .drow{display:flex;gap:8px;justify-content:center}
 .ds{width:54px;height:66px;background:#1e293b;border:2px solid #334155;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#f8fafc;transition:.12s}
@@ -129,16 +120,7 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
   <button class="btn bs" style="width:auto;padding:9px 24px" id="cancel-btn">取消</button>
 </div>
 
-<!-- COIN -->
-<div id="coin-screen" class="screen">
-  <h2>決定先手</h2>
-  <div id="coin"><div id="ci">
-    <div class="cf" id="cf">🐔</div>
-    <div class="cf" id="cb">🥚</div>
-  </div></div>
-  <p id="coin-result" class="sub" style="min-height:22px;font-size:1rem;font-weight:600;color:#f1f5f9"></p>
-  <p id="coin-wait" class="sub">擲硬幣中…</p>
-</div>
+<!-- COIN screen removed: host always goes first -->
 
 <!-- SET ANSWER -->
 <div id="set-screen" class="screen">
@@ -320,8 +302,8 @@ function createRoom(){
   });
   peer.on('connection', function(c){
     conn = c;
-    setupConn();       // exactly like brave-rats: conn = c; setupGame();
-    startCoinFlip();
+    setupConn();
+    goSetAnswer();
   });
   peer.on('error', function(e){ setErr('連線錯誤：' + e.type); });
 }
@@ -336,8 +318,8 @@ function joinRoom(){
   peer = new Peer();
   peer.on('open', function(){
     conn = peer.connect('gn-' + code + '-h');
-    setupConn();       // exactly like brave-rats: conn = peer.connect(...); setupGame();
-    startCoinFlip();
+    setupConn();
+    goSetAnswer();
   });
   peer.on('error', function(e){ setErr('連線錯誤：' + e.type); });
 }
@@ -356,37 +338,8 @@ function backToLobby(){
   showScreen('lobby-screen');
 }
 
-// ═══════════════════════════════════════════
-// COIN FLIP
-// ═══════════════════════════════════════════
-function startCoinFlip(){
-  showScreen('coin-screen');
-  $('coin-result').textContent = '';
-  $('coin-wait').textContent   = '擲硬幣中…';
-  if(isHost){
-    var firstIsHost = Math.random() < .5;
-    animateCoin(firstIsHost, function(){
-      $('coin-result').textContent = firstIsHost ? '🐔 你先手！' : '🥚 對手先手';
-      $('coin-wait').textContent   = '';
-      send({ type:'coin_result', firstIsHost: firstIsHost });
-      setTimeout(function(){ goSetAnswer(firstIsHost); }, 1800);
-    });
-  }
-  // guest waits for coin_result message
-}
-
-function animateCoin(headsWin, cb){
-  var ci = $('ci');
-  var deg = headsWin ? 720 : 900;
-  ci.style.setProperty('--d', deg + 'deg');
-  ci.classList.remove('flip');
-  void ci.offsetWidth;
-  ci.classList.add('flip');
-  setTimeout(cb, 1550);
-}
-
-function goSetAnswer(firstIsHost){
-  G.myTurn = (isHost === firstIsHost);
+function goSetAnswer(){
+  G.myTurn = isHost;
   showScreen('set-screen');
   initSetScreen();
 }
@@ -868,16 +821,6 @@ function handleMsg(msg){
 
     case 'ready':
       oppReady=true; checkBothReady(); break;
-
-    case 'coin_result':
-      // Guest receives coin result
-      G.myTurn = (isHost === msg.firstIsHost);
-      animateCoin(!msg.firstIsHost, function(){
-        $('coin-result').textContent = msg.firstIsHost ? '🐔 對手先手' : '🥚 你先手！';
-        $('coin-wait').textContent   = '';
-        setTimeout(function(){ goSetAnswer(msg.firstIsHost); }, 1800);
-      });
-      break;
 
     case 'guess': {
       // Opponent guessed MY answer
