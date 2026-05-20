@@ -137,8 +137,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 .b-rot:active:not(:disabled){background:#2471a3}
 .b-ok{background:#27ae60;color:#fff;padding:10px 20px;font-size:1.3rem;min-height:48px;min-width:52px}
 .b-ok:active:not(:disabled){background:#1e8449}
-.b-next{background:#f1c40f;color:#1a1a2e}.b-next:active:not(:disabled){background:#d4ac0d}
-
 /* ── LOG ── */
 #logwrap{background:var(--panel);border-radius:8px;padding:4px 10px;
   border:1px solid var(--border);max-height:54px;overflow-y:auto;flex-shrink:0}
@@ -212,12 +210,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
     <div id="rowcards"></div>
   </div>
 
-  <!-- action bar: msg + rotate + place + next -->
+  <!-- action bar: rotate(left) + msg + place -->
   <div id="actbar">
-    <div id="actmsg">請選牌</div>
     <button class="abtn b-rot" id="brot" onclick="doRotate()" disabled>↻</button>
+    <div id="actmsg">請選牌</div>
     <button class="abtn b-ok"  id="bok"  onclick="doConfirm()" disabled>✓</button>
-    <button class="abtn b-next" id="bnext" onclick="doNext()" disabled>下一步▶</button>
   </div>
   <div id="logwrap"><div id="logbox"></div></div>
 </div>
@@ -226,7 +223,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;he
 <div id="modal"><div id="mbox">
   <h2 id="mtitle">遊戲結束</h2>
   <p id="mbody"></p>
-  <button onclick="location.reload()">再玩一次</button>
+  <button id="mbtn">確認</button>
 </div></div>
 
 <!-- drag ghost placeholder -->
@@ -466,6 +463,12 @@ function runCombat(){
   }
   G.players.forEach((p,i)=>{if(!p.eliminated)p.hp=Math.max(0,p.hp-dmg[i]);});
   render();
+  const lines=G.players
+    .map((p,i)=>(!p.eliminated&&dmg[i]>0)?`${p.name}  -${dmg[i]}HP → ❤${p.hp}`:null)
+    .filter(Boolean);
+  showModal('⚔ 戰鬥結算',lines.length?lines.join('\n'):'本回合無傷害','確認',()=>{
+    hideModal();runRegroup();
+  });
 }
 
 function runRegroup(){
@@ -482,7 +485,7 @@ function runRegroup(){
   const alive=activePlayers();
   if(alive.length<=1){endGame(alive[0]||null);return;}
   if(G.deck.length===0&&G.row.filter(x=>x!=null).length===0){endByScore();return;}
-  render();
+  startNextRound();
 }
 
 function startNextRound(){
@@ -496,18 +499,33 @@ function startNextRound(){
   render();
 }
 
+function showModal(title,body,btnText,btnAction){
+  document.getElementById('mtitle').textContent=title;
+  document.getElementById('mbody').textContent=body;
+  const btn=document.getElementById('mbtn');
+  btn.textContent=btnText;
+  btn.onclick=btnAction;
+  document.getElementById('modal').classList.add('show');
+}
+function hideModal(){
+  document.getElementById('modal').classList.remove('show');
+}
 function endGame(winner){
   render();
-  document.getElementById('mtitle').textContent=winner?`🏆 ${winner.name} 獲勝！`:'🏆 遊戲結束';
-  document.getElementById('mbody').textContent=winner?`以 ${winner.hp} HP 存活！`:'所有玩家同時淘汰！';
-  document.getElementById('modal').classList.add('show');
+  showModal(
+    winner?`🏆 ${winner.name} 獲勝！`:'🏆 遊戲結束',
+    winner?`以 ${winner.hp} HP 存活！`:'所有玩家同時淘汰！',
+    '再玩一次',()=>location.reload()
+  );
 }
 function endByScore(){
   render();
   const alive=activePlayers().sort((a,b)=>b.hp-a.hp);
-  document.getElementById('mtitle').textContent='🏆 牌堆耗盡';
-  document.getElementById('mbody').textContent=`${alive[0].name} 以最高 ${alive[0].hp} HP 獲勝！\n`+alive.map(p=>`${p.name}:${p.hp}HP`).join(' | ');
-  document.getElementById('modal').classList.add('show');
+  showModal(
+    '🏆 牌堆耗盡',
+    `${alive[0].name} 以最高 ${alive[0].hp} HP 獲勝！\n`+alive.map(p=>`${p.name}:${p.hp}HP`).join(' | '),
+    '再玩一次',()=>location.reload()
+  );
 }
 
 // ══════════════════════════════════════════
@@ -563,11 +581,6 @@ function doSkip(){
   addLog(`${G.players[G.currentPlayer].name} 跳過`);
   resetSelection();
   nextDeployPlayer();
-}
-
-function doNext(){
-  if(G.phase==='combat')runRegroup();
-  else if(G.phase==='regroup')startNextRound();
 }
 
 function setFocus(pi){
@@ -846,28 +859,21 @@ function renderActBar(){
   e('turnlbl').textContent=G.phase==='deploy'?`輪到：${cp.name}`:`第${G.roundNum}回合`;
   e('decklbl').textContent=`牌堆：${G.deck.length}`;
 
+  e('brot').disabled=G.selCardId===null||G.phase!=='deploy';
+  e('bok').disabled=!(G.phase==='deploy'&&G.selCardId!==null&&G.pendingPos);
   if(G.phase==='deploy'){
     const coins=terrCoins(cp.territory);
-    e('bnext').disabled=true;
-    e('brot').disabled=G.selCardId===null;
-    e('bok').disabled=!(G.selCardId!==null&&G.pendingPos);
     if(G.pendingPos){
       e('actmsg').textContent=`位置(${G.pendingPos[0]},${G.pendingPos[1]})，↻旋轉 ✓放置`;
     }else if(G.selFromDeck){
       e('actmsg').textContent=`${cp.name} 已翻頂牌，點綠格放置`;
     }else if(G.selCardId!==null){
-      e('actmsg').textContent=`${cp.name} 已選牌，點/拖曳至綠格`;
+      e('actmsg').textContent=`${cp.name} 已選牌，點綠格放置`;
     }else{
       e('actmsg').textContent=`${cp.name} 選牌｜🪙×${coins}`;
     }
-  }else if(G.phase==='combat'){
-    e('brot').disabled=true; e('bok').disabled=true;
-    e('bnext').disabled=false;
-    e('actmsg').textContent='⚔ 戰鬥結算，按下一步進入盤整';
   }else{
-    e('brot').disabled=true; e('bok').disabled=true;
-    e('bnext').disabled=false;
-    e('actmsg').textContent='🔄 盤整完畢，按下一步開始下回合';
+    e('actmsg').textContent=G.phase==='combat'?'⚔ 戰鬥結算中…':'🔄 盤整中…';
   }
 }
 
