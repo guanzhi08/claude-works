@@ -331,9 +331,16 @@ function joinRoom(){
 }
 
 function setupConn(){
-  conn.on('open', function(){
-    if(!isHost){ setErr(''); startCoinFlip(); }
-  });
+  var flipStarted = false;
+  function onOpen(){
+    if(flipStarted) return;
+    flipStarted = true;
+    setErr('');
+    startCoinFlip();
+  }
+  conn.on('open', onOpen);
+  // Host's DataChannel may already be open by the time we register the handler
+  if(conn.open) onOpen();
   conn.on('data', handleMsg);
   conn.on('close', function(){
     if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
