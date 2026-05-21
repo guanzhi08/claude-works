@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v20</title>
+<title>猜數字對戰 v21</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v20</p>
+  <p style="font-size:.7rem;color:#94a3b8">v21</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -928,7 +928,7 @@ function applyToolEffect(card, hitMe){
     switch(card){
       case 'fog':    send({type:'fx_fog_me'}); addLog('my','霧化反射：你的下次猜測結果模糊','lt'); break;
       case 'focus':  G.focusOppNext=true; send({type:'fx_focus_me'}); addLog('my','聚焦反射：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
-      case 'secret': G.secretActive=true; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手永久隱藏','lt'); break;
+      case 'secret': G.secretActive=true; send({type:'fx_secret_me'}); addLog('my','保密反射：對手的猜測紀錄對你永久隱藏','lt'); break;
       case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：效果反彈，等待對手發問','lt'); break;
       case 'extortion':     send({type:'fx_extortion_me'}); addLog('my','勒索反射：效果反彈，等待對手發問','lt'); break;
     }
@@ -1190,7 +1190,7 @@ function handleMsg(msg){
 
     case 'fx_fog_me':    G.fogOppNext=true;   addLog('my','霧化（反射）：對手下次猜測模糊','lt'); renderEffects(); break;
     case 'fx_focus_me':  addLog('my','聚焦（反射）：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
-    case 'fx_secret_me': G.secretActive=true; addLog('my','保密（反射）：你的紀錄對對手永久隱藏','lt'); renderEffects(); break;
+    case 'fx_secret_me': addLog('my','保密（反射）：對手的猜測紀錄對你永久隱藏','lt'); break;
     case 'fx_interrogation_me': addLog('my','審訊（反射）：你現在可以向對手發問','lt'); openInterrogation(); break;
     case 'fx_extortion_me':     addLog('my','勒索（反射）：你現在可以向對手發問','lt'); openExtortion(); break;
 
