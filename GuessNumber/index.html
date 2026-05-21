@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v16</title>
+<title>猜數字對戰 v17</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v16</p>
+  <p style="font-size:.7rem;color:#94a3b8">v17</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -932,8 +932,8 @@ function applyToolEffect(card, hitMe){
       case 'focus':  G.focusOppNext=true; send({type:'fx_focus_me'}); addLog('my','聚焦反射：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
       case 'peek':   send({type:'fx_peek_me'}); addLog('my','偷窺反射：對手看到你的紀錄 5 回合','lt'); break;
       case 'secret': G.secretRounds=5; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手隱藏 5 回合','lt'); break;
-      case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：對手將向你發問','lt'); break;
-      case 'extortion':     send({type:'fx_extortion_me'}); addLog('my','勒索反射：對手將向你發問','lt'); break;
+      case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：效果反彈，等待對手發問','lt'); break;
+      case 'extortion':     send({type:'fx_extortion_me'}); addLog('my','勒索反射：效果反彈，等待對手發問','lt'); break;
     }
   }
   renderEffects();
@@ -1167,8 +1167,7 @@ function handleMsg(msg){
       }
       if(a===4){
         G.gameOver=true;
-        send({type:'game_over'});
-        showModal('遊戲結束','你猜中了！🎉\n答案是 '+gStr,'返回大廳',backToLobby);
+        showModal('遊戲結束','你猜中了！🎉\n對手的答案是 '+gStr,'返回大廳',backToLobby);
         return;
       }
       checkMilestone(a, b);
@@ -1203,8 +1202,8 @@ function handleMsg(msg){
     case 'fx_focus_me':  addLog('my','聚焦（反射）：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
     case 'fx_peek_me':   addLog('my','偷窺（反射）：對手看到你的紀錄 5 回合','lt'); break;
     case 'fx_secret_me': G.secretRounds=5; addLog('my','保密（反射）：你的紀錄對對手隱藏 5 回合','lt'); renderEffects(); break;
-    case 'fx_interrogation_me': addLog('my','審訊（反射）：等待對手向你發問','lt'); break;
-    case 'fx_extortion_me':     addLog('my','勒索（反射）：等待對手向你發問','lt'); break;
+    case 'fx_interrogation_me': addLog('my','審訊（反射）：你現在可以向對手發問','lt'); openInterrogation(); break;
+    case 'fx_extortion_me':     addLog('my','勒索（反射）：你現在可以向對手發問','lt'); openExtortion(); break;
 
     case 'interrogation_q': {
       var d=msg.digit, hasIt=G.myAnswer.indexOf(d)>=0;
@@ -1255,10 +1254,7 @@ function handleMsg(msg){
     case 'skip_ack':
       G.skipOpp=false; renderEffects(); break;
 
-    case 'game_over':
-      G.gameOver=true;
-      showModal('遊戲結束','恭喜你猜中了！🎉','返回大廳',backToLobby);
-      break;
+    case 'game_over': break; // handled by 'guess' handler on loser's side
   }
 }
 
