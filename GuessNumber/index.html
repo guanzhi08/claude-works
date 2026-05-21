@@ -200,19 +200,23 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .help-cd{font-size:.77rem;color:#64748b;line-height:1.5}
 
 /* note button */
-.note-btn{width:38px;height:60px;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.12s}
+.note-btn{width:38px;height:60px;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.12s;pointer-events:auto}
 .note-btn:active{background:#ddd6fe;transform:scale(.9)}
 
 /* note overlay */
 #note-ov{align-items:stretch;padding:10px}
 .note-modal{background:#fff;border:1px solid #e2e8f0;border-radius:16px;display:flex;flex-direction:column;width:100%;flex:1;max-height:88vh;overflow:hidden}
 .note-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e2e8f0;flex-shrink:0;gap:6px}
-.note-hdr-l{font-size:.9rem;font-weight:700;color:#1e293b;flex-shrink:0}
-.note-hdr-r{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.note-hdr-l{display:flex;gap:5px;align-items:center}
+.note-hdr-r{display:flex;gap:5px;align-items:center}
 .note-sm-btn{padding:5px 10px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.1s;user-select:none}
 .note-sm-btn:active{transform:scale(.93)}
+.note-sm-btn.pen-on{background:#dbeafe;color:#1d4ed8}
 .note-sm-btn.eraser-on{background:#ddd6fe;color:#7c3aed}
 #note-canvas{flex:1;width:100%;background:#fefce8;cursor:crosshair;touch-action:none;display:block;min-height:0}
+
+/* help anchor – mirrors guess-col width */
+.help-anchor{flex:0 0 150px;display:flex;justify-content:flex-end;align-items:flex-end}
 
 /* offer result badge */
 .offer-result{font-size:.9rem;font-weight:700;color:#7c3aed;text-align:center;padding:5px 14px;background:#ede9fe;border-radius:10px;width:100%}
@@ -307,6 +311,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="trow-wrapper">
     <div class="trow" id="tools-row"></div>
+    <div class="help-anchor" id="help-anchor"></div>
   </div>
   <div class="card-info" id="card-info">
     <span class="ci-icon" id="ci-icon"></span>
@@ -412,11 +417,13 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 <div class="ov" id="note-ov">
   <div class="note-modal">
     <div class="note-hdr">
-      <span class="note-hdr-l">✏️ 手寫筆記</span>
-      <div class="note-hdr-r">
+      <div class="note-hdr-l">
+        <button class="note-sm-btn pen-on" id="note-pen-btn" style="background:#dbeafe;color:#1d4ed8" title="畫筆">🖊 畫筆</button>
+        <button class="note-sm-btn" id="note-eraser-btn" style="background:#f1f5f9;color:#374151" title="橡皮擦">🧹 橡皮</button>
         <button class="note-sm-btn" id="note-undo-btn" style="background:#f1f5f9;color:#374151" title="復原">↩ 復原</button>
         <button class="note-sm-btn" id="note-redo-btn" style="background:#f1f5f9;color:#374151" title="重做">↪ 重做</button>
-        <button class="note-sm-btn" id="note-eraser-btn" style="background:#f1f5f9;color:#374151" title="橡皮擦">🧹 橡皮</button>
+      </div>
+      <div class="note-hdr-r">
         <button class="note-sm-btn" id="note-clear-btn" style="background:#fee2e2;color:#dc2626">🗑 清除</button>
         <button class="note-sm-btn" id="note-close-btn" style="background:#e2e8f0;color:#374151">關閉</button>
       </div>
@@ -751,11 +758,13 @@ function renderTools(){
   }
   if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
   if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
-  var helpEl = document.createElement('button');
-  helpEl.className = 'tc-side-btn'; helpEl.id = 'help-btn';
-  helpEl.innerHTML = '📖<span>說明</span>';
+  var anchor = $('help-anchor'); anchor.innerHTML = '';
+  var helpEl = document.createElement('div');
+  helpEl.className = 'tc'; helpEl.id = 'help-btn';
+  helpEl.style.cssText = 'animation:none;cursor:pointer';
+  helpEl.innerHTML = '<span class="tc-icon">📖</span><span class="tc-name">說明</span>';
   helpEl.addEventListener('click', function(){ $('help-ov').classList.add('show'); });
-  row.appendChild(helpEl);
+  anchor.appendChild(helpEl);
 }
 
 function makeCard(cardId, passive, spent){
@@ -1303,10 +1312,14 @@ function noteRedo(){
   noteRestoreImage(noteRedoStack.pop());
 }
 
-function toggleEraser(){
-  noteMode = (noteMode === 'pen') ? 'eraser' : 'pen';
+function setNoteMode(mode){
+  noteMode = mode;
+  $('note-pen-btn').classList.toggle('pen-on',    noteMode === 'pen');
   $('note-eraser-btn').classList.toggle('eraser-on', noteMode === 'eraser');
   $('note-canvas').style.cursor = (noteMode === 'eraser') ? 'cell' : 'crosshair';
+}
+function toggleEraser(){
+  setNoteMode(noteMode === 'eraser' ? 'pen' : 'eraser');
 }
 
 function applyNoteMode(){
@@ -1396,6 +1409,7 @@ document.getElementById('note-clear-btn').addEventListener('click', clearNote);
 document.getElementById('note-close-btn').addEventListener('click', function(){ $('note-ov').classList.remove('show'); });
 document.getElementById('note-undo-btn').addEventListener('click', noteUndo);
 document.getElementById('note-redo-btn').addEventListener('click', noteRedo);
+document.getElementById('note-pen-btn').addEventListener('click', function(){ setNoteMode('pen'); });
 document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
 document.getElementById('card-info').addEventListener('click', hideCardInfo);
