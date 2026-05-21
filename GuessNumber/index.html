@@ -172,8 +172,14 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .tc.tc-help::before{background:#94a3b8;box-shadow:none}
 .tc.tc-help:active{transform:scale(.88) translateY(-3px);border-color:#94a3b8;animation:cardPlay .3s ease}
 
+/* trow wrapper with side buttons */
+.trow-wrapper{display:flex;align-items:center;width:100%;flex-shrink:0;gap:6px}
+.tc-side-btn{width:44px;height:58px;flex-shrink:0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:1rem;transition:.12s;user-select:none}
+.tc-side-btn span{font-size:.54rem;color:#64748b;font-weight:700;line-height:1}
+.tc-side-btn:active{background:#e2e8f0;transform:scale(.92)}
+
 /* help overlay */
-.help-ob{padding:0;max-height:88vh}
+.help-ob{padding:0;max-height:88vh;max-width:80vw}
 .help-hdr{padding:14px 18px 10px;border-bottom:1px solid #e2e8f0;flex-shrink:0;width:100%;text-align:center}
 .help-body{overflow-y:auto;padding:12px 18px 6px;flex:1;width:100%;min-height:0;text-align:left}
 .help-body::-webkit-scrollbar{width:3px}.help-body::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
@@ -199,12 +205,13 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 
 /* note overlay */
 #note-ov{align-items:stretch;padding:10px}
-.note-modal{background:#fff;border:1px solid #e2e8f0;border-radius:16px;display:flex;flex-direction:column;width:100%;max-width:460px;flex:1;max-height:88vh;overflow:hidden}
-.note-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e2e8f0;flex-shrink:0}
-.note-hdr-l{font-size:.95rem;font-weight:700;color:#1e293b}
-.note-hdr-r{display:flex;gap:8px}
-.note-sm-btn{padding:5px 14px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.1s}
-.note-sm-btn:active{transform:scale(.95)}
+.note-modal{background:#fff;border:1px solid #e2e8f0;border-radius:16px;display:flex;flex-direction:column;width:100%;flex:1;max-height:88vh;overflow:hidden}
+.note-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e2e8f0;flex-shrink:0;gap:6px}
+.note-hdr-l{font-size:.9rem;font-weight:700;color:#1e293b;flex-shrink:0}
+.note-hdr-r{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.note-sm-btn{padding:5px 10px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.1s;user-select:none}
+.note-sm-btn:active{transform:scale(.93)}
+.note-sm-btn.eraser-on{background:#ddd6fe;color:#7c3aed}
 #note-canvas{flex:1;width:100%;background:#fefce8;cursor:crosshair;touch-action:none;display:block;min-height:0}
 
 /* offer result badge */
@@ -293,7 +300,11 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
       <div class="log" id="opp-log"></div>
     </div>
   </div>
-  <div class="trow" id="tools-row"></div>
+  <div class="trow-wrapper">
+    <button class="tc-side-btn" id="note-btn">✏️<span>筆記</span></button>
+    <div class="trow" id="tools-row"></div>
+    <button class="tc-side-btn" id="help-btn">📖<span>說明</span></button>
+  </div>
   <div class="card-info" id="card-info">
     <span class="ci-icon" id="ci-icon"></span>
     <div class="ci-body">
@@ -304,7 +315,6 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="ga" id="guess-area">
     <div class="slots-row">
-      <button class="note-btn" id="note-btn">✏️</button>
       <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
       <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
       <button class="del-btn" id="guess-del">⌫</button>
@@ -322,7 +332,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="obrow">
       <button class="btn bs" id="cbtn-pass">略過</button>
       <button class="btn bp" id="cbtn-shield">🛡 護盾</button>
-      <button class="btn bd" id="cbtn-reflect">↩ 反射</button>
+      <button class="btn bd" id="cbtn-reflect">🪞 反射</button>
     </div>
   </div>
 </div>
@@ -386,7 +396,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
       <div class="help-sec">
         <div class="help-sec-ttl">🛡 被動道具牌（反制用）</div>
         <div class="help-card-row"><span class="help-ci">🛡</span><div><div class="help-cn">護盾</div><div class="help-cd">對手使用道具時觸發：<b>取消對方道具效果</b>（全場僅 1 次）</div></div></div>
-        <div class="help-card-row"><span class="help-ci">↩</span><div><div class="help-cn">反射</div><div class="help-cd">對手使用道具時觸發：<b>將效果反彈回對手</b>，讓對手承受自己的道具（全場僅 1 次）</div></div></div>
+        <div class="help-card-row"><span class="help-ci">🪞</span><div><div class="help-cn">反射</div><div class="help-cd">對手使用道具時觸發：<b>將效果反彈回對手</b>，讓對手承受自己的道具（全場僅 1 次）</div></div></div>
       </div>
 
     </div>
@@ -400,7 +410,10 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="note-hdr">
       <span class="note-hdr-l">✏️ 手寫筆記</span>
       <div class="note-hdr-r">
-        <button class="note-sm-btn" id="note-clear-btn" style="background:#fee2e2;color:#dc2626">清除</button>
+        <button class="note-sm-btn" id="note-undo-btn" style="background:#f1f5f9;color:#374151" title="復原">↩ 復原</button>
+        <button class="note-sm-btn" id="note-redo-btn" style="background:#f1f5f9;color:#374151" title="重做">↪ 重做</button>
+        <button class="note-sm-btn" id="note-eraser-btn" style="background:#f1f5f9;color:#374151" title="橡皮擦">🧹 橡皮</button>
+        <button class="note-sm-btn" id="note-clear-btn" style="background:#fee2e2;color:#dc2626">🗑 清除</button>
         <button class="note-sm-btn" id="note-close-btn" style="background:#e2e8f0;color:#374151">關閉</button>
       </div>
     </div>
@@ -431,7 +444,7 @@ var CARDS = {
 };
 var PASSIVE_CARDS = {
   shield:  { name:'護盾', icon:'🛡', desc:'對手出牌時可使用：取消對方效果（僅一次）' },
-  reflect: { name:'反射', icon:'↩',  desc:'對手出牌時可使用：將效果反彈回對手（僅一次）' },
+  reflect: { name:'反射', icon:'🪞', desc:'對手出牌時可使用：將效果反彈回對手（僅一次）' },
 };
 var POOL = Object.keys(CARDS);
 
@@ -708,12 +721,6 @@ function renderTools(){
   }
   if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
   if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
-  // help card always at right end
-  var hc = document.createElement('div');
-  hc.className = 'tc tc-help';
-  hc.innerHTML = '<span class="tc-icon">📖</span><span class="tc-name">說明</span>';
-  hc.addEventListener('click', function(){ $('help-ov').classList.add('show'); });
-  row.appendChild(hc);
 }
 
 function makeCard(cardId, passive, spent){
@@ -1223,6 +1230,8 @@ function appendEl(parent, tag, cls, text){
 // NOTE CANVAS
 // ═══════════════════════════════════════════
 var noteDrawing = false, noteLx = 0, noteLy = 0, noteCtx = null;
+var noteMode = 'pen';
+var noteHistory = [], noteRedoStack = [];
 
 function notePos(e, canvas){
   var rect = canvas.getBoundingClientRect();
@@ -1230,12 +1239,61 @@ function notePos(e, canvas){
   return { x: pt.clientX - rect.left, y: pt.clientY - rect.top };
 }
 
+function noteSaveState(){
+  if(!noteCtx) return;
+  noteHistory.push($('note-canvas').toDataURL());
+  if(noteHistory.length > 40) noteHistory.shift();
+  noteRedoStack = [];
+}
+
+function noteRestoreImage(src){
+  var canvas = $('note-canvas');
+  var img = new Image();
+  img.onload = function(){
+    noteCtx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    noteCtx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight);
+  };
+  img.src = src;
+}
+
+function noteUndo(){
+  if(!noteCtx || !noteHistory.length) return;
+  noteRedoStack.push($('note-canvas').toDataURL());
+  noteRestoreImage(noteHistory.pop());
+}
+
+function noteRedo(){
+  if(!noteCtx || !noteRedoStack.length) return;
+  noteHistory.push($('note-canvas').toDataURL());
+  noteRestoreImage(noteRedoStack.pop());
+}
+
+function toggleEraser(){
+  noteMode = (noteMode === 'pen') ? 'eraser' : 'pen';
+  $('note-eraser-btn').classList.toggle('eraser-on', noteMode === 'eraser');
+  $('note-canvas').style.cursor = (noteMode === 'eraser') ? 'cell' : 'crosshair';
+}
+
+function applyNoteMode(){
+  if(noteMode === 'eraser'){
+    noteCtx.strokeStyle = '#fefce8';
+    noteCtx.lineWidth   = 22;
+    noteCtx.fillStyle   = '#fefce8';
+  } else {
+    noteCtx.strokeStyle = '#1e293b';
+    noteCtx.lineWidth   = 2.5;
+    noteCtx.fillStyle   = '#1e293b';
+  }
+}
+
 function setupNoteCanvas(canvas){
   canvas.addEventListener('mousedown', function(e){
+    noteSaveState();
     noteDrawing = true;
+    applyNoteMode();
     var p = notePos(e, canvas); noteLx = p.x; noteLy = p.y;
-    noteCtx.beginPath(); noteCtx.arc(p.x, p.y, 1.2, 0, Math.PI*2);
-    noteCtx.fillStyle = '#1e293b'; noteCtx.fill();
+    noteCtx.beginPath(); noteCtx.arc(p.x, p.y, noteMode==='eraser'?11:1.2, 0, Math.PI*2);
+    noteCtx.fill();
   });
   canvas.addEventListener('mousemove', function(e){
     if(!noteDrawing) return;
@@ -1246,7 +1304,10 @@ function setupNoteCanvas(canvas){
   canvas.addEventListener('mouseup',    function(){ noteDrawing = false; });
   canvas.addEventListener('mouseleave', function(){ noteDrawing = false; });
   canvas.addEventListener('touchstart', function(e){
-    e.preventDefault(); noteDrawing = true;
+    e.preventDefault();
+    noteSaveState();
+    noteDrawing = true;
+    applyNoteMode();
     var p = notePos(e, canvas); noteLx = p.x; noteLy = p.y;
   }, {passive:false});
   canvas.addEventListener('touchmove', function(e){
@@ -1268,10 +1329,9 @@ function openNote(){
       canvas.height = canvas.offsetHeight * dpr;
       noteCtx = canvas.getContext('2d');
       noteCtx.scale(dpr, dpr);
-      noteCtx.strokeStyle = '#1e293b';
-      noteCtx.lineWidth   = 2.5;
-      noteCtx.lineCap     = 'round';
-      noteCtx.lineJoin    = 'round';
+      noteCtx.lineCap  = 'round';
+      noteCtx.lineJoin = 'round';
+      applyNoteMode();
       setupNoteCanvas(canvas);
     });
   }
@@ -1279,8 +1339,9 @@ function openNote(){
 
 function clearNote(){
   if(!noteCtx) return;
+  noteSaveState();
   var canvas = $('note-canvas');
-  noteCtx.clearRect(0, 0, canvas.width / (window.devicePixelRatio||1), canvas.height / (window.devicePixelRatio||1));
+  noteCtx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
 }
 
 // ═══════════════════════════════════════════
@@ -1297,6 +1358,10 @@ document.getElementById('my-ans').addEventListener('click', function(){ myAnsVis
 document.getElementById('note-btn').addEventListener('click', openNote);
 document.getElementById('note-clear-btn').addEventListener('click', clearNote);
 document.getElementById('note-close-btn').addEventListener('click', function(){ $('note-ov').classList.remove('show'); });
+document.getElementById('note-undo-btn').addEventListener('click', noteUndo);
+document.getElementById('note-redo-btn').addEventListener('click', noteRedo);
+document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
+document.getElementById('help-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
 document.getElementById('card-info').addEventListener('click', hideCardInfo);
 document.getElementById('ci-use-btn').addEventListener('click', function(e){
