@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v12</title>
+<title>猜數字對戰 v13</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v12</p>
+  <p style="font-size:.7rem;color:#94a3b8">v13</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -341,7 +341,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="odesc" id="ctr-desc"></div>
     <div class="otmr" id="ctr-tmr">10</div>
     <div class="obrow">
-      <button class="btn bs" id="cbtn-pass">略過</button>
+      <button class="btn bs" id="cbtn-pass">接受</button>
       <button class="btn bp" id="cbtn-shield">🛡 護盾</button>
       <button class="btn bd" id="cbtn-reflect">🪞 反射</button>
     </div>
@@ -756,9 +756,10 @@ function renderLog(id, log, hidden){
 function renderTools(){
   var row = $('tools-row'); row.innerHTML = '';
   hideCardInfo();
-  if(G.myTurn){
+  var showCards = G.myTurn || new URLSearchParams(location.search).get('test')==='1';
+  if(showCards){
     G.myCards.forEach(function(card){
-      row.appendChild(makeCard(card, false, G.usedTool));
+      row.appendChild(makeCard(card, false, G.usedTool || !G.myTurn));
     });
   }
   if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
@@ -1047,6 +1048,7 @@ function advanceTurn(){
 }
 
 function checkMilestone(a, b){
+  if(new URLSearchParams(location.search).get('test')==='1') return;
   var key = (a===1||a===2||a===3) ? a : 0;
   if(!key || G.milestone[key]) return;
   G.milestone[key] = true;
