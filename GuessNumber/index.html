@@ -306,9 +306,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     </div>
   </div>
   <div class="trow-wrapper">
-    <button class="tc-side-btn" id="note-btn">✏️<span>筆記</span></button>
     <div class="trow" id="tools-row"></div>
-    <button class="tc-side-btn" id="help-btn">📖<span>說明</span></button>
   </div>
   <div class="card-info" id="card-info">
     <span class="ci-icon" id="ci-icon"></span>
@@ -320,6 +318,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="ga" id="guess-area">
     <div class="slots-row">
+      <button class="note-btn" id="note-btn">✏️</button>
       <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
       <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
       <button class="del-btn" id="guess-del">⌫</button>
@@ -594,6 +593,7 @@ function renderJoinSlots(){
 }
 
 function backToLobby(){
+  hideModal();
   if(peer){ peer.destroy(); peer = null; }
   conn = null; myReady = false; oppReady = false;
   $('qrbox').innerHTML = '';
@@ -751,6 +751,11 @@ function renderTools(){
   }
   if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
   if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
+  var helpEl = document.createElement('button');
+  helpEl.className = 'tc-side-btn'; helpEl.id = 'help-btn';
+  helpEl.innerHTML = '📖<span>說明</span>';
+  helpEl.addEventListener('click', function(){ $('help-ov').classList.add('show'); });
+  row.appendChild(helpEl);
 }
 
 function makeCard(cardId, passive, spent){
@@ -1392,7 +1397,6 @@ document.getElementById('note-close-btn').addEventListener('click', function(){ 
 document.getElementById('note-undo-btn').addEventListener('click', noteUndo);
 document.getElementById('note-redo-btn').addEventListener('click', noteRedo);
 document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
-document.getElementById('help-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
 document.getElementById('card-info').addEventListener('click', hideCardInfo);
 document.getElementById('ci-use-btn').addEventListener('click', function(e){
