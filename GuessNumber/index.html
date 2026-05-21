@@ -234,8 +234,13 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <span style="color:#94a3b8;font-size:.9rem">或</span>
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
   </div>
-  <input class="inp" id="join-inp" placeholder="輸入 4 位房號" maxlength="4" inputmode="numeric">
-  <button class="btn bs" id="join-btn">加入房間</button>
+  <div class="slots-row">
+    <div class="ds" id="js0"></div><div class="ds" id="js1"></div>
+    <div class="ds" id="js2"></div><div class="ds" id="js3"></div>
+    <button class="del-btn" id="join-del">⌫</button>
+  </div>
+  <div class="np" id="join-np"></div>
+  <button class="btn bs" id="join-btn" disabled>加入房間</button>
   <p id="lobby-err" style="color:#f87171;font-size:.9rem;min-height:20px;text-align:center"></p>
 </div>
 
@@ -544,8 +549,8 @@ function createRoom(){
 }
 
 function joinRoom(){
-  var code = $('join-inp').value.trim();
-  if(!/^\d{4}$/.test(code)){ setErr('請輸入 4 位數字房號'); return; }
+  var code = joinDigits.join('');
+  if(code.length !== 4){ setErr('請輸入 4 位數字房號'); return; }
   setErr('連線中…');
   roomCode = code; isHost = false;
   if(peer){ peer.destroy(); }
@@ -565,11 +570,35 @@ function setupConn(){
   });
 }
 
+function initJoinNumpad(){
+  joinDigits = [];
+  setErr('');
+  buildNumpad('join-np', function(d){
+    if(joinDigits.length < 4){ joinDigits.push(d); renderJoinSlots(); }
+  });
+  renderJoinSlots();
+}
+
+function renderJoinSlots(){
+  for(var i = 0; i < 4; i++){
+    var sl = $('js' + i);
+    var wasOn = sl.classList.contains('on');
+    sl.textContent = i < joinDigits.length ? joinDigits[i] : '';
+    if(!wasOn && i < joinDigits.length){
+      sl.classList.remove('on'); void sl.offsetWidth; sl.classList.add('on');
+    } else {
+      sl.classList.toggle('on', i < joinDigits.length);
+    }
+  }
+  $('join-btn').disabled = joinDigits.length !== 4;
+}
+
 function backToLobby(){
   if(peer){ peer.destroy(); peer = null; }
   conn = null; myReady = false; oppReady = false;
   $('qrbox').innerHTML = '';
   hideCardInfo();
+  initJoinNumpad();
   showScreen('lobby-screen');
 }
 
@@ -583,6 +612,7 @@ function goSetAnswer(){
 // SET ANSWER
 // ═══════════════════════════════════════════
 var ansDigits = [];
+var joinDigits = [];
 
 function initSetScreen(){
   ansDigits = [];
@@ -1349,6 +1379,7 @@ function clearNote(){
 // ═══════════════════════════════════════════
 document.getElementById('create-btn').addEventListener('click', createRoom);
 document.getElementById('join-btn').addEventListener('click', joinRoom);
+document.getElementById('join-del').addEventListener('click', function(){ joinDigits.pop(); renderJoinSlots(); });
 document.getElementById('cancel-btn').addEventListener('click', backToLobby);
 document.getElementById('rnd-btn').addEventListener('click', randomAnswer);
 document.getElementById('ans-ok').addEventListener('click', confirmAnswer);
@@ -1371,8 +1402,12 @@ document.getElementById('ci-use-btn').addEventListener('click', function(e){
 });
 
 (function(){
+  initJoinNumpad();
   var p=new URLSearchParams(location.search).get('join');
-  if(p && /^\d{4}$/.test(p)) $('join-inp').value=p;
+  if(p && /^\d{4}$/.test(p)){
+    joinDigits = p.split('').map(Number);
+    renderJoinSlots();
+  }
 })();
 </script>
 </body>
