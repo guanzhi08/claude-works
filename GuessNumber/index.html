@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v18</title>
+<title>猜數字對戰 v19</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v18</p>
+  <p style="font-size:.7rem;color:#94a3b8">v19</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -312,6 +312,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     </div>
   </div>
   <div class="trow-wrapper">
+    <button class="note-btn" id="note-btn">✏️</button>
     <div class="trow" id="tools-row"></div>
     <div class="tc help-tc" id="help-btn"><span class="tc-icon">📖</span><span class="tc-name">說明</span></div>
   </div>
@@ -325,7 +326,6 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="ga" id="guess-area">
     <div class="slots-row">
-      <button class="note-btn" id="note-btn">✏️</button>
       <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
       <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
       <button class="del-btn" id="guess-del">⌫</button>
@@ -401,7 +401,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-card-row"><span class="help-ci">🌀</span><div><div class="help-cn">霧化</div><div class="help-cd">對手<b>下一次</b>猜測只看到模糊結果：「共 x 個數字出現」，無法得知 A/B 細節</div></div></div>
         <div class="help-card-row"><span class="help-ci">🎯</span><div><div class="help-cn">聚焦</div><div class="help-cd">對手<b>下一次</b>猜測時，你額外看到詳細位置結果（對手只看到正常 xAxB）</div></div></div>
 
-        <div class="help-card-row"><span class="help-ci">🔐</span><div><div class="help-cn">保密</div><div class="help-cd">接下來 <b>5 回合</b>你的猜測紀錄對對手隱藏</div></div></div>
+        <div class="help-card-row"><span class="help-ci">🔐</span><div><div class="help-cn">保密</div><div class="help-cd">往後所有猜測紀錄對對手永久隱藏</div></div></div>
       </div>
 
       <div class="help-sec">
@@ -452,7 +452,7 @@ var CARDS = {
   extortion:     { name:'勒索', icon:'💰', desc:'指定一個位置，對手選擇：告知確切數字，或跳過本回合' },
   fog:           { name:'霧化', icon:'🌀', desc:'對手下一次猜測只看到模糊結果（共幾個數字出現）' },
   focus:         { name:'聚焦', icon:'🎯', desc:'你的下一次猜測可以看到詳細 ABX 位置（對手只看到正常結果）' },
-  secret:        { name:'保密', icon:'🔐', desc:'你的猜測紀錄對對手隱藏 5 回合' },
+  secret:        { name:'保密', icon:'🔐', desc:'你往後所有猜測紀錄對對手永久隱藏' },
 };
 var PASSIVE_CARDS = {
   shield:  { name:'護盾', icon:'🛡', desc:'對手出牌時可使用：取消對方效果（僅一次）' },
@@ -486,7 +486,7 @@ function resetG(myTurn){
     milestone:   { 1:false, 2:false, 3:false },
     fogOppNext:    false,
     focusOppNext:  false,
-    secretRounds:  0,
+    secretActive:  false,
     skipMe:        false,
     skipOpp:       false,
     myShield:  true,
@@ -738,7 +738,7 @@ function renderGame(){
   ga.style.opacity      = G.myTurn ? '1' : '.45';
   ga.style.pointerEvents = G.myTurn ? 'auto' : 'none';
 
-  var oppHide = G.secretRounds > 0;
+  var oppHide = G.secretActive;
   $('opp-hbadge').style.display = oppHide ? '' : 'none';
   renderLog('opp-log', G.oppLog, oppHide);
   renderLog('my-log',  G.myLog,  false);
@@ -819,7 +819,7 @@ function renderEffects(){
   }
   if(G.fogOppNext)   badge('霧化（下次）');
   if(G.focusOppNext) badge('聚焦（下次）');
-  if(G.secretRounds>0) badge('保密 ×'+G.secretRounds);
+  if(G.secretActive) badge('保密');
   if(G.skipMe)       badge('我將跳過','#450a0a','#fca5a5');
   if(G.skipOpp)      badge('對手將跳過','#052e16','#6ee7b7');
 }
@@ -918,7 +918,7 @@ function applyToolEffect(card, hitMe){
     switch(card){
       case 'fog':    G.fogOppNext=true; send({type:'fx_fog'}); addLog('my','霧化：對手下次猜測模糊','lt'); break;
       case 'focus':  send({type:'fx_focus'}); addLog('my','聚焦：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
-      case 'secret': send({type:'fx_secret'}); addLog('my','保密：對手猜測紀錄對你隱藏 5 回合','lt'); break;
+      case 'secret': send({type:'fx_secret'}); addLog('my','保密：你往後的猜測紀錄對對手永久隱藏','lt'); break;
       case 'interrogation': openInterrogation(); break;
       case 'extortion':     openExtortion(); break;
     }
@@ -926,7 +926,7 @@ function applyToolEffect(card, hitMe){
     switch(card){
       case 'fog':    send({type:'fx_fog_me'}); addLog('my','霧化反射：你的下次猜測結果模糊','lt'); break;
       case 'focus':  G.focusOppNext=true; send({type:'fx_focus_me'}); addLog('my','聚焦反射：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
-      case 'secret': G.secretRounds=5; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手隱藏 5 回合','lt'); break;
+      case 'secret': G.secretActive=true; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手永久隱藏','lt'); break;
       case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：效果反彈，等待對手發問','lt'); break;
       case 'extortion':     send({type:'fx_extortion_me'}); addLog('my','勒索反射：效果反彈，等待對手發問','lt'); break;
     }
@@ -1049,7 +1049,6 @@ function advanceTurn(){
   G.myTurn = !G.myTurn;
   G.usedTool = false;
   G.input = [];
-  if(G.secretRounds > 0) G.secretRounds--;
   if(G.myTurn && G.skipMe){
     G.skipMe = false;
     addLog('my','你的回合被跳過','ls');
@@ -1087,7 +1086,7 @@ function addLog(side, text, cls){
   }
   arr.push({t:text, c:cls||'ls'});
   if(arr.length>80) arr.splice(0, arr.length-80);
-  renderLog('opp-log', G.oppLog, G.secretRounds > 0);
+  renderLog('opp-log', G.oppLog, G.secretActive);
   renderLog('my-log',  G.myLog,  false);
   renderLog('sys-log', G.sysLog, false);
 }
@@ -1185,11 +1184,11 @@ function handleMsg(msg){
 
     case 'fx_fog':    G.fogOppNext=true;   addLog('my','霧化：對手下次猜測結果模糊','lt'); renderEffects(); break;
     case 'fx_focus':  G.focusOppNext=true; addLog('my','聚焦：你的下一次猜測結果將包含詳細位置','lt'); renderEffects(); break;
-    case 'fx_secret': G.secretRounds=5;   addLog('my','保密：對手猜測紀錄對你隱藏 5 回合','lt'); renderEffects(); break;
+    case 'fx_secret': G.secretActive=true;   addLog('my','保密：對手往後的猜測紀錄永久隱藏','lt'); renderEffects(); break;
 
     case 'fx_fog_me':    G.fogOppNext=true;   addLog('my','霧化（反射）：對手下次猜測模糊','lt'); renderEffects(); break;
     case 'fx_focus_me':  addLog('my','聚焦（反射）：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
-    case 'fx_secret_me': G.secretRounds=5; addLog('my','保密（反射）：你的紀錄對對手隱藏 5 回合','lt'); renderEffects(); break;
+    case 'fx_secret_me': G.secretActive=true; addLog('my','保密（反射）：你的紀錄對對手永久隱藏','lt'); renderEffects(); break;
     case 'fx_interrogation_me': addLog('my','審訊（反射）：你現在可以向對手發問','lt'); openInterrogation(); break;
     case 'fx_extortion_me':     addLog('my','勒索（反射）：你現在可以向對手發問','lt'); openExtortion(); break;
 
@@ -1250,7 +1249,7 @@ function applyIncomingTool(card, reflected){
   switch(card){
     case 'fog':    G.fogOppNext=true;   addLog('my','霧化：你的下次猜測結果模糊','lt'); break;
     case 'focus':  addLog('my','聚焦：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
-    case 'secret': G.secretRounds=5;   addLog('my','保密：你的猜測紀錄對對手隱藏 5 回合','lt'); break;
+    case 'secret': G.secretActive=true;   addLog('my','保密：你往後的猜測紀錄對對手永久隱藏','lt'); break;
   }
   renderEffects();
 }
