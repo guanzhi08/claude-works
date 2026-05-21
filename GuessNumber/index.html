@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v9</title>
+<title>猜數字對戰 v10</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -78,7 +78,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .hero-logo-sm .logo-badge{width:52px;height:52px;font-size:1.7rem;border-radius:14px}
 .hero-logo-sm .logo-title{font-size:1.3rem}
 /* answer toggle */
-.ans-wrap{text-align:right;justify-self:end}
+.ans-wrap{text-align:right;justify-self:end;display:flex;flex-direction:column;align-items:flex-end}
 .ans-lbl{font-size:.62rem;color:#94a3b8;display:block;margin-bottom:1px}
 .ans-val{font-size:.9rem;color:#7c3aed;letter-spacing:4px;font-weight:800;cursor:pointer;user-select:none;display:inline-block;padding:2px 5px;border-radius:6px;transition:.1s;border:1px solid #ede9fe}
 .ans-val:active{background:#ede9fe}
@@ -209,14 +209,16 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .note-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e2e8f0;flex-shrink:0;gap:6px}
 .note-hdr-l{display:flex;gap:5px;align-items:center}
 .note-hdr-r{display:flex;gap:5px;align-items:center}
-.note-sm-btn{padding:5px 10px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.1s;user-select:none}
+.note-sm-btn{padding:5px 10px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.1s;user-select:none;background:#f1f5f9;color:#374151}
 .note-sm-btn:active{transform:scale(.93)}
 .note-sm-btn.pen-on{background:#dbeafe;color:#1d4ed8}
 .note-sm-btn.eraser-on{background:#ddd6fe;color:#7c3aed}
+.note-sm-btn.btn-danger{background:#fee2e2;color:#dc2626}
+.note-sm-btn.btn-muted{background:#e2e8f0;color:#374151}
 #note-canvas{flex:1;width:100%;background:#fefce8;cursor:crosshair;touch-action:none;display:block;min-height:0}
 
-/* help anchor – mirrors guess-col width */
-.help-anchor{flex:0 0 150px;display:flex;justify-content:flex-end;align-items:flex-end}
+/* help card (static in trow-wrapper) */
+.help-tc{animation:none!important;cursor:pointer;flex-shrink:0;margin-left:auto}
 
 /* offer result badge */
 .offer-result{font-size:.9rem;font-weight:700;color:#7c3aed;text-align:center;padding:5px 14px;background:#ede9fe;border-radius:10px;width:100%}
@@ -230,8 +232,8 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-badge">⚔️</div>
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
-  <p class="sub">WebRTC 雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v9</p>
+  <p class="sub">雙人即時對戰・道具策略</p>
+  <p style="font-size:.7rem;color:#94a3b8">v10</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -311,7 +313,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="trow-wrapper">
     <div class="trow" id="tools-row"></div>
-    <div class="help-anchor" id="help-anchor"></div>
+    <div class="tc help-tc" id="help-btn"><span class="tc-icon">📖</span><span class="tc-name">說明</span></div>
   </div>
   <div class="card-info" id="card-info">
     <span class="ci-icon" id="ci-icon"></span>
@@ -418,14 +420,14 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   <div class="note-modal">
     <div class="note-hdr">
       <div class="note-hdr-l">
-        <button class="note-sm-btn pen-on" id="note-pen-btn" style="background:#dbeafe;color:#1d4ed8" title="畫筆">🖊 畫筆</button>
-        <button class="note-sm-btn" id="note-eraser-btn" style="background:#f1f5f9;color:#374151" title="橡皮擦">🧹 橡皮</button>
-        <button class="note-sm-btn" id="note-undo-btn" style="background:#f1f5f9;color:#374151" title="復原">↩ 復原</button>
-        <button class="note-sm-btn" id="note-redo-btn" style="background:#f1f5f9;color:#374151" title="重做">↪ 重做</button>
+        <button class="note-sm-btn pen-on" id="note-pen-btn" title="畫筆">🖊 畫筆</button>
+        <button class="note-sm-btn" id="note-eraser-btn" title="橡皮擦">🧹 橡皮</button>
+        <button class="note-sm-btn" id="note-undo-btn" title="復原">↩ 復原</button>
+        <button class="note-sm-btn" id="note-redo-btn" title="重做">↪ 重做</button>
       </div>
       <div class="note-hdr-r">
-        <button class="note-sm-btn" id="note-clear-btn" style="background:#fee2e2;color:#dc2626">🗑 清除</button>
-        <button class="note-sm-btn" id="note-close-btn" style="background:#e2e8f0;color:#374151">關閉</button>
+        <button class="note-sm-btn btn-danger" id="note-clear-btn">🗑 清除</button>
+        <button class="note-sm-btn btn-muted" id="note-close-btn">關閉</button>
       </div>
     </div>
     <canvas id="note-canvas"></canvas>
@@ -758,13 +760,6 @@ function renderTools(){
   }
   if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
   if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
-  var anchor = $('help-anchor'); anchor.innerHTML = '';
-  var helpEl = document.createElement('div');
-  helpEl.className = 'tc'; helpEl.id = 'help-btn';
-  helpEl.style.cssText = 'animation:none;cursor:pointer';
-  helpEl.innerHTML = '<span class="tc-icon">📖</span><span class="tc-name">說明</span>';
-  helpEl.addEventListener('click', function(){ $('help-ov').classList.add('show'); });
-  anchor.appendChild(helpEl);
 }
 
 function makeCard(cardId, passive, spent){
@@ -1411,6 +1406,7 @@ document.getElementById('note-undo-btn').addEventListener('click', noteUndo);
 document.getElementById('note-redo-btn').addEventListener('click', noteRedo);
 document.getElementById('note-pen-btn').addEventListener('click', function(){ setNoteMode('pen'); });
 document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
+document.getElementById('help-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
 document.getElementById('card-info').addEventListener('click', hideCardInfo);
 document.getElementById('ci-use-btn').addEventListener('click', function(e){
