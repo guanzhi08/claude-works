@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v10</title>
+<title>猜數字對戰 v11</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -110,7 +110,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .log-sep-lbl{font-size:.6rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
 
 /* ── POKER CARD TOOLS ── */
-.trow{display:flex;gap:7px;width:100%;flex-shrink:0;overflow-x:auto;padding-bottom:3px;align-items:flex-end}
+.trow{display:flex;gap:7px;flex:1;min-width:0;overflow-x:auto;padding-bottom:3px;align-items:flex-end}
 .trow:empty{display:none}
 .trow::-webkit-scrollbar{height:2px}.trow::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
 .tc{
@@ -218,7 +218,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 #note-canvas{flex:1;width:100%;background:#fefce8;cursor:crosshair;touch-action:none;display:block;min-height:0}
 
 /* help card (static in trow-wrapper) */
-.help-tc{animation:none!important;cursor:pointer;flex-shrink:0;margin-left:auto}
+.help-tc{animation:none!important;cursor:pointer;flex-shrink:0}
 
 /* offer result badge */
 .offer-result{font-size:.9rem;font-weight:700;color:#7c3aed;text-align:center;padding:5px 14px;background:#ede9fe;border-radius:10px;width:100%}
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v10</p>
+  <p style="font-size:.7rem;color:#94a3b8">v11</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
