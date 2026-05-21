@@ -5,125 +5,149 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v7</title>
+<title>猜數字對戰 v8</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
-body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+html,body{height:100%;background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0%,#1a1040 0%,#0a0e1a 65%)}
+
+/* ── ANIMATIONS ── */
+@keyframes spin    {to{transform:rotate(360deg)}}
+@keyframes slideIn {from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)}}
+@keyframes popIn   {0%{transform:scale(.45);opacity:0}65%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+@keyframes turnIn  {0%{transform:scale(.82) translateY(-4px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(124,58,237,.35)}50%{box-shadow:0 0 22px rgba(124,58,237,.85)}}
+@keyframes resultBloom{0%{filter:blur(4px);opacity:0;transform:scaleX(.7)}100%{filter:blur(0);opacity:1;transform:scaleX(1)}}
+@keyframes submitFlash{0%{background:#7c3aed;color:#fff;border-color:#a78bfa}100%{background:#0f172a;color:#f8fafc;border-color:#334155}}
+@keyframes cardPlay{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-12px) scale(1.18)}100%{transform:translateY(0) scale(1)}}
+@keyframes badgePop{0%{transform:scale(0) rotate(-15deg);opacity:0}70%{transform:scale(1.25) rotate(3deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes shakeX  {0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@keyframes fadeIn  {from{opacity:0}to{opacity:1}}
+@keyframes counterGlow{0%,100%{color:#f59e0b}50%{color:#ff4444;text-shadow:0 0 20px #ff444488}}
 
 .screen{display:none;width:100%;max-width:480px;padding:20px;flex-direction:column;align-items:center;gap:14px}
 .screen.active{display:flex}
-h1{font-size:1.7rem;font-weight:700;color:#f8fafc;text-align:center}
-h2{font-size:1.2rem;font-weight:600;color:#cbd5e1;text-align:center}
-p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
+h1{font-size:2rem;font-weight:800;color:#f8fafc;text-align:center;text-shadow:0 0 24px rgba(167,139,250,.4)}
+h2{font-size:1.35rem;font-weight:700;color:#cbd5e1;text-align:center}
+p.sub{font-size:.9rem;color:#94a3b8;text-align:center}
 
-.inp{width:100%;padding:13px 14px;background:#1e293b;border:2px solid #334155;border-radius:10px;color:#f1f5f9;font-size:1.1rem;outline:none;text-align:center;letter-spacing:6px}
-.inp:focus{border-color:#6366f1}
-.btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:.15s;user-select:none}
-.bp{background:#6366f1;color:#fff}.bp:active{background:#4f46e5}
-.bs{background:#334155;color:#e2e8f0}.bs:active{background:#475569}
-.bd{background:#dc2626;color:#fff}.bd:active{background:#b91c1c}
+.inp{width:100%;padding:14px 16px;background:#111827;border:2px solid #374151;border-radius:12px;color:#f1f5f9;font-size:1.25rem;outline:none;text-align:center;letter-spacing:8px;transition:.15s}
+.inp:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:.12s;user-select:none;letter-spacing:.03em}
+.bp{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.4)}.bp:active{background:linear-gradient(135deg,#5b21b6,#6d28d9);transform:scale(.97)}
+.bs{background:#1f2937;color:#e2e8f0;border:1px solid #374151}.bs:active{background:#374151;transform:scale(.97)}
+.bd{background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff}.bd:active{transform:scale(.97)}
 .btn:disabled{opacity:.35;pointer-events:none}
-.row{display:flex;gap:8px;width:100%}.row .btn{flex:1}
+.row{display:flex;gap:10px;width:100%}.row .btn{flex:1}
 
-#qrbox{background:#fff;padding:10px;border-radius:10px}
-.room-code{font-size:2.2rem;font-weight:700;letter-spacing:10px;color:#818cf8;text-align:center}
+#qrbox{background:#fff;padding:10px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.room-code{font-size:2.5rem;font-weight:800;letter-spacing:12px;color:#a78bfa;text-align:center;text-shadow:0 0 20px rgba(167,139,250,.5)}
 
-/* slots row — shared by set-screen and guess-area */
-.slots-row{display:flex;align-items:center;gap:7px;justify-content:center;margin-bottom:6px}
-.ds{width:52px;height:56px;background:#1e293b;border:2px solid #334155;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:700;color:#f8fafc;transition:.12s}
-.ds.on{border-color:#6366f1;color:#818cf8}
+/* slots row */
+.slots-row{display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:8px}
+.ds{width:58px;height:62px;background:#111827;border:2px solid #374151;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#f8fafc;transition:.12s}
+.ds.on{border-color:#7c3aed;color:#a78bfa;box-shadow:0 0 10px rgba(124,58,237,.3);animation:popIn .18s cubic-bezier(.2,.8,.3,1.4)}
 
-/* small delete button right of slots */
-.del-btn{width:34px;height:56px;background:#7f1d1d;color:#fca5a5;border:none;border-radius:8px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.1s}
-.del-btn:active{background:#991b1b;transform:scale(.92)}
+.del-btn{width:38px;height:62px;background:#450a0a;color:#fca5a5;border:none;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.12s;border:1px solid #7f1d1d}
+.del-btn:active{background:#7f1d1d;transform:scale(.9)}
 
-/* numpad — digits only (no del inside grid) */
-.np{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;width:100%;max-width:320px;margin:0 auto}
-.nk{aspect-ratio:1;background:#1e293b;border:none;border-radius:10px;color:#f1f5f9;font-size:1.15rem;font-weight:600;cursor:pointer;transition:.1s;display:flex;align-items:center;justify-content:center;user-select:none}
-.nk:active{background:#334155;transform:scale(.93)}
-.nk.dim{background:#0f172a;color:#1e3a5f;pointer-events:none}
-.nk.sub{background:#6366f1;color:#fff;grid-column:span 5;aspect-ratio:auto;padding:10px;font-size:.95rem}
-.nk.sub:active{background:#4f46e5}
+/* numpad */
+.np{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:100%;max-width:320px;margin:0 auto}
+.nk{aspect-ratio:1;background:#111827;border:1px solid #1f2937;border-radius:12px;color:#f1f5f9;font-size:1.3rem;font-weight:700;cursor:pointer;transition:.1s;display:flex;align-items:center;justify-content:center;user-select:none}
+.nk:active{background:#1f2937;transform:scale(.9)}
+.nk.dim{background:#0a0e1a;color:#1e3a5f;pointer-events:none;border-color:#111}
+.nk.sub{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;grid-column:span 5;aspect-ratio:auto;padding:13px;font-size:1.05rem;border:none;box-shadow:0 4px 14px rgba(124,58,237,.4)}
+.nk.sub:active{background:linear-gradient(135deg,#5b21b6,#6d28d9)}
 .nk.sub:disabled{opacity:.35;pointer-events:none}
 
 /* ── GAME SCREEN ── */
-#game-screen{height:100dvh;max-width:480px;overflow:hidden;padding:5px 8px;justify-content:flex-start;gap:4px}
+#game-screen{height:100dvh;max-width:480px;overflow:hidden;padding:6px 8px;justify-content:flex-start;gap:5px}
 .ghdr{display:flex;align-items:center;justify-content:space-between;width:100%;flex-shrink:0}
-.tpill{padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:700}
-.tm{background:#166534;color:#86efac}.to{background:#7f1d1d;color:#fca5a5}
-.ans-lbl{font-size:.68rem;color:#64748b}
-.ans-val{font-size:.82rem;color:#818cf8;letter-spacing:3px;font-weight:700}
+.tpill{padding:5px 14px;border-radius:20px;font-size:.85rem;font-weight:800;letter-spacing:.04em;animation:turnIn .3s cubic-bezier(.2,.8,.3,1.1)}
+.tm{background:linear-gradient(135deg,#065f46,#047857);color:#6ee7b7;box-shadow:0 2px 14px rgba(16,185,129,.45)}
+.to{background:linear-gradient(135deg,#7f1d1d,#b91c1c);color:#fca5a5;box-shadow:0 2px 14px rgba(239,68,68,.35)}
+.ans-lbl{font-size:.72rem;color:#4b5563}
+.ans-val{font-size:.88rem;color:#a78bfa;letter-spacing:4px;font-weight:700}
 
-.efrow{display:flex;gap:4px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:14px}
-.eb{font-size:.63rem;padding:2px 6px;border-radius:12px;background:#1c1917;color:#fbbf24;border:1px solid #78350f}
+.efrow{display:flex;gap:5px;flex-wrap:wrap;width:100%;flex-shrink:0;min-height:14px}
+.eb{font-size:.68rem;padding:3px 8px;border-radius:20px;background:#1c1917;color:#fbbf24;border:1px solid #92400e;animation:badgePop .25s cubic-bezier(.2,.8,.3,1.4)}
 
-/* three-column log */
-.log-area{display:flex;gap:4px;width:100%;flex:1;min-height:0}
-.log-col{flex:1;background:#1e293b;border-radius:8px;padding:4px 6px;display:flex;flex-direction:column;min-height:0;min-width:0}
-.lcttl{font-size:.56rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;flex-shrink:0;display:flex;align-items:center;gap:3px;white-space:nowrap}
-.hbadge{background:#dc2626;color:#fff;padding:1px 4px;border-radius:5px;font-size:.52rem}
-.log{flex:1;overflow-y:auto;font-size:.7rem;line-height:1.5;color:#cbd5e1;word-break:break-all}
-.log::-webkit-scrollbar{width:2px}.log::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
-.le{color:#93c5fd}.lr{color:#a7f3d0}.lt{color:#fde68a}.ls{color:#64748b;font-style:italic}
-/* guess entry: number left, result right */
-.lg{display:flex;justify-content:space-between;align-items:baseline;gap:2px}
-.lg-n{letter-spacing:2px;font-weight:600;flex-shrink:0;color:#93c5fd}
-.le .lg-r{color:#475569}
-.lr .lg-r{color:#a7f3d0}
+/* ── TWO-COLUMN LOG ── */
+.log-area{display:flex;gap:6px;width:100%;flex:1;min-height:0}
+.log-col{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:5px 7px;display:flex;flex-direction:column;min-height:0;min-width:0}
+#sys-col{flex:0.75}
+#guess-col{flex:1.25}
+.lcttl{font-size:.65rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;flex-shrink:0;display:flex;align-items:center;gap:4px}
+.hbadge{background:#dc2626;color:#fff;padding:1px 5px;border-radius:6px;font-size:.55rem}
+.log{overflow-y:auto;font-size:.82rem;line-height:1.55;color:#cbd5e1;word-break:break-all}
+#my-log{flex:1.3}
+#opp-log{flex:0.7}
+#sys-log{flex:1}
+.log::-webkit-scrollbar{width:2px}.log::-webkit-scrollbar-thumb{background:#1e293b;border-radius:2px}
+.log > div{animation:slideIn .22s ease}
+.le{color:#67e8f9}.lr{color:#6ee7b7}.lt{color:#fde68a}.ls{color:#4b5563;font-style:italic}
+.lg{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
+.lg-n{letter-spacing:2px;font-weight:700;flex-shrink:0;font-size:.88rem}
+.le .lg-n{color:#38bdf8}.le .lg-r{color:#374151}
+.lr .lg-n{color:#34d399}.lr .lg-r{color:#6ee7b7;animation:resultBloom .35s ease}
+
+/* log separator between my/opp sections */
+.log-sep{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:4px 0 2px;margin-top:2px;border-top:1px solid #1e293b}
+.log-sep-lbl{font-size:.62rem;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.05em}
 
 /* ── POKER CARD TOOLS ── */
-.trow{display:flex;gap:6px;width:100%;flex-shrink:0;overflow-x:auto;padding-bottom:2px;align-items:center}
+.trow{display:flex;gap:7px;width:100%;flex-shrink:0;overflow-x:auto;padding-bottom:3px;align-items:flex-end}
 .trow:empty{display:none}
-.trow::-webkit-scrollbar{height:2px}.trow::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+.trow::-webkit-scrollbar{height:2px}.trow::-webkit-scrollbar-thumb{background:#1e293b;border-radius:2px}
 .tc{
-  width:52px;height:68px;flex-shrink:0;position:relative;
-  background:linear-gradient(155deg,#1e3a5f 0%,#172554 100%);
-  border:2px solid #2563eb;border-radius:8px;
+  width:54px;height:72px;flex-shrink:0;position:relative;
+  background:linear-gradient(155deg,#1e3a5f 0%,#0f1f3d 100%);
+  border:2px solid #2563eb;border-radius:10px;
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;
-  padding:7px 4px 6px;cursor:pointer;transition:.12s;user-select:none;
-  box-shadow:0 2px 8px rgba(0,0,0,.5);
+  padding:8px 4px 6px;cursor:pointer;transition:.15s;user-select:none;
+  box-shadow:0 3px 12px rgba(0,0,0,.6);
 }
-.tc:active{transform:scale(.9);border-color:#60a5fa;box-shadow:0 0 12px rgba(96,165,250,.4)}
-.tc.spent{opacity:.25;pointer-events:none}
-.tc.passive{background:linear-gradient(155deg,#1a2535 0%,#111827 100%);border-color:#475569;cursor:default}
+.tc:not(.spent):not(.passive){animation:glowPulse 2.5s ease-in-out infinite}
+.tc:active{transform:scale(.88) translateY(-2px);border-color:#60a5fa;animation:cardPlay .3s ease;box-shadow:0 0 16px rgba(96,165,250,.5)}
+.tc.spent{opacity:.22;pointer-events:none}
+.tc.passive{background:linear-gradient(155deg,#1a2535 0%,#0f1620 100%);border-color:#374151;cursor:default;animation:none}
 .tc.passive:active{transform:none;box-shadow:none}
-.tc-icon{font-size:1.45rem;line-height:1}
-.tc-name{font-size:.58rem;font-weight:700;color:#93c5fd;text-align:center;line-height:1.2}
-.tc.passive .tc-name{color:#64748b}
-/* card corner dot */
-.tc::before{content:'';position:absolute;top:3px;right:3px;width:4px;height:4px;background:#2563eb;border-radius:50%}
-.tc.passive::before{background:#475569}
+.tc-icon{font-size:1.65rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.tc-name{font-size:.62rem;font-weight:800;color:#93c5fd;text-align:center;line-height:1.2}
+.tc.passive .tc-name{color:#4b5563}
+.tc::before{content:'';position:absolute;top:4px;right:4px;width:5px;height:5px;background:#2563eb;border-radius:50%;box-shadow:0 0 4px #3b82f6}
+.tc.passive::before{background:#374151;box-shadow:none}
 
-/* card info panel (below card row) */
-.card-info{display:none;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:8px 10px;width:100%;flex-shrink:0;align-items:center;gap:8px;cursor:pointer}
+/* card info panel */
+.card-info{display:none;background:#111827;border:1px solid #1f2937;border-radius:12px;padding:10px 12px;width:100%;flex-shrink:0;align-items:center;gap:10px;cursor:pointer;animation:slideIn .2s ease}
 .card-info.show{display:flex}
-.ci-icon{font-size:1.5rem;flex-shrink:0}
+.ci-icon{font-size:1.7rem;flex-shrink:0}
 .ci-body{flex:1;min-width:0}
-.ci-name{font-size:.82rem;font-weight:700;color:#f8fafc}
-.ci-desc{font-size:.68rem;color:#94a3b8;line-height:1.4;margin-top:2px}
-#ci-use-btn{width:auto;padding:6px 13px;font-size:.8rem;flex-shrink:0}
+.ci-name{font-size:.9rem;font-weight:700;color:#f8fafc}
+.ci-desc{font-size:.73rem;color:#9ca3af;line-height:1.4;margin-top:2px}
+#ci-use-btn{width:auto;padding:7px 16px;font-size:.85rem;flex-shrink:0}
 
 /* guess area */
 .ga{flex-shrink:0;width:100%}
-.gsl{width:46px;height:56px;background:#0f172a;border:2px solid #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#f8fafc;transition:.12s}
-.gsl.on{border-color:#6366f1;color:#818cf8}
+.gsl{width:50px;height:60px;background:#0f172a;border:2px solid #1e293b;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.75rem;font-weight:800;color:#f8fafc;transition:.12s}
+.gsl.on{border-color:#7c3aed;color:#a78bfa;animation:popIn .18s cubic-bezier(.2,.8,.3,1.4)}
+.gsl.submit-flash{animation:submitFlash .42s ease}
 
 /* overlays */
-.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:50;flex-direction:column;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .ov.show{display:flex}
-.ob{background:#1e293b;border-radius:16px;padding:20px 18px;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:12px}
-.ottl{font-size:1.1rem;font-weight:700;color:#f8fafc;text-align:center}
-.odesc{font-size:.88rem;color:#94a3b8;text-align:center}
-.otmr{font-size:3rem;font-weight:700;color:#f59e0b}
-.obrow{display:flex;gap:8px;width:100%}.obrow .btn{flex:1}
+.ob{background:#111827;border:1px solid #1f2937;border-radius:18px;padding:22px 20px;width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:14px;animation:slideIn .2s ease}
+.ottl{font-size:1.2rem;font-weight:800;color:#f8fafc;text-align:center}
+.odesc{font-size:.9rem;color:#9ca3af;text-align:center}
+.otmr{font-size:3.2rem;font-weight:800;color:#f59e0b;animation:counterGlow 1s ease-in-out infinite}
+.obrow{display:flex;gap:10px;width:100%}.obrow .btn{flex:1}
 #modal{z-index:100}
-.mb{font-size:.9rem;color:#cbd5e1;text-align:center;white-space:pre-line;line-height:1.7}
+.mb{font-size:.95rem;color:#cbd5e1;text-align:center;white-space:pre-line;line-height:1.8}
 
-.spinner{width:34px;height:34px;border:4px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:38px;height:38px;border:4px solid #1f2937;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite}
 </style>
 </head>
 <body>
@@ -132,16 +156,16 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
 <div id="lobby-screen" class="screen active">
   <h1>🔢 猜數字對戰</h1>
   <p class="sub">WebRTC 雙人即時對戰・道具策略</p>
-  <p style="font-size:.65rem;color:#475569">v7</p>
+  <p style="font-size:.7rem;color:#374151">v8</p>
   <button class="btn bp" id="create-btn">建立房間</button>
-  <div style="display:flex;align-items:center;gap:8px;width:100%">
-    <div style="flex:1;height:1px;background:#334155"></div>
-    <span style="color:#64748b;font-size:.82rem">或</span>
-    <div style="flex:1;height:1px;background:#334155"></div>
+  <div style="display:flex;align-items:center;gap:10px;width:100%">
+    <div style="flex:1;height:1px;background:#1f2937"></div>
+    <span style="color:#4b5563;font-size:.9rem">或</span>
+    <div style="flex:1;height:1px;background:#1f2937"></div>
   </div>
   <input class="inp" id="join-inp" placeholder="輸入 4 位房號" maxlength="4" inputmode="numeric">
   <button class="btn bs" id="join-btn">加入房間</button>
-  <p id="lobby-err" style="color:#f87171;font-size:.85rem;min-height:18px;text-align:center"></p>
+  <p id="lobby-err" style="color:#f87171;font-size:.9rem;min-height:20px;text-align:center"></p>
 </div>
 
 <!-- WAITING -->
@@ -152,7 +176,7 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
   <div class="room-code" id="show-code"></div>
   <div class="spinner"></div>
   <p id="wait-status" class="sub">等待連線…</p>
-  <button class="btn bs" style="width:auto;padding:9px 24px" id="cancel-btn">取消</button>
+  <button class="btn bs" style="width:auto;padding:10px 28px" id="cancel-btn">取消</button>
 </div>
 
 <!-- SET ANSWER -->
@@ -169,7 +193,7 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
     <button class="btn bs" id="rnd-btn">🎲 隨機</button>
     <button class="btn bp" id="ans-ok" disabled>確認答案</button>
   </div>
-  <p id="set-msg" class="sub" style="min-height:18px"></p>
+  <p id="set-msg" class="sub" style="min-height:20px"></p>
 </div>
 
 <!-- GAME -->
@@ -180,17 +204,18 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
   </div>
   <div class="efrow" id="efrow"></div>
   <div class="log-area">
-    <div class="log-col">
-      <div class="lcttl">對手 <span class="hbadge" id="opp-hbadge" style="display:none">藏</span></div>
-      <div class="log" id="opp-log"></div>
-    </div>
-    <div class="log-col">
+    <div class="log-col" id="sys-col">
       <div class="lcttl">訊息</div>
       <div class="log" id="sys-log"></div>
     </div>
-    <div class="log-col">
+    <div class="log-col" id="guess-col">
       <div class="lcttl">我的猜測</div>
       <div class="log" id="my-log"></div>
+      <div class="log-sep">
+        <span class="log-sep-lbl">對手</span>
+        <span class="hbadge" id="opp-hbadge" style="display:none">藏</span>
+      </div>
+      <div class="log" id="opp-log"></div>
     </div>
   </div>
   <div class="trow" id="tools-row"></div>
@@ -235,8 +260,8 @@ p.sub{font-size:.85rem;color:#94a3b8;text-align:center}
 <div class="ov" id="offer-ov">
   <div class="ob">
     <div class="ottl">✨ 選一張道具牌</div>
-    <div class="odesc" style="font-size:.78rem">未選的放回牌池</div>
-    <div id="offer-list" style="width:100%;display:flex;flex-direction:column;gap:8px"></div>
+    <div class="odesc" style="font-size:.82rem">未選的放回牌池</div>
+    <div id="offer-list" style="width:100%;display:flex;flex-direction:column;gap:10px"></div>
   </div>
 </div>
 
@@ -423,8 +448,15 @@ function buildNumpad(npId, onDigit){
 function renderAns(){
   for(var i = 0; i < 4; i++){
     var sl = $('as' + i);
+    var wasOn = sl.classList.contains('on');
     sl.textContent = i < ansDigits.length ? ansDigits[i] : '';
-    sl.classList.toggle('on', i < ansDigits.length);
+    if(!wasOn && i < ansDigits.length){
+      sl.classList.remove('on');
+      void sl.offsetWidth;
+      sl.classList.add('on');
+    } else {
+      sl.classList.toggle('on', i < ansDigits.length);
+    }
   }
   var np = $('ans-np');
   np.querySelectorAll('.nk[data-d]').forEach(function(b){
@@ -475,11 +507,14 @@ function startGame(){
 // ═══════════════════════════════════════════
 function renderGame(){
   var tp = $('turn-pill');
+  // re-trigger animation by removing/re-adding
+  tp.classList.remove('tm','to');
+  void tp.offsetWidth;
   tp.textContent = G.myTurn ? '我的回合' : '對手回合';
-  tp.className   = 'tpill ' + (G.myTurn ? 'tm' : 'to');
+  tp.classList.add(G.myTurn ? 'tm' : 'to');
 
   var ga = $('guess-area');
-  ga.style.opacity      = G.myTurn ? '1' : '.4';
+  ga.style.opacity      = G.myTurn ? '1' : '.45';
   ga.style.pointerEvents = G.myTurn ? 'auto' : 'none';
 
   var oppHide = G.secretRounds > 0;
@@ -544,6 +579,8 @@ function showCardInfo(cardId, icon, name, desc, canUse){
   var useBtn = $('ci-use-btn');
   useBtn.style.display = canUse ? '' : 'none';
   $('card-info').dataset.card = canUse ? cardId : '';
+  $('card-info').classList.remove('show');
+  void $('card-info').offsetWidth;
   $('card-info').classList.add('show');
 }
 
@@ -562,8 +599,8 @@ function renderEffects(){
   if(G.focusOppNext) badge('聚焦（下次）');
   if(G.peekRounds>0) badge('偷窺 ×'+G.peekRounds);
   if(G.secretRounds>0) badge('保密 ×'+G.secretRounds);
-  if(G.skipMe)       badge('我將跳過','#7f1d1d','#fca5a5');
-  if(G.skipOpp)      badge('對手將跳過','#166534','#86efac');
+  if(G.skipMe)       badge('我將跳過','#450a0a','#fca5a5');
+  if(G.skipOpp)      badge('對手將跳過','#052e16','#6ee7b7');
 }
 
 // ═══════════════════════════════════════════
@@ -594,8 +631,16 @@ function pressGuess(d){
 function renderGuessSlots(){
   for(var i=0;i<4;i++){
     var sl=$('gs'+i);
-    sl.textContent = i<G.input.length ? G.input[i] : '';
-    sl.classList.toggle('on', i<G.input.length);
+    var wasOn = sl.classList.contains('on');
+    var nowOn = i<G.input.length;
+    sl.textContent = nowOn ? G.input[i] : '';
+    if(!wasOn && nowOn){
+      sl.classList.remove('on','submit-flash');
+      void sl.offsetWidth;
+      sl.classList.add('on');
+    } else if(!nowOn){
+      sl.classList.remove('on');
+    }
   }
   var np=$('guess-np');
   np.querySelectorAll('.nk[id^=gk]').forEach(function(b){
@@ -607,6 +652,12 @@ function renderGuessSlots(){
 
 function submitGuess(){
   if(!G.myTurn || G.input.length!==4) return;
+  for(var i=0;i<4;i++){
+    (function(sl){
+      sl.classList.add('submit-flash');
+      setTimeout(function(){ sl.classList.remove('submit-flash'); }, 420);
+    })($('gs'+i));
+  }
   G.lastGuess = G.input.slice();
   send({ type:'guess', digits:G.lastGuess });
   addLog('my', G.lastGuess.join('') + '  …', 'le');
@@ -694,9 +745,9 @@ function openExtortion(){
   var box=$('query-box'); box.innerHTML='';
   var ttl=document.createElement('div'); ttl.className='ottl'; ttl.textContent='勒索'; box.appendChild(ttl);
   var desc=document.createElement('div'); desc.className='odesc'; desc.textContent='選一個位置（1–4 位），詢問確切數字'; box.appendChild(desc);
-  var row=document.createElement('div'); row.style.cssText='display:flex;gap:10px;justify-content:center;width:100%';
+  var row=document.createElement('div'); row.style.cssText='display:flex;gap:12px;justify-content:center;width:100%';
   [1,2,3,4].forEach(function(p){
-    var b=document.createElement('button'); b.className='nk'; b.style.cssText='width:60px;height:60px;font-size:1.5rem'; b.textContent=p;
+    var b=document.createElement('button'); b.className='nk'; b.style.cssText='width:64px;height:64px;font-size:1.6rem'; b.textContent=p;
     b.addEventListener('click',function(){ sendExtortion(p); });
     row.appendChild(b);
   });
@@ -751,10 +802,10 @@ function showOffer(cards){
   var el=$('offer-list'); el.innerHTML='';
   cards.forEach(function(card){
     var d=document.createElement('div');
-    d.style.cssText='background:#1e3a5f;border:2px solid #2563eb;border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:10px';
-    d.innerHTML='<span style="font-size:1.5rem">'+CARDS[card].icon+'</span>'
-      +'<div><div style="color:#93c5fd;font-weight:700;margin-bottom:3px">'+CARDS[card].name+'</div>'
-      +'<div style="color:#94a3b8;font-size:.78rem">'+CARDS[card].desc+'</div></div>';
+    d.style.cssText='background:linear-gradient(135deg,#1e3a5f,#0f1f3d);border:2px solid #2563eb;border-radius:12px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:.12s';
+    d.innerHTML='<span style="font-size:1.7rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">'+CARDS[card].icon+'</span>'
+      +'<div><div style="color:#93c5fd;font-weight:700;font-size:1rem;margin-bottom:4px">'+CARDS[card].name+'</div>'
+      +'<div style="color:#9ca3af;font-size:.8rem;line-height:1.4">'+CARDS[card].desc+'</div></div>';
     d.addEventListener('click',function(){ pickCard(card, cards); });
     el.appendChild(d);
   });
@@ -934,7 +985,7 @@ function handleMsg(msg){
       var box=$('query-box'); box.innerHTML='';
       appendEl(box,'div','ottl','審訊');
       appendEl(box,'div','odesc','對手問：你的答案中有沒有數字 '+d+' ？');
-      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.75rem';
+      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.8rem';
       var b1=appendEl(box,'button','btn bp','回答（'+(hasIt?'有':'沒有')+'）');
       var b2=appendEl(box,'button','btn bd','拒絕（跳過本回合）');
       b1.addEventListener('click',function(){ replyInterrogation(true,d,hasIt); });
@@ -954,7 +1005,7 @@ function handleMsg(msg){
       var box=$('query-box'); box.innerHTML='';
       appendEl(box,'div','ottl','勒索');
       appendEl(box,'div','odesc','對手問：你答案的第 '+pos+' 位是什麼？');
-      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.75rem';
+      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.8rem';
       var b1=appendEl(box,'button','btn bp','回答（'+dig+'）');
       var b2=appendEl(box,'button','btn bd','拒絕（跳過本回合）');
       b1.addEventListener('click',function(){ replyExtortion(true,pos,dig); });
