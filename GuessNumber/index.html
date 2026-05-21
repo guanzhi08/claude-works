@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v19</title>
+<title>猜數字對戰 v20</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v19</p>
+  <p style="font-size:.7rem;color:#94a3b8">v20</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -312,7 +312,6 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     </div>
   </div>
   <div class="trow-wrapper">
-    <button class="note-btn" id="note-btn">✏️</button>
     <div class="trow" id="tools-row"></div>
     <div class="tc help-tc" id="help-btn"><span class="tc-icon">📖</span><span class="tc-name">說明</span></div>
   </div>
@@ -326,6 +325,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="ga" id="guess-area">
     <div class="slots-row">
+      <button class="note-btn" id="note-btn">✏️</button>
       <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
       <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
       <button class="del-btn" id="guess-del">⌫</button>
@@ -737,6 +737,8 @@ function renderGame(){
   var ga = $('guess-area');
   ga.style.opacity      = G.myTurn ? '1' : '.45';
   ga.style.pointerEvents = G.myTurn ? 'auto' : 'none';
+  $('note-btn').style.opacity      = '1';
+  $('note-btn').style.pointerEvents = 'auto';
 
   var oppHide = G.secretActive;
   $('opp-hbadge').style.display = oppHide ? '' : 'none';
