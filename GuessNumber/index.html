@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v14</title>
+<title>猜數字對戰 v15</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -209,7 +209,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .note-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e2e8f0;flex-shrink:0;gap:6px}
 .note-hdr-l{display:flex;gap:5px;align-items:center}
 .note-hdr-r{display:flex;gap:5px;align-items:center}
-.note-sm-btn{padding:5px 10px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.1s;user-select:none;background:#f1f5f9;color:#374151}
+.note-sm-btn{width:38px;height:38px;border:none;border-radius:10px;font-size:1.25rem;font-weight:600;cursor:pointer;transition:.1s;user-select:none;background:#f1f5f9;color:#374151;display:flex;align-items:center;justify-content:center;padding:0}
 .note-sm-btn:active{transform:scale(.93)}
 .note-sm-btn.pen-on{background:#dbeafe;color:#1d4ed8}
 .note-sm-btn.eraser-on{background:#ddd6fe;color:#7c3aed}
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v14</p>
+  <p style="font-size:.7rem;color:#94a3b8">v15</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -400,8 +400,8 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-card-row"><span class="help-ci">💰</span><div><div class="help-cn">勒索</div><div class="help-cd">指定一個位置（1–4），對手選擇：<b>告知確切數字</b>，或<b>拒絕（跳過本回合猜測）</b></div></div></div>
         <div class="help-card-row"><span class="help-ci">🌀</span><div><div class="help-cn">霧化</div><div class="help-cd">對手<b>下一次</b>猜測只看到模糊結果：「共 x 個數字出現」，無法得知 A/B 細節</div></div></div>
         <div class="help-card-row"><span class="help-ci">🎯</span><div><div class="help-cn">聚焦</div><div class="help-cd">對手<b>下一次</b>猜測時，你額外看到詳細位置結果（對手只看到正常 xAxB）</div></div></div>
-        <div class="help-card-row"><span class="help-ci">🔭</span><div><div class="help-cn">偷窺</div><div class="help-cd">接下來 <b>2 回合</b>可看到對手的猜測紀錄（數字與結果）</div></div></div>
-        <div class="help-card-row"><span class="help-ci">🔐</span><div><div class="help-cn">保密</div><div class="help-cd">接下來 <b>2 回合</b>你的猜測紀錄對對手隱藏</div></div></div>
+        <div class="help-card-row"><span class="help-ci">🔭</span><div><div class="help-cn">偷窺</div><div class="help-cd">接下來 <b>5 回合</b>可看到對手的猜測紀錄（數字與結果）</div></div></div>
+        <div class="help-card-row"><span class="help-ci">🔐</span><div><div class="help-cn">保密</div><div class="help-cd">接下來 <b>5 回合</b>你的猜測紀錄對對手隱藏</div></div></div>
       </div>
 
       <div class="help-sec">
@@ -420,14 +420,14 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   <div class="note-modal">
     <div class="note-hdr">
       <div class="note-hdr-l">
-        <button class="note-sm-btn pen-on" id="note-pen-btn" title="畫筆">🖊 畫筆</button>
-        <button class="note-sm-btn" id="note-eraser-btn" title="橡皮擦">🧹 橡皮</button>
-        <button class="note-sm-btn" id="note-undo-btn" title="復原">↩ 復原</button>
-        <button class="note-sm-btn" id="note-redo-btn" title="重做">↪ 重做</button>
+        <button class="note-sm-btn pen-on" id="note-pen-btn" title="畫筆">🖊</button>
+        <button class="note-sm-btn" id="note-eraser-btn" title="橡皮擦">🧹</button>
+        <button class="note-sm-btn" id="note-undo-btn" title="復原">↩</button>
+        <button class="note-sm-btn" id="note-redo-btn" title="重做">↪</button>
       </div>
       <div class="note-hdr-r">
-        <button class="note-sm-btn btn-danger" id="note-clear-btn">🗑 清除</button>
-        <button class="note-sm-btn btn-muted" id="note-close-btn">關閉</button>
+        <button class="note-sm-btn btn-danger" id="note-clear-btn" title="清除">🗑</button>
+        <button class="note-sm-btn btn-muted" id="note-close-btn" title="關閉">✕</button>
       </div>
     </div>
     <canvas id="note-canvas"></canvas>
@@ -452,8 +452,8 @@ var CARDS = {
   extortion:     { name:'勒索', icon:'💰', desc:'指定一個位置，對手選擇：告知確切數字，或跳過本回合' },
   fog:           { name:'霧化', icon:'🌀', desc:'對手下一次猜測只看到模糊結果（共幾個數字出現）' },
   focus:         { name:'聚焦', icon:'🎯', desc:'你的下一次猜測可以看到詳細 ABX 位置（對手只看到正常結果）' },
-  peek:          { name:'偷窺', icon:'🔭', desc:'可以看到對手猜測紀錄 2 回合' },
-  secret:        { name:'保密', icon:'🔐', desc:'你的猜測紀錄對對手隱藏 2 回合' },
+  peek:          { name:'偷窺', icon:'🔭', desc:'可以看到對手猜測紀錄 5 回合' },
+  secret:        { name:'保密', icon:'🔐', desc:'你的猜測紀錄對對手隱藏 5 回合' },
 };
 var PASSIVE_CARDS = {
   shield:  { name:'護盾', icon:'🛡', desc:'對手出牌時可使用：取消對方效果（僅一次）' },
@@ -902,8 +902,8 @@ function applyToolEffect(card, hitMe){
     switch(card){
       case 'fog':    G.fogOppNext=true; send({type:'fx_fog'}); addLog('my','霧化：對手下次猜測模糊','lt'); break;
       case 'focus':  send({type:'fx_focus'}); addLog('my','聚焦：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
-      case 'peek':   G.peekRounds=2; send({type:'fx_peek'}); addLog('my','偷窺：看對手紀錄 2 回合','lt'); break;
-      case 'secret': send({type:'fx_secret'}); addLog('my','保密：對手猜測紀錄對你隱藏 2 回合','lt'); break;
+      case 'peek':   G.peekRounds=5; send({type:'fx_peek'}); addLog('my','偷窺：看對手紀錄 5 回合','lt'); break;
+      case 'secret': send({type:'fx_secret'}); addLog('my','保密：對手猜測紀錄對你隱藏 5 回合','lt'); break;
       case 'interrogation': openInterrogation(); break;
       case 'extortion':     openExtortion(); break;
     }
@@ -911,8 +911,8 @@ function applyToolEffect(card, hitMe){
     switch(card){
       case 'fog':    send({type:'fx_fog_me'}); addLog('my','霧化反射：你的下次猜測結果模糊','lt'); break;
       case 'focus':  G.focusOppNext=true; send({type:'fx_focus_me'}); addLog('my','聚焦反射：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
-      case 'peek':   send({type:'fx_peek_me'}); addLog('my','偷窺反射：對手看到你的紀錄 2 回合','lt'); break;
-      case 'secret': G.secretRounds=2; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手隱藏 2 回合','lt'); break;
+      case 'peek':   send({type:'fx_peek_me'}); addLog('my','偷窺反射：對手看到你的紀錄 5 回合','lt'); break;
+      case 'secret': G.secretRounds=5; send({type:'fx_secret_me'}); addLog('my','保密反射：你的紀錄對對手隱藏 5 回合','lt'); break;
       case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：對手將向你發問','lt'); break;
       case 'extortion':     send({type:'fx_extortion_me'}); addLog('my','勒索反射：對手將向你發問','lt'); break;
     }
@@ -1177,13 +1177,13 @@ function handleMsg(msg){
 
     case 'fx_fog':    G.fogOppNext=true;   addLog('my','霧化：對手下次猜測結果模糊','lt'); renderEffects(); break;
     case 'fx_focus':  G.focusOppNext=true; addLog('my','聚焦：你的下一次猜測結果將包含詳細位置','lt'); renderEffects(); break;
-    case 'fx_peek':   addLog('my','偷窺：對手看到你的紀錄 2 回合','lt'); break;
-    case 'fx_secret': G.secretRounds=2;   addLog('my','保密：對手猜測紀錄對你隱藏 2 回合','lt'); renderEffects(); break;
+    case 'fx_peek':   addLog('my','偷窺：對手看到你的紀錄 5 回合','lt'); break;
+    case 'fx_secret': G.secretRounds=5;   addLog('my','保密：對手猜測紀錄對你隱藏 5 回合','lt'); renderEffects(); break;
 
     case 'fx_fog_me':    G.fogOppNext=true;   addLog('my','霧化（反射）：對手下次猜測模糊','lt'); renderEffects(); break;
     case 'fx_focus_me':  addLog('my','聚焦（反射）：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
-    case 'fx_peek_me':   addLog('my','偷窺（反射）：對手看到你的紀錄 2 回合','lt'); break;
-    case 'fx_secret_me': G.secretRounds=2; addLog('my','保密（反射）：你的紀錄對對手隱藏 2 回合','lt'); renderEffects(); break;
+    case 'fx_peek_me':   addLog('my','偷窺（反射）：對手看到你的紀錄 5 回合','lt'); break;
+    case 'fx_secret_me': G.secretRounds=5; addLog('my','保密（反射）：你的紀錄對對手隱藏 5 回合','lt'); renderEffects(); break;
     case 'fx_interrogation_me': addLog('my','審訊（反射）：等待對手向你發問','lt'); break;
     case 'fx_extortion_me':     addLog('my','勒索（反射）：等待對手向你發問','lt'); break;
 
@@ -1247,8 +1247,8 @@ function applyIncomingTool(card, reflected){
   switch(card){
     case 'fog':    G.fogOppNext=true;   addLog('my','霧化：你的下次猜測結果模糊','lt'); break;
     case 'focus':  addLog('my','聚焦：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
-    case 'peek':   addLog('my','偷窺：對手看到你的猜測紀錄 2 回合','lt'); break;
-    case 'secret': G.secretRounds=2;   addLog('my','保密：你的猜測紀錄對對手隱藏 2 回合','lt'); break;
+    case 'peek':   addLog('my','偷窺：對手看到你的猜測紀錄 5 回合','lt'); break;
+    case 'secret': G.secretRounds=5;   addLog('my','保密：你的猜測紀錄對對手隱藏 5 回合','lt'); break;
   }
   renderEffects();
 }
