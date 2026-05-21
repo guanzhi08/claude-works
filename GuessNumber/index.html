@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v15</title>
+<title>猜數字對戰 v16</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v15</p>
+  <p style="font-size:.7rem;color:#94a3b8">v16</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -551,9 +551,17 @@ function createRoom(){
   peer.on('connection', function(c){
     conn = c;
     setupConn();
-    goSetAnswer();
+    conn.on('open', function(){
+      goSetAnswer();
+    });
   });
-  peer.on('error', function(e){ setErr('連線錯誤：' + e.type); });
+  peer.on('error', function(e){
+    if(e.type === 'unavailable-id'){
+      setErr('房間號碼衝突，請重新建立');
+    } else {
+      setErr('連線錯誤：' + e.type);
+    }
+  });
 }
 
 function joinRoom(){
@@ -562,13 +570,24 @@ function joinRoom(){
   setErr('連線中…');
   roomCode = code; isHost = false;
   if(peer){ peer.destroy(); }
-  peer = new Peer();
+  peer = new Peer('gn-' + code + '-g');
   peer.on('open', function(){
     conn = peer.connect('gn-' + code + '-h');
     setupConn();
-    goSetAnswer();
+    conn.on('open', function(){
+      goSetAnswer();
+    });
+    setTimeout(function(){
+      if(!conn || !conn.open){ setErr('連線逾時，請確認房號或請主機重新建立房間'); }
+    }, 8000);
   });
-  peer.on('error', function(e){ setErr('連線錯誤：' + e.type); });
+  peer.on('error', function(e){
+    if(e.type === 'unavailable-id'){
+      setErr('ID 衝突，請稍後再試');
+    } else {
+      setErr('連線錯誤：' + e.type);
+    }
+  });
 }
 
 function setupConn(){
