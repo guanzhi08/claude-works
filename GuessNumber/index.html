@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v22</title>
+<title>猜數字對戰 v23</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -233,7 +233,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v22</p>
+  <p style="font-size:.7rem;color:#94a3b8">v23</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -255,10 +255,10 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   <h2>等待對手加入</h2>
   <div id="qrbox"></div>
   <div style="display:flex;align-items:center;gap:8px">
-    <p class="sub">掃碼或複製連結</p>
+    <p class="sub">掃碼或輸入房號加入</p>
     <button class="btn bs" id="copy-link-btn" style="width:auto;padding:6px 14px;font-size:.85rem">📋 複製連結</button>
   </div>
-  <div class="room-code" id="show-code" style="font-size:1.5rem;letter-spacing:6px;color:#94a3b8"></div>
+  <div class="room-code" id="show-code"></div>
   <div class="spinner"></div>
   <p id="wait-status" class="sub">等待連線…</p>
   <button class="btn bs" style="width:auto;padding:10px 28px" id="cancel-btn">取消</button>
@@ -513,7 +513,6 @@ function showScreen(id){
 // ═══════════════════════════════════════════
 var transport = 'none'; // 'ws' | 'webrtc'
 var ws = null;
-var wsRoomId = '';
 var wsInviteUrl = '';
 
 function send(msg){
@@ -557,47 +556,35 @@ function hideModal(){
 // ═══════════════════════════════════════════
 function createRoom(){
   setErr('');
-  isHost    = true;
-  wsRoomId  = crypto.randomUUID();
-  roomCode  = String(Math.floor(1000 + Math.random() * 9000));
-  wsInviteUrl = location.origin + location.pathname + '?room=' + wsRoomId;
+  isHost   = true;
+  roomCode = String(Math.floor(1000 + Math.random() * 9000));
+  wsInviteUrl = location.origin + location.pathname + '?join=' + roomCode;
 
   $('qrbox').innerHTML = '';
   new QRCode($('qrbox'), {text: wsInviteUrl, width: 140, height: 140});
-  $('show-code').textContent = 'WebRTC 備用：' + roomCode;
+  $('show-code').textContent = roomCode;
   showScreen('waiting-screen');
-  $('wait-status').textContent = 'WebSocket 連線中…';
+  $('wait-status').textContent = '等待對手加入…';
+
   tryWsCreate();
+  startWebRTCHost();
 }
 
 function tryWsCreate(){
   wsClose();
-  ws = new WebSocket('wss://omni-note.onrender.com/ws?room=' + wsRoomId + '&user=host');
-  var wsOk = false;
-  var timer = setTimeout(function(){
-    if(!wsOk){ wsClose(); fallbackToWebRTC(); }
-  }, 8000);
+  ws = new WebSocket('wss://omni-note.onrender.com/ws?room=gn-' + roomCode + '&user=host');
 
-  ws.onopen = function(){
-    wsOk = true;
-    $('wait-status').textContent = 'WebSocket 就緒，等待對手加入…';
-  };
-  ws.onerror = function(){
-    clearTimeout(timer); wsClose(); fallbackToWebRTC();
-  };
-  ws.onclose = function(e){
-    clearTimeout(timer);
-    if(e.code===4001||e.code===4002||e.code===4003){
-      wsClose(); if(!wsOk) fallbackToWebRTC(); return;
-    }
-    if(transport==='ws' && !G.gameOver)
+  ws.onerror = function(){ wsClose(); };
+  ws.onclose = function(){
+    if(transport === 'ws' && !G.gameOver)
       showModal('連線中斷','WebSocket 中斷','返回大廳', backToLobby);
   };
   ws.onmessage = function(e){
     var msg = JSON.parse(e.data);
     if(msg.type === 'user_joined'){
-      clearTimeout(timer);
+      if(transport !== 'none') return;
       transport = 'ws';
+      if(peer){ peer.destroy(); peer = null; }
       afterWsConnect();
       goSetAnswer();
     } else if(msg.type==='user_left'||msg.type==='room_closed'){
@@ -621,31 +608,21 @@ function afterWsConnect(){
   ws.onerror = null;
 }
 
-function fallbackToWebRTC(){
-  transport = 'none';
-  $('qrbox').innerHTML = '';
-  var rtcUrl = location.origin + location.pathname + '?join=' + roomCode;
-  wsInviteUrl = rtcUrl;
-  new QRCode($('qrbox'), {text: rtcUrl, width: 140, height: 140});
-  $('show-code').textContent = 'WebRTC 房號：' + roomCode;
-  $('wait-status').textContent = 'WebSocket 不可用，切換 WebRTC…';
-  startWebRTCHost();
-}
-
 function startWebRTCHost(){
-  if(peer){ peer.destroy(); peer = null; }
+  if(peer){ peer.destroy(); }
   peer = new Peer('gn-' + roomCode + '-h');
-  peer.on('open', function(){
-    $('wait-status').textContent = 'WebRTC 就緒，等待對手加入…';
-  });
   peer.on('connection', function(c){
+    if(transport !== 'none'){ c.on('open', function(){ c.close(); }); return; }
     conn = c; setupConn();
-    conn.on('open', function(){ transport = 'webrtc'; goSetAnswer(); });
+    conn.on('open', function(){
+      if(transport !== 'none'){ conn.close(); conn = null; return; }
+      transport = 'webrtc';
+      wsClose();
+      goSetAnswer();
+    });
   });
   peer.on('error', function(e){
     if(e.type==='unavailable-id') setErr('房間號碼衝突，請重新建立');
-    else setErr('連線錯誤：' + e.type);
-    showScreen('lobby-screen');
   });
 }
 
@@ -654,17 +631,15 @@ function joinRoom(){
   if(code.length !== 4){ setErr('請輸入 4 位數字房號'); return; }
   setErr('連線中…');
   roomCode = code; isHost = false;
-  joinRoomWebRTC(code);
+  tryWsJoin(code);
 }
 
-function joinRoomWs(wsRoom){
-  isHost = false; wsRoomId = wsRoom;
-  setErr('WebSocket 連線中…');
+function tryWsJoin(code){
   wsClose();
-  ws = new WebSocket('wss://omni-note.onrender.com/ws?room=' + wsRoom + '&user=guest');
+  ws = new WebSocket('wss://omni-note.onrender.com/ws?room=gn-' + code + '&user=guest');
   var timer = setTimeout(function(){
-    if(transport !== 'ws'){ wsClose(); setErr('WebSocket 逾時'); }
-  }, 8000);
+    if(transport !== 'ws'){ wsClose(); joinRoomWebRTC(code); }
+  }, 5000);
 
   ws.onopen = function(){
     clearTimeout(timer);
@@ -674,15 +649,12 @@ function joinRoomWs(wsRoom){
     goSetAnswer();
   };
   ws.onerror = function(){
-    clearTimeout(timer); wsClose(); setErr('WebSocket 連線失敗');
+    clearTimeout(timer); wsClose(); joinRoomWebRTC(code);
   };
   ws.onclose = function(e){
     clearTimeout(timer);
     if(transport === 'ws') return;
-    if(e.code===4003) setErr('房間已滿');
-    else if(e.code===4001) setErr('連線被拒絕');
-    else if(e.code===4002) setErr('房間已過期，請重新獲取邀請連結');
-    else setErr('WebSocket 連線失敗');
+    joinRoomWebRTC(code);
   };
 }
 
@@ -1553,12 +1525,8 @@ document.getElementById('copy-link-btn').addEventListener('click', function(){
 
 (function(){
   initJoinNumpad();
-  var params = new URLSearchParams(location.search);
-  var room = params.get('room');
-  var join = params.get('join');
-  if(room && room.indexOf('-') !== -1){
-    joinRoomWs(room);
-  } else if(join && /^\d{4}$/.test(join)){
+  var join = new URLSearchParams(location.search).get('join');
+  if(join && /^\d{4}$/.test(join)){
     joinDigits = join.split('').map(Number);
     renderJoinSlots();
   }
