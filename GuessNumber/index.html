@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v24</title>
+<title>猜數字對戰 v25</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -263,7 +263,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v24</p>
+  <p style="font-size:.7rem;color:#94a3b8">v25</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -392,8 +392,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 <div class="ov" id="offer-ov">
   <div class="ob">
     <div class="ottl">✨ 選一張道具牌</div>
-    <div id="offer-result" class="offer-result"></div>
-    <div class="odesc" style="font-size:.82rem">未選的放回牌池</div>
+    <div id="offer-result" class="offer-result" style="display:none"></div>
     <div id="offer-list" style="width:100%;display:flex;gap:16px;justify-content:center;flex-wrap:wrap"></div>
   </div>
 </div>
@@ -409,7 +408,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-step"><span class="help-step-n">1</span><span>雙方各自設定一組 <b>4 位不重複數字</b>（0–9）作為秘密答案</span></div>
         <div class="help-step"><span class="help-step-n">2</span><span>房主先手，雙方<b>輪流</b>猜測對方答案</span></div>
         <div class="help-step"><span class="help-step-n">3</span><span>每次猜測後，對方回報 <b>xA yB</b> 結果</span></div>
-        <div class="help-step"><span class="help-step-n">4</span><span>猜中里程碑（1A / 2A / 3A）時各可從 2 張牌中選 1 張<b>道具牌</b></span></div>
+        <div class="help-step"><span class="help-step-n">4</span><span>每 3 回合開始時，及猜中 <b>1A / 2A / 3A</b> 時，可從 2 張牌中選 1 張<b>道具牌</b>；回合開始時選的牌<b>下回合才能使用</b></span></div>
         <div class="help-step"><span class="help-step-n">5</span><span>先猜出對方完整答案（<b>4A0B</b>）者獲勝</span></div>
       </div>
 
@@ -424,7 +423,8 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 
       <div class="help-sec">
         <div class="help-sec-ttl">✨ 道具牌系統</div>
-        <div class="help-rule">每回合最多使用 <b>1 張</b>道具牌，且需在猜測前使用</div>
+        <div class="help-rule">主動道具牌只能在<b>我的回合開始</b>（猜測前）使用，每回合最多 <b>1 張</b></div>
+        <div class="help-rule">被動道具牌（護盾、反射）只能在<b>對手使用道具後</b>觸發</div>
         <div class="help-rule">使用道具後，對手有 <b>10 秒</b>決定是否反制（護盾或反射）</div>
         <div class="help-rule">護盾與反射各只有 <b>1 次</b>使用機會</div>
       </div>
@@ -522,26 +522,27 @@ function updateAnsDisplay(){
 var G = {};
 function resetG(myTurn){
   G = {
-    myAnswer:    [],
-    myTurn:      !!myTurn,
-    deck:        POOL.slice(),
-    myCards:     [],
-    myLog:       [],
-    oppLog:      [],
-    sysLog:      [],
-    input:       [],
-    lastGuess:   [],
-    milestone:   { 1:false, 2:false, 3:false },
-    fogOppNext:    false,
-    focusOppNext:  false,
-    secretActive:  false,
-    skipMe:        false,
-    skipOpp:       false,
-    myShield:  true,
-    myReflect: true,
-    usedTool:  false,
-    pendCard:  null,
-    gameOver:  false,
+    myAnswer:        [],
+    myTurn:          !!myTurn,
+    myCards:         [],
+    myPendingCards:  [],
+    myTurnCount:     0,
+    myLog:           [],
+    oppLog:          [],
+    sysLog:          [],
+    input:           [],
+    lastGuess:       [],
+    fogOppNext:      false,
+    focusOppNext:    false,
+    secretActive:    false,
+    skipMe:          false,
+    skipOpp:         false,
+    myShield:        true,
+    myReflect:       true,
+    usedTool:        false,
+    guessedThisTurn: false,
+    pendCard:        null,
+    gameOver:        false,
   };
 }
 
@@ -829,6 +830,13 @@ function backToLobby(){
   $('qrbox').innerHTML = '';
   hideCardInfo();
   initJoinNumpad();
+  // Clear note for next game
+  noteHistory = []; noteRedoStack = [];
+  if(noteCtx){
+    var canvas = $('note-canvas');
+    noteCtx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    noteCtx = null;
+  }
   showScreen('lobby-screen');
 }
 
@@ -924,7 +932,51 @@ function startGame(){
   myAnsVisible = false;
   updateAnsDisplay();
   buildGuessNumpad();
+  // Clear note canvas for new game
+  noteHistory = []; noteRedoStack = [];
+  if(noteCtx){
+    var canvas = $('note-canvas');
+    noteCtx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    noteCtx = null;
+  }
+  if(G.myTurn) onMyTurnStart();
   renderGame();
+}
+
+function shuffled(arr){
+  var a=arr.slice();
+  for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; }
+  return a;
+}
+
+function onMyTurnStart(){
+  // Pending cards picked at start of previous turn become usable
+  G.myPendingCards.forEach(function(c){ G.myCards.push(c); });
+  G.myPendingCards = [];
+  G.myTurnCount++;
+  if(G.myTurnCount % 3 === 0) showTurnStartOffer();
+}
+
+function showTurnStartOffer(){
+  var offer = shuffled(POOL).slice(0, 2);
+  showOffer(offer, '第 '+G.myTurnCount+' 回合里程碑！', function(picked){
+    G.myPendingCards.push(picked);
+    send({type:'card_pick', card:picked});
+    addLog('my','🎴 取得道具（下回合可用）：'+CARDS[picked].name,'lt');
+    renderTools();
+  });
+}
+
+function checkMilestoneOffer(a, b){
+  if(a !== 1 && a !== 2 && a !== 3) return;
+  var offer = shuffled(POOL).slice(0, 2);
+  addLog('my','🎴 '+a+'A！可以選一張道具牌','lt');
+  showOffer(offer, a+'A'+b+'B 里程碑！', function(picked){
+    G.myCards.push(picked);
+    send({type:'card_pick', card:picked});
+    addLog('my','✨ 取得道具：'+CARDS[picked].name,'lt');
+    renderTools();
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -982,7 +1034,12 @@ function renderTools(){
   var showCards = G.myTurn || new URLSearchParams(location.search).get('test')==='1';
   if(showCards){
     G.myCards.forEach(function(card){
-      row.appendChild(makeCard(card, false, G.usedTool || !G.myTurn));
+      row.appendChild(makeCard(card, false, G.usedTool || !G.myTurn || G.guessedThisTurn));
+    });
+    G.myPendingCards.forEach(function(card){
+      var el = makeCard(card, false, true);
+      el.title = '下回合可用';
+      row.appendChild(el);
     });
   }
   if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
@@ -995,7 +1052,7 @@ function makeCard(cardId, passive, spent){
   el.className = 'tc' + (passive ? ' passive' : '') + (spent ? ' spent' : '');
   el.innerHTML = '<span class="tc-icon">'+info.icon+'</span><span class="tc-name">'+info.name+'</span>';
   el.addEventListener('click', function(){
-    showCardInfo(cardId, info.icon, info.name, info.desc, !passive && !spent && G.myTurn);
+    showCardInfo(cardId, info.icon, info.name, info.desc, !passive && !spent && G.myTurn && !G.guessedThisTurn);
   });
   return el;
 }
@@ -1079,6 +1136,8 @@ function renderGuessSlots(){
 
 function submitGuess(){
   if(!G.myTurn || G.input.length!==4) return;
+  G.guessedThisTurn = true;
+  renderTools();
   for(var i=0;i<4;i++){
     (function(sl){
       sl.classList.add('submit-flash');
@@ -1223,8 +1282,10 @@ document.getElementById('cbtn-reflect').addEventListener('click', function(){ do
 // ═══════════════════════════════════════════
 // CARD OFFER
 // ═══════════════════════════════════════════
-function showOffer(cards, resultStr){
-  $('offer-result').textContent = resultStr ? '猜中 ' + resultStr + '，獲得抽牌機會！' : '';
+function showOffer(cards, subtitle, onPick){
+  var res = $('offer-result');
+  res.textContent = subtitle || '';
+  res.style.display = subtitle ? '' : 'none';
   var el=$('offer-list'); el.innerHTML='';
   cards.forEach(function(card){
     var d=document.createElement('div');
@@ -1232,20 +1293,10 @@ function showOffer(cards, resultStr){
     d.innerHTML='<span class="offer-card-icon">'+CARDS[card].icon+'</span>'
       +'<div class="offer-card-name">'+CARDS[card].name+'</div>'
       +'<div class="offer-card-desc">'+CARDS[card].desc+'</div>';
-    d.addEventListener('click',function(){ pickCard(card, cards); });
+    d.addEventListener('click',function(){ $('offer-ov').classList.remove('show'); onPick(card); });
     el.appendChild(d);
   });
   $('offer-ov').classList.add('show');
-}
-
-function pickCard(picked, offered){
-  $('offer-ov').classList.remove('show');
-  G.myCards.push(picked);
-  offered.forEach(function(c){ if(c!==picked && !G.deck.includes(c)) G.deck.push(c); });
-  G.deck = G.deck.filter(function(c){ return c!==picked; });
-  send({type:'card_pick', card:picked, returned: offered.filter(function(c){return c!==picked;})});
-  addLog('my','✨ 取得道具：'+CARDS[picked].name,'lt');
-  renderTools();
 }
 
 // ═══════════════════════════════════════════
@@ -1254,6 +1305,7 @@ function pickCard(picked, offered){
 function advanceTurn(){
   G.myTurn = !G.myTurn;
   G.usedTool = false;
+  G.guessedThisTurn = false;
   G.input = [];
   if(G.myTurn && G.skipMe){
     G.skipMe = false;
@@ -1262,21 +1314,10 @@ function advanceTurn(){
     advanceTurn();
     return;
   }
+  if(G.myTurn) onMyTurnStart();
   renderGame();
 }
 
-function checkMilestone(a, b){
-  if(new URLSearchParams(location.search).get('test')==='1') return;
-  var key = (a===1||a===2||a===3) ? a : 0;
-  if(!key || G.milestone[key]) return;
-  G.milestone[key] = true;
-  if(G.deck.length===0) return;
-  var pool = G.deck.slice();
-  for(var i=pool.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
-  var offer=pool.slice(0, Math.min(2, pool.length));
-  addLog('my','🎴 達到 '+a+'A！抽牌中…','lt');
-  showOffer(offer, a+'A'+(b||0)+'B');
-}
 
 // ═══════════════════════════════════════════
 // LOGGING
@@ -1365,7 +1406,7 @@ function handleMsg(msg){
         showModal('遊戲結束','你猜中了！🎉\n對手的答案是 '+gStr,'返回大廳',backToLobby);
         return;
       }
-      checkMilestone(a, b);
+      checkMilestoneOffer(a, b);
       advanceTurn();
       break;
     }
@@ -1403,11 +1444,8 @@ function handleMsg(msg){
       var box=$('query-box'); box.innerHTML='';
       appendEl(box,'div','ottl','審訊');
       appendEl(box,'div','odesc','對手問：你的答案中有沒有數字 '+d+' ？');
-      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.8rem';
       var b1=appendEl(box,'button','btn bp','回答（'+(hasIt?'有':'沒有')+'）');
-      var b2=appendEl(box,'button','btn bd','拒絕（跳過本回合）');
       b1.addEventListener('click',function(){ replyInterrogation(true,d,hasIt); });
-      b2.addEventListener('click',function(){ replyInterrogation(false,d,false); });
       $('query-ov').classList.add('show');
       break;
     }
@@ -1423,11 +1461,8 @@ function handleMsg(msg){
       var box=$('query-box'); box.innerHTML='';
       appendEl(box,'div','ottl','勒索');
       appendEl(box,'div','odesc','對手問：你答案的第 '+pos+' 位是什麼？');
-      appendEl(box,'div','odesc','（拒絕回答則你本回合跳過猜測）').style.fontSize='.8rem';
       var b1=appendEl(box,'button','btn bp','回答（'+dig+'）');
-      var b2=appendEl(box,'button','btn bd','拒絕（跳過本回合）');
       b1.addEventListener('click',function(){ replyExtortion(true,pos,dig); });
-      b2.addEventListener('click',function(){ replyExtortion(false,pos,dig); });
       $('query-ov').classList.add('show');
       break;
     }
@@ -1439,8 +1474,6 @@ function handleMsg(msg){
     }
 
     case 'card_pick':
-      if(msg.returned) msg.returned.forEach(function(c){ if(!G.deck.includes(c)) G.deck.push(c); });
-      G.deck=G.deck.filter(function(c){ return c!==msg.card; });
       addLog('my','對手取得了一張道具','lt');
       break;
 
