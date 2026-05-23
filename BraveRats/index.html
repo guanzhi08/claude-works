@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>鼠國稱王</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --red: #e74c3c; --blue: #3498db; --gold: #f1c40f; --bg: #2c3e50; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); color: white; margin: 0; overflow: hidden; 
+            display: flex; flex-direction: column; height: 100vh; 
+        }
+
+        /* 介面層 */
+        #setup-layer { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .room-box { background: rgba(255,255,255,0.1); padding: 25px; border-radius: 15px; width: 100%; max-width: 320px; text-align: center; }
+        input { padding: 15px; border-radius: 8px; border: none; width: 90%; font-size: 1.5rem; text-align: center; margin-bottom: 15px; }
+        button { padding: 12px 24px; border-radius: 8px; border: none; background: var(--gold); cursor: pointer; font-weight: bold; }
+
+        /* 看板 */
+        #info-panel { padding: 15px; background: rgba(0,0,0,0.4); z-index: 1000; position: relative; }
+        .score-board {
+            display: flex; justify-content: center; align-items: center; gap: 16px;
+            font-size: 1.1rem; font-weight: bold; padding: 0 78px;
+        }
+        .score-board span { white-space: nowrap; }
+        #status-bar { text-align: center; font-size: 0.8rem; color: #bbb; margin-top: 5px; min-height: 1rem; }
+        .spy-alert { color: var(--gold); animation: blink 1s infinite; }
+        #opp-chat-bubble {
+            position: absolute; right: 12px; top: 54px; max-width: min(56vw, 280px);
+            background: rgba(255,255,255,0.96); color: #1f2d3d; padding: 14px 16px;
+            border-radius: 14px 14px 4px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+            font-size: 1.05rem; line-height: 1.4; opacity: 0; transform: translateY(-6px);
+            pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 1200;
+        }
+        #opp-chat-bubble.active { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px), (max-height: 900px) {
+            .score-board { gap: 10px; padding: 0 88px; font-size: 0.96rem; }
+            #opp-chat-bubble { top: 58px; right: 10px; max-width: 64vw; font-size: 1rem; padding: 12px 14px; }
+            #chat-btn { right: 10px; bottom: 92px; }
+            #chat-panel { right: 10px; bottom: 140px; width: min(90vw, 340px); }
+        }
+
+        /* 對戰區 - 確保他在中間且層級高於手牌 */
+        #battle-field { 
+            flex: 1; display: flex; justify-content: center; align-items: center; 
+            gap: 20px; position: relative; perspective: 1000px; z-index: 100;
+        }
+        .slot { 
+            width: 90px; height: 135px; border: 2px dashed rgba(255,255,255,0.2); 
+            border-radius: 10px; position: relative; display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 卡牌基礎樣式 */
+        .card { 
+            width: 90px; height: 135px; background: white; color: #333; border-radius: 10px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: flex; flex-direction: column; 
+            align-items: center; justify-content: space-between; padding: 10px; 
+            position: absolute; will-change: transform; 
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            transform: translateZ(0); 
+        }
+        .card .num { font-size: 2.5rem; font-weight: 900; pointer-events: none; }
+        .card .emoji { font-size: 1.6rem; line-height: 1; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25)); }
+        .card .name { font-size: 0.85rem; font-weight: bold; border-bottom: 1px solid #ddd; width: 100%; text-align: center; pointer-events: none; }
+        .card.red { border: 4px solid var(--red); }
+        .card.blue { border: 4px solid var(--blue); }
+        .card.back { background: #34495e; color: transparent !important; border: 4px solid #7f8c8d; }
+
+        /* 關鍵：出牌時的層級調整 */
+        .card.in-slot { 
+            position: absolute;
+            transform: translate(0, 0) rotate(0deg) translateZ(0) !important; 
+            z-index: 150 !important;
+            box-shadow: 0 0 30px var(--gold);
+        }
+        .card.finalized { 
+            position: absolute;
+            transform: translate(0, 0) rotate(0deg) translateZ(0) !important; 
+            z-index: 50; 
+        }
+        #opp-slot .card.finalized { z-index: 50 !important; }
+        #my-slot .card.finalized { z-index: 100 !important; }
+        .card.finalized.play-up {
+            animation: play-up-from-bottom 0.35s cubic-bezier(0.18, 0.88, 0.22, 1.15) forwards;
+        }
+        .card.finalized.winner {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.28), 0 0 20px 3px var(--gold), 0 4px 8px rgba(0,0,0,0.4) !important;
+        }
+
+        /* 先出牌者三角符号 */
+        .card-with-first-badge::after {
+            content: '🔺';
+            position: absolute; top: -8px; right: -8px; font-size: 1.2rem;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* 手牌水平滑動區 */
+        #hand-wrapper {
+            height: 160px; width: 100%; overflow-x: auto; overflow-y: visible;
+            display: flex; align-items: flex-end; justify-content: flex-start;
+            padding: 10px 50px 15px 50px; touch-action: pan-x; -webkit-overflow-scrolling: touch;
+            background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05);
+            position: relative; bottom: 68px;
+            z-index: 10;
+        }
+        #hand-wrapper::-webkit-scrollbar { display: none; }
+        
+        #hand-container { 
+            position: relative; display: flex; min-width: 100%; 
+            justify-content: center; align-items: flex-end; height: 100%;
+        }
+
+        /* 對方卡牌層級 */
+        #opp-slot .card { z-index: 300; }
+
+        /* 碰撞與擊飛動畫 */
+        @keyframes bump-right {
+            0% { transform: translateX(0) translateZ(0); }
+            20% { transform: translateX(-30px) translateZ(0); }
+            45% { transform: translateX(120px) scale(1.1) translateZ(0); }
+            100% { transform: translateX(0) translateZ(0); }
+        }
+        @keyframes bump-left {
+            0% { transform: translateX(0) translateZ(0); }
+            20% { transform: translateX(30px) translateZ(0); }
+            45% { transform: translateX(-120px) scale(1.1) translateZ(0); }
+            100% { transform: translateX(0) translateZ(0); }
+        }
+        @keyframes fly-out-right { 100% { transform: translate(500px, -100px) rotate(720deg) translateZ(0); opacity: 0; } }
+        @keyframes fly-out-left { 100% { transform: translate(-500px, -100px) rotate(-720deg) translateZ(0); opacity: 0; } }
+        @keyframes play-up-from-bottom {
+            0% { transform: translate(0, 0) scale(0.85) translateZ(0); opacity: 0.25; }
+            70% { transform: translate(0, 0) scale(1.03) translateZ(0); opacity: 1; }
+            100% { transform: translate(0, 0) scale(1) translateZ(0); opacity: 1; }
+        }
+
+        .winner-bump-right { animation: bump-right 0.6s ease-out forwards; z-index: 1600 !important; }
+        .winner-bump-left { animation: bump-left 0.6s ease-out forwards; z-index: 1600 !important; }
+        .loser-fly-right { animation: fly-out-right 0.8s ease-in forwards; z-index: 1550 !important; }
+        .loser-fly-left { animation: fly-out-left 0.8s ease-in forwards; z-index: 1550 !important; }
+
+        /* 動作按鈕 */
+        #action-overlay { position: fixed; bottom: 122px; width: 100%; display: flex; justify-content: center; gap: 20px; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1800; }
+        #action-overlay.active { opacity: 1; pointer-events: auto; }
+        #ability-desc { height: 46px; background: rgba(0,0,0,0.85); padding: 8px 12px; font-size: 0.85rem; text-align: center; color: var(--gold); position: relative; bottom: 68px; z-index: 1000; }
+        #chat-btn {
+            position: absolute; right: 12px; bottom: 84px; z-index: 1850;
+            background: rgba(255,255,255,0.92); color: #22313f; padding: 10px 14px;
+            font-size: 0.9rem; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+        #chat-panel {
+            position: absolute; right: 12px; bottom: 134px; width: min(84vw, 320px);
+            background: rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 14px; padding: 12px; z-index: 1860; display: none;
+        }
+        #chat-panel.active { display: block; }
+        #chat-panel.keyboard-open {
+            position: fixed; right: 10px; bottom: var(--chat-keyboard-offset, 14px);
+            width: min(92vw, 360px); z-index: 3900; cursor: grab;
+        }
+        #chat-panel.keyboard-open.dragging { cursor: grabbing; }
+        #chat-input {
+            width: 100%; margin: 0 0 10px; padding: 14px 14px; font-size: 1.1rem;
+            text-align: left; border-radius: 10px;
+        }
+        .preset-buttons {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+        }
+        .preset-btn {
+            padding: 10px 8px; font-size: 0.95rem; background: #3498db; color: white;
+            border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: background 0.2s; white-space: nowrap;
+        }
+        .preset-btn:hover { background: #2980b9; }
+        .preset-btn .emoji { font-size: 1.2rem; }
+        #chat-panel .chat-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        #keyboard-btn { background: #8e44ad; color: white; }
+        #keyboard-btn.active { background: #6c3483; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* 遊戲結束畫面 */
+        #gameover-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 4000; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+        #gameover-overlay.active { display: flex; }
+        #gameover-msg { font-size: 3.5rem; font-weight: 900; color: var(--gold); text-shadow: 0 0 30px var(--gold); }
+
+        /* 出牌紀錄 */
+        #history-panel { position: fixed; inset: 0; background: rgba(0,0,0,0.86); z-index: 3950; display: none; }
+        #history-panel.active { display: flex; }
+        #history-box {
+            margin: auto; width: min(92vw, 460px); max-height: 76vh; overflow: auto;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 14px; padding: 14px;
+        }
+        #history-list { font-size: 0.95rem; }
+        .history-row {
+            display: flex; justify-content: space-between; gap: 10px; padding: 8px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+        }
+        .history-result.win { color: #2ecc71; font-weight: bold; }
+        .history-result.lose { color: #e74c3c; font-weight: bold; }
+        #history-opp-remain {
+            margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.24);
+            font-size: 0.9rem; color: #e8edf3; line-height: 1.5;
+        }
+        .history-remain-cards { color: #f6d36b; font-weight: 700; }
+
+        /* 勝負對照表 */
+        #matrix-btn {
+            position: fixed; top: 10px; left: 10px; z-index: 3900;
+            background: rgba(255,255,255,0.2); color: white; padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+        #matrix-panel { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3960; display: none; }
+        #matrix-panel.active { display: flex; }
+        #matrix-box {
+            margin: auto; width: min(96vw, 920px); max-height: 86vh; overflow: auto;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 14px; padding: 12px;
+        }
+        #matrix-wrap { overflow: auto; }
+        #matrix-table { border-collapse: collapse; min-width: 760px; width: 100%; font-size: 0.8rem; }
+        #matrix-table th, #matrix-table td {
+            border: 1px solid rgba(255,255,255,0.18); text-align: center; padding: 6px 4px;
+            white-space: nowrap;
+        }
+        #matrix-table th { background: rgba(30,40,55,0.95); position: sticky; top: 0; z-index: 2; }
+        #matrix-table tr th:first-child { position: sticky; left: 0; top: auto; z-index: 3; background: rgba(30,40,55,0.95); }
+        #matrix-table thead tr th:first-child { z-index: 4; top: 0; }
+        #matrix-table tr:first-child th:not(:first-child) { background: rgba(231,76,60,0.82); color: #fff3f1; }
+        #matrix-table tr:not(:first-child) th:first-child { background: rgba(46,204,113,0.82); color: #eafff4; }
+        .m-win  { background: rgba(46,204,113,0.82); color: #0a2e18; font-weight: bold; }
+        .m-lose { background: rgba(231,76,60,0.82);  color: #2e0808; font-weight: bold; }
+        .m-draw { background: rgba(241,196,15,0.82); color: #2e2000; font-weight: bold; }
+
+        /* 規則面板 */
+        #rules-btn {
+            position: fixed; top: 10px; right: 10px; z-index: 3900;
+            background: rgba(255,255,255,0.2); color: white; padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+        #rules-panel { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 3970; display: none; }
+        #rules-panel.active { display: flex; }
+        #rules-box {
+            margin: auto; width: min(94vw, 560px); max-height: 88vh; overflow-y: auto;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 14px; padding: 16px 18px;
+        }
+        #rules-box h3 { color: var(--gold); margin: 14px 0 6px; font-size: 1rem; }
+        #rules-box p  { margin: 0 0 6px; font-size: 0.88rem; color: #ddd; line-height: 1.5; }
+        .card-rule { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.15); }
+        .card-rule:last-child { border-bottom: none; }
+        .card-rule .cr-icon { font-size: 1.6rem; flex-shrink: 0; width: 28px; text-align: center; }
+        .card-rule .cr-body { flex: 1; }
+        .card-rule .cr-title { font-weight: bold; color: var(--gold); font-size: 0.92rem; }
+        .card-rule .cr-desc  { font-size: 0.83rem; color: #ccc; margin-top: 2px; }
+
+        /* 過往紀錄 */
+        #past-games-btn {
+            position: absolute; left: 20px; bottom: 20px; z-index: 2100;
+            background: rgba(255,255,255,0.15); color: white; padding: 10px 16px;
+            font-size: 0.95rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;
+        }
+        #past-games-btn:hover { background: rgba(255,255,255,0.25); }
+        #ai-mode-btn {
+            position: absolute; right: 20px; bottom: 20px; z-index: 2100;
+            background: rgba(255,255,255,0.15); color: white; padding: 10px 16px;
+            font-size: 0.95rem; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;
+        }
+        #ai-mode-btn:hover { background: rgba(255,255,255,0.25); }
+        .diff-btn {
+            color: white; padding: 14px; font-size: 1rem; font-weight: bold;
+            width: 100%; border-radius: 8px; border: none; cursor: pointer;
+            transition: filter 0.15s;
+        }
+        .diff-btn:hover { filter: brightness(1.15); }
+        #past-games-panel { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 5000; display: none; }
+        #past-games-panel.active { display: flex; }
+        #past-games-box {
+            margin: auto; width: min(96vw, 520px); max-height: 90vh; overflow-y: auto;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 14px; padding: 16px;
+        }
+        .pg-entry {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px; padding: 12px; margin-bottom: 12px;
+        }
+        .pg-entry:last-child { margin-bottom: 0; }
+        .pg-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-size: 0.85rem; color: #bbb;
+        }
+        .pg-result { font-weight: 900; font-size: 1rem; }
+        .pg-result.win { color: #2ecc71; }
+        .pg-result.lose { color: #e74c3c; }
+        .pg-result.draw { color: var(--gold); }
+        .pg-round {
+            display: flex; align-items: center; gap: 8px; padding: 6px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.08);
+        }
+        .pg-round:last-child { border-bottom: none; }
+        .pg-round-num { font-size: 0.75rem; color: #888; width: 24px; text-align: center; flex-shrink: 0; }
+        .pg-mini-card {
+            width: 48px; height: 68px; border-radius: 6px; background: white; color: #333;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: bold; flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); gap: 1px;
+        }
+        .pg-mini-card .mc-name { font-size: 0.55rem; line-height: 1; color: #666; }
+        .pg-mini-card .mc-emoji { font-size: 0.85rem; line-height: 1; }
+        .pg-mini-card .mc-num { font-size: 0.9rem; font-weight: 900; line-height: 1; }
+        .pg-mini-card.red { border: 2px solid var(--red); }
+        .pg-mini-card.blue { border: 2px solid var(--blue); }
+        .pg-mini-card.first-player {
+            position: relative;
+        }
+        .pg-mini-card.first-player::after {
+            content: '🔺';
+            position: absolute; top: -6px; right: -6px; font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .pg-mini-card.winner {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.28), 0 0 12px 2px var(--gold), 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .pg-vs { color: #666; font-size: 0.8rem; flex-shrink: 0; }
+        .pg-round-result { font-size: 0.78rem; margin-left: auto; font-weight: bold; flex-shrink: 0; }
+        .pg-round-result.win { color: #2ecc71; }
+        .pg-round-result.lose { color: #e74c3c; }
+        .pg-round-result.draw { color: #999; }
+        .pg-score-line { font-size: 0.82rem; color: #aaa; margin-top: 6px; text-align: right; }
+        .pg-empty { text-align: center; color: #888; padding: 30px 0; font-size: 0.95rem; }
+        /* 對手資訊列 */
+        .pg-header { margin-bottom: 4px !important; }
+        .pg-opp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; min-height: 22px; }
+        .pg-ai-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: bold; }
+        .pg-ai-badge.easy   { background: rgba(39,174,96,0.2);  color: #2ecc71; }
+        .pg-ai-badge.medium { background: rgba(230,126,34,0.2); color: #e8983a; }
+        .pg-ai-badge.hard   { background: rgba(231,76,60,0.2);  color: #e74c3c; }
+        .pg-ai-badge.king   { background: rgba(142,68,173,0.2); color: #bb8fff; }
+        .pg-opp-name-wrap { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #bbb; }
+        .pg-edit-btn { background: none; border: none; color: #666; cursor: pointer; font-size: 0.78rem; padding: 0 2px; line-height: 1; }
+        .pg-edit-btn:hover { color: var(--gold); }
+        .pg-name-input { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; font-size: 0.8rem; padding: 2px 6px; width: 120px; outline: none; }
+    </style>
+</head>
+<body>
+
+<div id="setup-layer">
+    <div id="step-1" class="room-box">
+        <h2 style="color:var(--gold); margin-top:0;">鼠國稱王</h2>
+        <input type="text" id="room-input" placeholder="4位數字房號" maxlength="4" inputmode="numeric" pattern="\d*">
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:12px;">
+            <button onclick="setRoom('0514')" style="padding:8px 10px; font-size:0.9rem; background:rgba(255,255,255,0.15); color:white;">0514</button>
+            <button onclick="setRoom('0607')" style="padding:8px 10px; font-size:0.9rem; background:rgba(255,255,255,0.15); color:white;">0607</button>
+            <button onclick="setRoom('0810')" style="padding:8px 10px; font-size:0.9rem; background:rgba(255,255,255,0.15); color:white;">0810</button>
+            <button onclick="setRoom('1112')" style="padding:8px 10px; font-size:0.9rem; background:rgba(255,255,255,0.15); color:white;">1112</button>
+        </div>
+        <div style="display:flex; gap:10px; justify-content: center;">
+            <button onclick="initRoom('host')">建立</button>
+            <button onclick="initRoom('join')" style="background:white">加入</button>
+        </div>
+    </div>
+    <button id="past-games-btn" onclick="togglePastGames()">紀錄</button>
+    <button id="ai-mode-btn" onclick="showAISetup()">單人</button>
+    <div id="step-ai" class="room-box" style="display:none">
+        <h3 style="color:var(--gold); margin:0 0 16px;">選擇難度</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button onclick="startAIGame('easy')" class="diff-btn" style="background:#27ae60;">😊 簡單</button>
+            <button onclick="startAIGame('medium')" class="diff-btn" style="background:#e67e22;">🤔 中等</button>
+            <button onclick="startAIGame('hard')" class="diff-btn" style="background:#e74c3c;">😈 困難</button>
+            <button onclick="startAIGame('king')" class="diff-btn" style="background:linear-gradient(135deg,#8e44ad,#2c3e50); border:2px solid var(--gold);">👑 國王</button>
+        </div>
+        <button onclick="backToSetup()" style="background:rgba(255,255,255,0.15); color:white; margin-top:14px; width:100%; padding:10px; font-size:0.95rem;">← 返回</button>
+    </div>
+    <div id="step-2" class="room-box" style="display:none">
+        <p style="margin:0 0 10px;"><span id="room-display" style="font-size:1rem; font-weight:700; color:white; letter-spacing:0.1em;"></span><span id="room-status"> 等待玩家中...</span></p>
+        <div id="qrcode-container"></div>
+    </div>
+</div>
+
+<div id="info-panel">
+    <div class="score-board">
+        <span id="player-score">我方: 0</span>
+        <span id="game-status">連線成功</span>
+        <span id="opp-score">對方: 0</span>
+    </div>
+    <div id="status-bar"></div>
+    <div id="opp-chat-bubble"></div>
+</div>
+
+<button id="rules-btn" onclick="toggleRules()">規則</button>
+<button id="matrix-btn" onclick="toggleMatrix()">勝負</button>
+
+<div id="rules-panel" onclick="closeRules()">
+    <div id="rules-box" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="color:var(--gold); font-size:1.1rem;">🐭 鼠國稱王 遊戲規則</b>
+            <button onclick="closeRules()" style="background:#555; color:white; padding:8px 12px;">關閉</button>
+        </div>
+        <h3>基本規則</h3>
+        <p>雙方各持 0–7 共 8 張牌，每回合同時出一張。數值高者贏得本回合，累積 <b>4 分</b>先達標者獲勝。</p>
+        <p>平手時積分放入「懸賞池」，下一個勝者一次全拿。全部牌出完時若未達 4 分，以積分高者獲勝；同分則平手。</p>
+        <h3>卡牌能力</h3>
+        <div class="card-rule">
+            <div class="cr-icon">🎵</div>
+            <div class="cr-body"><div class="cr-title">0 樂師</div><div class="cr-desc">本回合強制平手，無視雙方所有能力。積分推入懸賞池，下回合結算。</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">👸</div>
+            <div class="cr-body"><div class="cr-title">1 公主</div><div class="cr-desc">若對手出王子(7)，你直接贏得整場比賽。</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🕵️</div>
+            <div class="cr-body"><div class="cr-title">2 間諜</div><div class="cr-desc">下一回合對手必須先公開出牌。雙方同出間諜時效果抵消。（對手出巫師可解除）</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🗡️</div>
+            <div class="cr-body"><div class="cr-title">3 刺客</div><div class="cr-desc">本回合改為數值小者獲勝。（對手出巫師可解除）</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🤵</div>
+            <div class="cr-body"><div class="cr-title">4 大使</div><div class="cr-desc">若此牌獲勝，視為贏得 2 個回合（本回合積分 +1）。（對手出巫師可解除）</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🧙</div>
+            <div class="cr-body"><div class="cr-title">5 巫師</div><div class="cr-desc">無視對手本回合的所有特殊能力。</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🛡️</div>
+            <div class="cr-body"><div class="cr-title">6 將軍</div><div class="cr-desc">你下一回合所出牌的數值 +2。（對手出巫師可解除）</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🤴</div>
+            <div class="cr-body"><div class="cr-title">7 王子</div><div class="cr-desc">數值大者獲勝，但遇對手出樂師(0)或公主(1)時效果例外（見各牌說明）。</div></div>
+        </div>
+        <h3>🤖 單人 AI 難度說明</h3>
+        <div class="card-rule">
+            <div class="cr-icon">😊</div>
+            <div class="cr-body"><div class="cr-title">簡單</div><div class="cr-desc">電腦常常隨便出牌，不太會想策略。第一次玩的人從這裡開始！</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">🤔</div>
+            <div class="cr-body"><div class="cr-title">中等</div><div class="cr-desc">電腦知道哪張牌比較有利，偶爾會故意猜你的牌再做決定。</div></div>
+        </div>
+        <div class="card-rule">
+            <div class="cr-icon">😈</div>
+            <div class="cr-body"><div class="cr-title">困難</div><div class="cr-desc">電腦每次都認真出牌，還會記住你剩下哪些牌，並想辦法破解你的策略。</div></div>
+        </div>
+        <div class="card-rule" style="border-bottom:none;">
+            <div class="cr-icon">👑</div>
+            <div class="cr-body"><div class="cr-title">國王</div><div class="cr-desc">電腦超厲害！它不只看這回合，還會想後面幾步的結果，要打敗它非常非常難！</div></div>
+        </div>
+    </div>
+</div>
+<div id="history-panel" onclick="closeHistory()">
+    <div id="history-box" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="color:var(--gold)">剩餘手牌組合預測</b>
+            <button onclick="closeHistory()" style="background:#555; color:white; padding:8px 12px;">關閉</button>
+        </div>
+        <div style="font-size:0.78rem; color:#ccc; margin-bottom:8px;">縱軸（綠）：我方剩餘手牌　｜　橫軸（紅）：對方剩餘手牌　｜　格子內容：下局比賽結果比數</div>
+        <div id="history-list"></div>
+        <div id="history-opp-remain"></div>
+    </div>
+</div>
+
+<div id="matrix-panel" onclick="closeMatrix()">
+    <div id="matrix-box" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <b style="color:var(--gold)">勝負對照表</b>
+            <button onclick="closeMatrix()" style="background:#555; color:white; padding:8px 12px;">關閉</button>
+        </div>
+        <div style="font-size:0.78rem; color:#ccc; margin-bottom:8px;">格子內容：獲勝方｜結束比賽 或 暫緩</div>
+        <div id="matrix-wrap"><table id="matrix-table"></table></div>
+    </div>
+</div>
+
+<div id="battle-field">
+    <div class="slot" id="my-slot"></div>
+    <div class="slot" id="opp-slot"></div>
+    <div id="action-overlay">
+        <button onclick="cancelSelection()" style="background:#555; color:white">反悔</button>
+        <button onclick="confirmSelection()" style="background:#27ae60; color:white; padding:12px 30px;">確認</button>
+    </div>
+    <button id="chat-btn" onclick="toggleChatPanel()">聊天</button>
+    <div id="chat-panel">
+        <input id="chat-input" type="text" maxlength="80" placeholder="點語音開始說話..." inputmode="none" readonly>
+        <div class="preset-buttons">
+            <button class="preset-btn" onclick="sendPresetMessage('這步厲害 🎯')"><span>這步厲害</span><span class="emoji">🎯</span></button>
+            <button class="preset-btn" onclick="sendPresetMessage('快一點啦 ⏰')"><span>快一點啦</span><span class="emoji">⏰</span></button>
+            <button class="preset-btn" onclick="sendPresetMessage('我要贏了 🏆')"><span>我要贏了</span><span class="emoji">🏆</span></button>
+            <button class="preset-btn" onclick="sendPresetMessage('我快輸了 😰')"><span>我快輸了</span><span class="emoji">😰</span></button>
+        </div>
+        <div class="chat-actions">
+            <button id="voice-btn" onclick="startVoiceInput()" style="background:#16a085; color:white; padding:9px 14px;">語音</button>
+            <button id="keyboard-btn" onclick="enableKeyboardInput()" style="padding:9px 14px;">鍵盤</button>
+            <button onclick="closeChatPanel()" style="background:#555; color:white; padding:9px 14px;">取消</button>
+            <button onclick="sendChatMessage()" style="padding:9px 14px;">送出</button>
+        </div>
+    </div>
+</div>
+
+<div id="gameover-overlay">
+    <div id="gameover-msg"></div>
+    <button id="rematch-btn" onclick="requestRematch()" style="font-size:1.1rem; padding:14px 36px; background:var(--gold);">再來一局</button>
+</div>
+
+<div id="past-games-panel" onclick="closePastGames()">
+    <div id="past-games-box" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <b style="color:var(--gold); font-size:1.1rem;">📋 過往對戰紀錄</b>
+            <button onclick="closePastGames()" style="background:#555; color:white; padding:8px 12px;">關閉</button>
+        </div>
+        <div id="past-games-list"></div>
+    </div>
+</div>
+
+<div id="ability-desc">準備對決...</div>
+<div id="hand-wrapper">
+    <div id="hand-container"></div>
+</div>
+
+<script>
+    const CARD_DATA = {
+        0: { name: "樂師", emoji: "🎵", desc: "本回合平手。無視對方能力。下回合結算積分。" },
+        1: { name: "公主", emoji: "👸", desc: "若對手出王子(7)，你直接贏得比賽。" },
+        2: { name: "間諜", emoji: "🕵️", desc: "下一回合對方必須先出牌且牌面朝上。" },
+        3: { name: "刺客", emoji: "🗡️", desc: "數值小者贏。" },
+        4: { name: "大使", emoji: "🤵", desc: "若此牌獲勝，視為贏得 2 個回合。" },
+        5: { name: "巫師", emoji: "🧙", desc: "無視對手此回合的所有特殊能力。" },
+        6: { name: "將軍", emoji: "🛡️", desc: "你下一回合出的牌數值 +2。" },
+        7: { name: "王子", emoji: "🤴", desc: "數值大者贏。除非對方出 0 或 1。" }
+    };
+
+    let myHand = [0, 1, 2, 3, 4, 5, 6, 7], myScore = 0, oppScore = 0, drawPool = 0;
+    let roundHistory = [];
+    let peer, conn, myColor, role, pendingVal = null, myPlayedVal = null, oppPlayedVal = null;
+    let isAIMode = false;
+    let aiHand = [0, 1, 2, 3, 4, 5, 6, 7];
+    let aiDifficulty = 'medium';
+    let roundFirstPlayer = '';
+    let effects = { myGen: false, oppGen: false, mySpy: false, oppSpy: false };
+    let oppChatTimer = null;
+    let rematch = {
+        myReady: false,
+        oppReady: false,
+        heartbeatTimer: null,
+        startSent: false,
+        started: false,
+        myToken: ''
+    };
+    let transport = 'none'; // 'ws' | 'webrtc'
+    let ws = null;
+
+    function renderHistory() {
+        const list = document.getElementById('history-list');
+        if (!list) return;
+
+        // 計算剩餘手牌
+        const usedMy = new Set(roundHistory.map(r => r.my));
+        const usedOpp = new Set(roundHistory.map(r => r.opp));
+        const remainMyCards = [0, 1, 2, 3, 4, 5, 6, 7].filter(v => !usedMy.has(v));
+        const remainOppCards = [0, 1, 2, 3, 4, 5, 6, 7].filter(v => !usedOpp.has(v));
+
+        if (remainMyCards.length === 0 && remainOppCards.length === 0) {
+            list.innerHTML = '<div style="color:#bbb; text-align:center; padding:14px 0;">所有手牌已出完</div>';
+            return;
+        }
+
+        // 生成矩陣
+        let html = '<table style="border-collapse:collapse; width:100%; font-size:0.8rem;">';
+        html += '<tr><th style="background:rgba(30,40,55,0.95); border:1px solid rgba(255,255,255,0.18); padding:6px;">我/對</th>';
+        
+        for (let opp of remainOppCards) {
+            html += `<th style="background:rgba(231,76,60,0.82); color:#fff3f1; border:1px solid rgba(255,255,255,0.18); padding:6px; font-weight:bold;">${opp}</th>`;
+        }
+        html += '</tr>';
+
+        for (let my of remainMyCards) {
+            html += `<tr><th style="background:rgba(46,204,113,0.82); color:#eafff4; border:1px solid rgba(255,255,255,0.18); padding:6px; font-weight:bold;">${my}</th>`;
+            
+            for (let opp of remainOppCards) {
+                const out = getMatrixOutcome(my, opp);
+                let cls = 'm-draw';
+                let textContent = '暫緩';
+                   let isMatchEnd = false;
+                
+                if (out.matchEnd === 1) { 
+                    cls = 'm-win'; 
+                    textContent = `${myScore + (my === 4 ? 2 : 1) + (drawPool || 0)}:${oppScore}`;
+                       isMatchEnd = true;
+                } else if (out.matchEnd === -1) { 
+                    cls = 'm-lose'; 
+                    textContent = `${myScore}:${oppScore + (opp === 4 ? 2 : 1) + (drawPool || 0)}`;
+                       isMatchEnd = true;
+                } else if (out.win === 1) { 
+                       const myFinalScore = myScore + (my === 4 ? 2 : 1) + (drawPool || 0);
+                    cls = 'm-win'; 
+                       textContent = `${myFinalScore}:${oppScore}`;
+                       if (myFinalScore >= 4) isMatchEnd = true;
+                } else if (out.win === -1) { 
+                       const oppFinalScore = oppScore + (opp === 4 ? 2 : 1) + (drawPool || 0);
+                    cls = 'm-lose'; 
+                       textContent = `${myScore}:${oppFinalScore}`;
+                       if (oppFinalScore >= 4) isMatchEnd = true;
+                } else {
+                    textContent = `${myScore}:${oppScore}`;
+                }
+                
+                   const scoreStyle = isMatchEnd ? 'color:white; text-decoration:underline;' : '';
+                   html += `<td class="${cls}" style="border:1px solid rgba(255,255,255,0.18); padding:8px; text-align:center; font-weight:bold;${scoreStyle}">${textContent}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</table>';
+        
+        list.innerHTML = html;
+
+        // 顯示剩餘手牌的標示
+        const oppRemain = document.getElementById('history-opp-remain');
+        if (oppRemain) {
+            let remainText = '<b style="color:#f79f1a;">剩餘手牌組合預測</b><br>';
+            remainText += `<span style="color:#aaa; font-size:0.85rem;">我方剩餘：${remainMyCards.map(v => `${CARD_DATA[v].emoji}${v}`).join(' ')}</span><br>`;
+            remainText += `<span style="color:#aaa; font-size:0.85rem;">對方剩餘：${remainOppCards.map(v => `${CARD_DATA[v].emoji}${v}`).join(' ')}</span>`;
+            oppRemain.innerHTML = remainText;
+        }
+    }
+
+    function toggleHistory() {
+        const panel = document.getElementById('history-panel');
+        panel.classList.toggle('active');
+        if (panel.classList.contains('active')) renderHistory();
+    }
+
+    function closeHistory() {
+        document.getElementById('history-panel').classList.remove('active');
+    }
+
+    function revealHistoryFromMatrix() {
+        closeMatrix();
+        setTimeout(() => {
+            document.getElementById('history-panel').classList.add('active');
+            renderHistory();
+        }, 120);
+    }
+
+    function getMatrixOutcome(my, opp) {
+        let win = 0;
+        let matchEnd = 0;
+        const p1_ign = (my === 5), p2_ign = (opp === 5);
+
+        if (my === opp) win = 0;
+        else if ((my === 0 && !p2_ign) || (opp === 0 && !p1_ign)) win = 0;
+        else if (my === 1 && opp === 7 && !p2_ign) { win = 1; matchEnd = 1; }
+        else if (opp === 1 && my === 7 && !p1_ign) { win = -1; matchEnd = -1; }
+        else {
+            const smallWin = (my === 3 && !p2_ign) || (opp === 3 && !p1_ign);
+            if (my === opp) win = 0;
+            else if (smallWin) win = (my < opp) ? 1 : -1;
+            else win = (my > opp) ? 1 : -1;
+        }
+
+        return { win, matchEnd, delayed: win === 0 };
+    }
+
+    function renderMatrixTable() {
+        const table = document.getElementById('matrix-table');
+        if (!table) return;
+        let html = '<tr><th>我/對</th>';
+        for (let opp = 0; opp <= 7; opp++) {
+            html += `<th>${opp}<br>${CARD_DATA[opp].name}</th>`;
+        }
+        html += '</tr>';
+
+        for (let my = 0; my <= 7; my++) {
+            html += `<tr><th>${my}<br>${CARD_DATA[my].name}</th>`;
+            for (let opp = 0; opp <= 7; opp++) {
+                const out = getMatrixOutcome(my, opp);
+                let cls = 'm-draw';
+                let text = '暫緩';
+                if (out.matchEnd === 1) { cls = 'm-win'; text = '結束'; }
+                else if (out.matchEnd === -1) { cls = 'm-lose'; text = '結束'; }
+                else if (out.win === 1) { cls = 'm-win'; text = '我方'; }
+                else if (out.win === -1) { cls = 'm-lose'; text = '對方'; }
+                const isPrinceVsPrinceDelay = (my === 7 && opp === 7 && text === '暫緩');
+                const actionAttrs = isPrinceVsPrinceDelay
+                    ? ' onclick="revealHistoryFromMatrix()" style="text-decoration:none;"'
+                    : '';
+                html += `<td class="${cls}"${actionAttrs}>${text}</td>`;
+            }
+            html += '</tr>';
+        }
+        table.innerHTML = html;
+    }
+
+    function toggleMatrix() {
+        const panel = document.getElementById('matrix-panel');
+        panel.classList.toggle('active');
+        if (panel.classList.contains('active')) renderMatrixTable();
+    }
+
+    function closeMatrix() {
+        document.getElementById('matrix-panel').classList.remove('active');
+    }
+
+    function toggleRules() {
+        document.getElementById('rules-panel').classList.toggle('active');
+    }
+
+    function closeRules() {
+        document.getElementById('rules-panel').classList.remove('active');
+    }
+
+    let speechRecognition = null;
+    let isListening = false;
+    let keyboardMode = false;
+
+    function isMobileChatMode() {
+        return window.matchMedia('(max-width: 768px), (max-height: 900px)').matches;
+    }
+
+    function setVoiceButtonState(listening) {
+        const btn = document.getElementById('voice-btn');
+        if (!btn) return;
+        btn.textContent = listening ? '聆聽中...' : '語音';
+        btn.style.background = listening ? '#d35400' : '#16a085';
+    }
+
+    function setKeyboardButtonState(active) {
+        const btn = document.getElementById('keyboard-btn');
+        if (!btn) return;
+        btn.classList.toggle('active', !!active);
+    }
+
+    let chatPanelDragOffset = 0;
+
+    function updateChatPanelForKeyboard() {
+        const panel = document.getElementById('chat-panel');
+        if (!panel || !panel.classList.contains('active') || !isMobileChatMode() || !keyboardMode) {
+            if (panel) panel.classList.remove('keyboard-open');
+            return;
+        }
+
+        let keyboardHeight = 0;
+        if (window.visualViewport) {
+            keyboardHeight = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+        }
+
+        if (keyboardHeight > 80) {
+            const panelHeight = 200;
+            const halflHeight = Math.round(panelHeight / 2);
+            const baseOffset = keyboardHeight + 10;
+            const finalOffset = Math.max(10, baseOffset - halflHeight + chatPanelDragOffset);
+            panel.style.setProperty('--chat-keyboard-offset', `${finalOffset}px`);
+            panel.classList.add('keyboard-open');
+        } else {
+            panel.classList.remove('keyboard-open');
+            panel.style.removeProperty('--chat-keyboard-offset');
+            chatPanelDragOffset = 0;
+        }
+    }
+
+    function initChatPanelDrag() {
+        const panel = document.getElementById('chat-panel');
+        if (!panel) return;
+
+        let dragStartY = 0, dragStartBottom = 0;
+
+        function handleDragStart(e) {
+            if (!panel.classList.contains('keyboard-open')) return;
+            dragStartY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            dragStartBottom = parseFloat(getComputedStyle(panel).bottom) || 0;
+            panel.classList.add('dragging');
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('mouseup', handleDragEnd);
+            document.addEventListener('touchend', handleDragEnd);
+        }
+
+        function handleDragMove(e) {
+            const currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            const deltaY = dragStartY - currentY;
+            const maxDragDown = 60;
+            const maxDragUp = -40;
+            chatPanelDragOffset = Math.max(maxDragUp, Math.min(maxDragDown, deltaY));
+            updateChatPanelForKeyboard();
+        }
+
+        function handleDragEnd() {
+            panel.classList.remove('dragging');
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('mouseup', handleDragEnd);
+            document.removeEventListener('touchend', handleDragEnd);
+        }
+
+        panel.addEventListener('mousedown', handleDragStart);
+        panel.addEventListener('touchstart', handleDragStart, { passive: true });
+    }
+
+    function enableKeyboardInput() {
+        const input = document.getElementById('chat-input');
+        keyboardMode = true;
+        stopVoiceInput();
+        input.removeAttribute('readonly');
+        input.setAttribute('inputmode', 'text');
+        input.placeholder = '輸入訊息...';
+        setKeyboardButtonState(true);
+        chatPanelDragOffset = 0;
+        initChatPanelDrag();
+        updateChatPanelForKeyboard();
+        requestAnimationFrame(() => input.focus());
+    }
+
+    function disableKeyboardInput() {
+        const input = document.getElementById('chat-input');
+        keyboardMode = false;
+        input.setAttribute('readonly', 'readonly');
+        input.setAttribute('inputmode', 'none');
+        input.placeholder = '點語音開始說話...';
+        setKeyboardButtonState(false);
+        chatPanelDragOffset = 0;
+        const panel = document.getElementById('chat-panel');
+        if (panel) {
+            panel.classList.remove('keyboard-open', 'dragging');
+            panel.style.removeProperty('--chat-keyboard-offset');
+        }
+    }
+
+    function ensureSpeechRecognition() {
+        if (speechRecognition) return speechRecognition;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return null;
+
+        const input = document.getElementById('chat-input');
+        speechRecognition = new SR();
+        speechRecognition.lang = 'zh-TW';
+        speechRecognition.interimResults = true;
+        speechRecognition.continuous = false;
+        speechRecognition.maxAlternatives = 1;
+
+        speechRecognition.onstart = () => {
+            isListening = true;
+            setVoiceButtonState(true);
+        };
+
+        speechRecognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            input.value = transcript.trim().slice(0, 80);
+        };
+
+        speechRecognition.onend = () => {
+            isListening = false;
+            setVoiceButtonState(false);
+        };
+
+        speechRecognition.onerror = () => {
+            isListening = false;
+            setVoiceButtonState(false);
+        };
+
+        return speechRecognition;
+    }
+
+    function startVoiceInput() {
+        const recognition = ensureSpeechRecognition();
+        disableKeyboardInput();
+        if (!recognition) {
+            document.getElementById('chat-input').placeholder = '此裝置不支援語音辨識';
+            enableKeyboardInput();
+            return;
+        }
+        if (isListening) return;
+        try {
+            recognition.start();
+        } catch (e) {
+            // Ignore repeated start errors from browser speech APIs.
+        }
+    }
+
+    function stopVoiceInput() {
+        if (speechRecognition && isListening) {
+            speechRecognition.stop();
+        }
+    }
+
+    function toggleChatPanel() {
+        const panel = document.getElementById('chat-panel');
+        const input = document.getElementById('chat-input');
+        panel.classList.toggle('active');
+
+        if (panel.classList.contains('active')) {
+            if (isMobileChatMode()) {
+                disableKeyboardInput();
+                startVoiceInput();
+            } else {
+                input.removeAttribute('readonly');
+                input.setAttribute('inputmode', 'text');
+                setKeyboardButtonState(false);
+                input.focus();
+            }
+            return;
+        }
+        stopVoiceInput();
+        disableKeyboardInput();
+    }
+
+    function closeChatPanel() {
+        stopVoiceInput();
+        disableKeyboardInput();
+        document.getElementById('chat-panel').classList.remove('active');
+    }
+
+    window.addEventListener('resize', updateChatPanelForKeyboard);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateChatPanelForKeyboard);
+        window.visualViewport.addEventListener('scroll', updateChatPanelForKeyboard);
+    }
+
+    document.addEventListener('focusin', (event) => {
+        if (event.target && event.target.id === 'chat-input') {
+            updateChatPanelForKeyboard();
+        }
+    });
+
+    document.addEventListener('focusout', (event) => {
+        if (event.target && event.target.id === 'chat-input') {
+            setTimeout(updateChatPanelForKeyboard, 60);
+        }
+    });
+
+    function showOppChatBubble(message) {
+        const bubble = document.getElementById('opp-chat-bubble');
+        bubble.textContent = message;
+        bubble.classList.add('active');
+        clearTimeout(oppChatTimer);
+        oppChatTimer = setTimeout(() => bubble.classList.remove('active'), 4200);
+    }
+
+    function sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim().slice(0, 80);
+        if (!message) return;
+        if (!isAIMode && transport !== 'none') sendMsg({ type: 'chat', message });
+        input.value = '';
+        closeChatPanel();
+    }
+
+    function sendPresetMessage(message) {
+        if (!isAIMode && transport !== 'none') sendMsg({ type: 'chat', message });
+        closeChatPanel();
+    }
+
+    function wsClose() {
+        if (ws) { ws.onopen = ws.onclose = ws.onerror = ws.onmessage = null; ws.close(); ws = null; }
+    }
+
+    function sendMsg(msg) {
+        if (transport === 'ws') {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: msg.type, payload: msg }));
+            } else {
+                setTimeout(() => sendMsg(msg), 80);
+            }
+            return;
+        }
+        if (conn && conn.open) { conn.send(msg); return; }
+        if (conn) { setTimeout(() => sendMsg(msg), 80); }
+    }
+
+    function handleGameMessage(data) {
+        if (data.type === 'play') {
+            if (!roundFirstPlayer) roundFirstPlayer = 'opp';
+            oppPlayedVal = data.value;
+            checkReveal();
+        } else if (data.type === 'chat') {
+            showOppChatBubble(String(data.message || '').slice(0, 80));
+        } else if (data.type === 'rematch-ready') {
+            handleOppRematchReady();
+        } else if (data.type === 'rematch-sync') {
+            handleOppRematchSync(data);
+        } else if (data.type === 'rematch-start') {
+            handleOppRematchStart();
+        }
+    }
+
+    function afterWsConnect() {
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'user_left' || msg.type === 'room_closed') {
+                document.getElementById('game-status').innerText = '對手已離線';
+            } else if (msg.type !== 'user_joined') {
+                handleGameMessage(msg.payload);
+            }
+        };
+        ws.onclose = () => { document.getElementById('game-status').innerText = '連線中斷'; };
+        ws.onerror = null;
+    }
+
+    function tryWsHost(code) {
+        wsClose();
+        ws = new WebSocket('wss://omni-note.onrender.com/ws?room=br-' + code + '&user=host');
+        ws.onerror = () => { wsClose(); };
+        ws.onclose = () => {
+            if (transport === 'ws') document.getElementById('game-status').innerText = '連線中斷';
+        };
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'user_joined') {
+                if (transport !== 'none') return;
+                transport = 'ws';
+                if (peer) { peer.destroy(); peer = null; }
+                afterWsConnect();
+                setupGame();
+            } else if (msg.type === 'user_left' || msg.type === 'room_closed') {
+                if (transport === 'ws') document.getElementById('game-status').innerText = '對手已離線';
+            }
+        };
+    }
+
+    function tryWebRTCHost(code) {
+        peer = new Peer('rats-fix-' + code + 'A');
+        peer.on('connection', (c) => {
+            if (transport !== 'none') { c.on('open', () => c.close()); return; }
+            conn = c; transport = 'webrtc'; wsClose(); setupGame();
+        });
+        peer.on('error', (e) => {
+            if (e.type === 'unavailable-id')
+                document.getElementById('room-status').textContent = ' 房號已被使用';
+        });
+    }
+
+    function tryWsGuest(code) {
+        wsClose();
+        ws = new WebSocket('wss://omni-note.onrender.com/ws?room=br-' + code + '&user=guest');
+        const timer = setTimeout(() => {
+            if (transport !== 'ws') { wsClose(); tryWebRTCGuest(code); }
+        }, 5000);
+        ws.onopen = () => {
+            clearTimeout(timer); transport = 'ws'; afterWsConnect(); setupGame();
+        };
+        ws.onerror = () => { clearTimeout(timer); wsClose(); tryWebRTCGuest(code); };
+        ws.onclose = (e) => { clearTimeout(timer); if (transport === 'ws') return; tryWebRTCGuest(code); };
+    }
+
+    function tryWebRTCGuest(code) {
+        peer = new Peer('rats-fix-' + code + 'B');
+        peer.on('open', () => {
+            conn = peer.connect('rats-fix-' + code + 'A');
+            conn.on('open', () => { transport = 'webrtc'; setupGame(); });
+            setTimeout(() => {
+                if (!conn || !conn.open)
+                    document.getElementById('room-status').textContent = ' 連線逾時';
+            }, 8000);
+        });
+        peer.on('error', () => {
+            document.getElementById('room-status').textContent = ' 連線失敗';
+        });
+    }
+
+    function initRoom(type) {
+        const code = document.getElementById('room-input').value;
+        if (!code) return;
+        localStorage.setItem('rats-last-room', code);
+        role = type;
+        document.getElementById('step-1').style.display = 'none';
+        document.getElementById('step-2').style.display = 'block';
+        if (role === 'host') {
+            document.getElementById('room-display').textContent = '房號：' + code;
+            new QRCode(document.getElementById('qrcode-container'),
+                window.location.origin + window.location.pathname + '?room=' + code);
+            tryWsHost(code);
+            tryWebRTCHost(code);
+        } else {
+            tryWsGuest(code);
+        }
+    }
+
+    document.getElementById('room-input').addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 4);
+    });
+
+    function setRoom(code) {
+        document.getElementById('room-input').value = code;
+    }
+
+    const urlRoom = new URLSearchParams(window.location.search).get('room');
+    const savedRoom = localStorage.getItem('rats-last-room');
+    if(urlRoom) {
+        const normalizedRoom = urlRoom.replace(/\D/g, '').slice(0, 4);
+        document.getElementById('room-input').value = normalizedRoom;
+        localStorage.setItem('rats-last-room', normalizedRoom);
+        setTimeout(() => initRoom('join'), 500);
+    } else if (savedRoom) {
+        document.getElementById('room-input').value = savedRoom.replace(/\D/g, '').slice(0, 4);
+    }
+
+    function setupGame() {
+        myColor = role === 'host' ? 'blue' : 'red';
+        document.getElementById('setup-layer').style.display = 'none';
+        if (transport === 'webrtc') {
+            conn.on('data', handleGameMessage);
+            conn.on('close', () => { document.getElementById('game-status').innerText = '對手已離線'; });
+        }
+        renderHand();
+    }
+
+    function resetRematchState() {
+        if (rematch.heartbeatTimer) {
+            clearInterval(rematch.heartbeatTimer);
+            rematch.heartbeatTimer = null;
+        }
+        rematch.myReady = false;
+        rematch.oppReady = false;
+        rematch.startSent = false;
+        rematch.started = false;
+        rematch.myToken = '';
+    }
+
+    function updateRematchButton(label, disabled) {
+        const btn = document.getElementById('rematch-btn');
+        if (!btn) return;
+        btn.textContent = label;
+        btn.disabled = !!disabled;
+        btn.style.opacity = disabled ? '0.7' : '1';
+        btn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    }
+
+    function sendRematchReady() {
+        if (!rematch.myReady || transport === 'none') return;
+        sendMsg({
+            type: 'rematch-ready',
+            token: rematch.myToken,
+            ts: Date.now()
+        });
+    }
+
+    function sendRematchSync() {
+        if (transport === 'none') return;
+        sendMsg({
+            type: 'rematch-sync',
+            myReady: rematch.myReady,
+            oppReadySeen: rematch.oppReady,
+            token: rematch.myToken,
+            ts: Date.now()
+        });
+    }
+
+    function ensureRematchHeartbeat() {
+        if (rematch.heartbeatTimer) return;
+        rematch.heartbeatTimer = setInterval(() => {
+            if (transport === 'none' || rematch.started) return;
+            if (rematch.myReady) sendRematchReady();
+            sendRematchSync();
+            tryFinalizeRematch();
+        }, 2200);
+    }
+
+    function handleOppRematchReady() {
+        rematch.oppReady = true;
+        if (!rematch.myReady) {
+            updateRematchButton('對手想再來一局', false);
+            document.getElementById('status-bar').innerText = '對手已按再來一局，點按按鈕即可開始新局';
+        }
+        tryFinalizeRematch();
+    }
+
+    function handleOppRematchSync(data) {
+        if (data && data.myReady) rematch.oppReady = true;
+        if (rematch.myReady && data && data.oppReadySeen === false) {
+            sendRematchReady();
+        }
+        tryFinalizeRematch();
+    }
+
+    function handleOppRematchStart() {
+        if (!rematch.myReady) {
+            updateRematchButton('對手想再來一局', false);
+            document.getElementById('status-bar').innerText = '對手已可開始新局，按再來一局即可同步';
+            return;
+        }
+        rematch.oppReady = true;
+        startRematchIfReady();
+    }
+
+    function tryFinalizeRematch() {
+        if (!rematch.myReady || !rematch.oppReady || rematch.started) return;
+        if (transport !== 'none' && !rematch.startSent) {
+            sendMsg({ type: 'rematch-start', ts: Date.now() });
+            rematch.startSent = true;
+        }
+        startRematchIfReady();
+    }
+
+    function startRematchIfReady() {
+        if (!rematch.myReady || !rematch.oppReady || rematch.started) return;
+        rematch.started = true;
+        startNewMatchRound();
+    }
+
+    function requestRematch() {
+        if (isAIMode) { startAINewMatch(); return; }
+        if (rematch.myReady || rematch.started) return;
+        rematch.myReady = true;
+        rematch.myToken = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        updateRematchButton('等待對手...', true);
+        document.getElementById('status-bar').innerText = '已送出再來一局，等待對手確認...';
+        sendRematchReady();
+        sendRematchSync();
+        ensureRematchHeartbeat();
+        tryFinalizeRematch();
+    }
+
+    function startNewMatchRound() {
+        if (rematch.heartbeatTimer) {
+            clearInterval(rematch.heartbeatTimer);
+            rematch.heartbeatTimer = null;
+        }
+
+        myHand = [0, 1, 2, 3, 4, 5, 6, 7];
+        myScore = 0;
+        oppScore = 0;
+        drawPool = 0;
+        roundHistory = [];
+        pendingVal = null;
+        myPlayedVal = null;
+        oppPlayedVal = null;
+        roundFirstPlayer = '';
+        effects = { myGen: false, oppGen: false, mySpy: false, oppSpy: false };
+
+        document.getElementById('gameover-overlay').classList.remove('active');
+        document.getElementById('my-slot').innerHTML = '';
+        document.getElementById('opp-slot').innerHTML = '';
+        document.getElementById('player-score').innerText = '我方: 0';
+        document.getElementById('opp-score').innerText = '對手: 0';
+        document.getElementById('game-status').innerText = '請出牌';
+        document.getElementById('status-bar').innerText = '新局開始';
+        document.getElementById('ability-desc').innerText = '準備對決...';
+
+        resetRematchState();
+        renderHistory();
+        renderHand();
+    }
+
+    function renderHand() {
+        const container = document.getElementById('hand-container');
+        container.innerHTML = '';
+        const sb = document.getElementById('status-bar');
+
+        const statusMsgs = [];
+        if (effects.oppSpy && myPlayedVal === null) statusMsgs.push(`<span class="spy-alert">⚠️ 被間諜監控中！請先公開出牌</span>`);
+        else if (effects.mySpy && oppPlayedVal === null) statusMsgs.push(`<span class="spy-alert">🔍 間諜生效：等對手先翻牌</span>`);
+        
+        if (effects.myGen) statusMsgs.push("🔥 我方將軍加成 (+2)");
+        if (effects.oppGen) statusMsgs.push("⚔️ 對方將軍加成 (+2)");
+
+        if (effects.mySpy && oppPlayedVal !== null) {
+            statusMsgs.push(`對手已出【${CARD_DATA[oppPlayedVal].name}】：${CARD_DATA[oppPlayedVal].desc}`);
+        }
+
+        sb.innerHTML = statusMsgs.join(" ｜ ");
+
+        const total = myHand.length;
+        const spacing = Math.min(65, (window.innerWidth - 80) / Math.max(1, total - 1));
+        container.style.width = (total * spacing + 120) + "px";
+
+        myHand.forEach((val, i) => {
+            const card = document.createElement('div');
+            card.className = `card in-hand ${myColor}`;
+            card.id = `card-${val}`;
+            card.innerHTML = `<div class="name">${CARD_DATA[val].name}</div><div class="emoji">${CARD_DATA[val].emoji}</div><div class="num">${val}</div>`;
+            
+            const angle = -15 + (total > 1 ? (i * (30 / (total - 1))) : 15);
+            const x = (i - (total - 1) / 2) * spacing;
+            card.style.transform = `translateX(${x}px) rotate(${angle}deg) translateZ(0)`;
+            card.style.opacity = '0';
+
+            card.animate(
+                [
+                    { transform: `translateX(${x}px) translateY(90px) rotate(${angle * 0.35}deg) scale(0.86)`, opacity: 0 },
+                    { transform: `translateX(${x}px) rotate(${angle}deg) translateZ(0)`, opacity: 1 }
+                ],
+                {
+                    duration: 430,
+                    delay: i * 55,
+                    fill: 'forwards',
+                    easing: 'cubic-bezier(0.16, 0.84, 0.2, 1)'
+                }
+            );
+            
+            card.onclick = (e) => {
+                if (myPlayedVal !== null || (effects.mySpy && oppPlayedVal === null)) return;
+                
+                // 清除之前的選取
+                if (pendingVal !== null) {
+                    const prev = document.getElementById(`card-${pendingVal}`);
+                    if (prev) {
+                        prev.classList.remove('in-slot');
+                        document.getElementById('hand-container').appendChild(prev);
+                    }
+                }
+
+                pendingVal = val;
+                // 直接移到 my-slot 虛線框中
+                card.classList.add('in-slot');
+                document.getElementById('my-slot').appendChild(card);
+                document.getElementById('action-overlay').classList.add('active');
+                document.getElementById('ability-desc').innerHTML = `<b>【${CARD_DATA[val].name}】</b> ${CARD_DATA[val].desc}`;
+            };
+            container.appendChild(card);
+        });
+    }
+
+    function cancelSelection() {
+        if (pendingVal !== null) {
+            const el = document.getElementById(`card-${pendingVal}`);
+            if (el) {
+                el.classList.remove('in-slot');
+                document.getElementById('hand-container').appendChild(el);
+            }
+        }
+        pendingVal = null;
+        document.getElementById('action-overlay').classList.remove('active');
+    }
+
+    function confirmSelection() {
+        myPlayedVal = pendingVal;
+        if (!roundFirstPlayer) roundFirstPlayer = 'my';
+        const el = document.getElementById(`card-${myPlayedVal}`);
+        
+        // 確認出牌後，將選取狀態改為已出牌
+        el.classList.remove('in-slot');
+        el.className = `card finalized ${myColor}`;
+        el.classList.add('play-up');
+        el.addEventListener('animationend', () => el.classList.remove('play-up'), { once: true });
+        
+        myHand = myHand.filter(v => v !== myPlayedVal);
+        document.getElementById('action-overlay').classList.remove('active');
+        if (isAIMode) {
+            pendingVal = null;
+            checkReveal();
+            renderHand();
+            if (oppPlayedVal === null) {
+                setTimeout(() => aiPlayCard(), 700 + Math.random() * 500);
+            }
+        } else {
+            sendMsg({ type: 'play', value: myPlayedVal });
+            pendingVal = null;
+            checkReveal();
+            renderHand();
+        }
+    }
+
+    function checkReveal() {
+        const os = document.getElementById('opp-slot');
+        const oppColor = myColor === 'red' ? 'blue' : 'red';
+        if (oppPlayedVal !== null && os.children.length === 0) {
+            if (effects.mySpy) {
+                os.innerHTML = `<div class="card ${oppColor}"><div class="name">${CARD_DATA[oppPlayedVal].name}</div><div class="emoji">${CARD_DATA[oppPlayedVal].emoji}</div><div class="num">${oppPlayedVal}</div></div>`;
+                renderHand();
+            } else os.innerHTML = `<div class="card back">?</div>`;
+        }
+        if (myPlayedVal !== null && oppPlayedVal !== null) {
+            document.getElementById('game-status').innerText = "判定中...";
+            setTimeout(resolveBattle, 1000);
+        }
+    }
+
+    function resolveBattle() {
+        const p1 = myPlayedVal, p2 = oppPlayedVal;
+        const oppColor = myColor === 'red' ? 'blue' : 'red';
+        document.getElementById('opp-slot').innerHTML = `<div class="card ${oppColor}"><div class="name">${CARD_DATA[p2].name}</div><div class="emoji">${CARD_DATA[p2].emoji}</div><div class="num">${p2}</div></div>`;
+        document.getElementById('status-bar').innerText = `對手牌【${CARD_DATA[p2].name}】：${CARD_DATA[p2].desc}`;
+
+        let v1 = p1 + (effects.myGen ? 2 : 0), v2 = p2 + (effects.oppGen ? 2 : 0);
+        let win = 0; 
+        const p1_ign = (p1 === 5), p2_ign = (p2 === 5);
+
+        let princessMatchWin = 0;
+        if (v1 === v2) win = 0;
+        else if ((p1 === 0 && !p2_ign) || (p2 === 0 && !p1_ign)) win = 0;
+        else if (p1 === 1 && p2 === 7 && !p2_ign) { win = 1; princessMatchWin = 1; }
+        else if (p2 === 1 && p1 === 7 && !p1_ign) { win = -1; princessMatchWin = -1; }
+        else {
+            const smallWin = (p1 === 3 && !p2_ign) || (p2 === 3 && !p1_ign);
+            if (v1 === v2) win = 0;
+            else if (smallWin) win = (v1 < v2) ? 1 : -1;
+            else win = (v1 > v2) ? 1 : -1;
+        }
+
+        const myCard = document.querySelector('#my-slot .card');
+        const oppCard = document.querySelector('#opp-slot .card');
+        
+        setTimeout(() => {
+            if (win === 1) {
+                myCard.offsetHeight; 
+                myCard.classList.add('winner-bump-right');
+                oppCard.classList.add('loser-fly-right');
+            } else if (win === -1) {
+                oppCard.offsetHeight;
+                oppCard.classList.add('winner-bump-left');
+                myCard.classList.add('loser-fly-left');
+            }
+        }, 100);
+
+        let pts = 1 + drawPool;
+        if (win === 1) { if (p1 === 4 && !p2_ign) pts++; myScore += pts; drawPool = 0; }
+        else if (win === -1) { if (p2 === 4 && !p1_ign) pts++; oppScore += pts; drawPool = 0; }
+        else drawPool++;
+
+        roundHistory.push({
+            my: p1,
+            opp: p2,
+            result: win === 1 ? '我方勝' : (win === -1 ? '對方勝' : '平手'),
+            firstPlayer: roundFirstPlayer,
+            winner: win === 1 ? 'my' : (win === -1 ? 'opp' : ''),
+            myScore: myScore,
+            oppScore: oppScore
+        });
+        renderHistory();
+
+        effects.myGen = (p1 === 6 && !p2_ign); effects.oppGen = (p2 === 6 && !p1_ign);
+        const bothSpyActive = (p1 === 2 && !p2_ign) && (p2 === 2 && !p1_ign);
+        effects.mySpy = (p1 === 2 && !p2_ign && p2 !== 0) && !bothSpyActive;
+        effects.oppSpy = (p2 === 2 && !p1_ign && p1 !== 0) && !bothSpyActive;
+
+        setTimeout(() => {
+            document.getElementById('player-score').innerText = `我方: ${myScore}`;
+            document.getElementById('opp-score').innerText = `對手: ${oppScore}`;
+            if (princessMatchWin === 1 || myScore >= 4) { showGameOver('win'); }
+            else if (princessMatchWin === -1 || oppScore >= 4) { showGameOver('lose'); }
+            else if (myHand.length === 0 && myScore < 4 && oppScore < 4) {
+                if (myScore > oppScore) showGameOver('win');
+                else if (oppScore > myScore) showGameOver('lose');
+                else showGameOver('draw');
+            }
+            else nextRound();
+        }, 2200);
+    }
+
+    function showGameOver(result) {
+        const msg = result === 'draw' ? '平手！' : (result === 'win' ? '贏啦！🎉' : '輸了...');
+        document.getElementById('gameover-msg').textContent = msg;
+        document.getElementById('gameover-overlay').classList.add('active');
+        if (isAIMode) {
+            const btn = document.getElementById('rematch-btn');
+            btn.textContent = '再來一局';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            document.getElementById('status-bar').innerText = '按「再來一局」開始新局';
+        } else {
+            resetRematchState();
+            updateRematchButton('再來一局', false);
+            document.getElementById('status-bar').innerText = '按「再來一局」與對手同步開新局';
+        }
+        saveGameRecord(result);
+    }
+
+    function nextRound() {
+        myPlayedVal = null; oppPlayedVal = null;
+        roundFirstPlayer = '';
+        document.getElementById('my-slot').innerHTML = "";
+        document.getElementById('opp-slot').innerHTML = "";
+        document.getElementById('game-status').innerText = "請出牌";
+        renderHand();
+        if (isAIMode && effects.mySpy) {
+            setTimeout(() => aiPlayFirst(), 600);
+        }
+    }
+
+    renderMatrixTable();
+
+    /* === 過往對戰紀錄 === */
+    function saveGameRecord(result) {
+        const record = {
+            date: new Date().toISOString(),
+            result: result,
+            myColor: myColor,
+            myScore: myScore,
+            oppScore: oppScore,
+            isAI: isAIMode,
+            aiDiff: isAIMode ? aiDifficulty : null,
+            oppName: '',
+            rounds: roundHistory.map(r => ({ my: r.my, opp: r.opp, result: r.result, firstPlayer: r.firstPlayer, winner: r.winner, myScore: r.myScore, oppScore: r.oppScore }))
+        };
+        let records = [];
+        try { records = JSON.parse(localStorage.getItem('rats-game-records') || '[]'); } catch(e) {}
+        records.unshift(record);
+        if (records.length > 10) records = records.slice(0, 10);
+        localStorage.setItem('rats-game-records', JSON.stringify(records));
+    }
+
+    function loadGameRecords() {
+        try { return JSON.parse(localStorage.getItem('rats-game-records') || '[]'); } catch(e) { return []; }
+    }
+
+    function renderPastGames() {
+        const list = document.getElementById('past-games-list');
+        const records = loadGameRecords();
+        if (records.length === 0) {
+            list.innerHTML = '<div class="pg-empty">尚無對戰紀錄</div>';
+            return;
+        }
+        const aiDiffLabel = { easy: '😊 簡單', medium: '🤔 中等', hard: '😈 困難', king: '👑 國王' };
+        list.innerHTML = records.map((rec, gi) => {
+            const d = new Date(rec.date);
+            const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const rCls = rec.result === 'win' ? 'win' : (rec.result === 'lose' ? 'lose' : 'draw');
+            const rText = rec.result === 'win' ? '勝利' : (rec.result === 'lose' ? '落敗' : '平手');
+            const myC = rec.myColor || 'blue';
+            const oppC = myC === 'blue' ? 'red' : 'blue';
+            const diff = rec.aiDiff || 'medium';
+            const oppRow = rec.isAI
+                ? `<div class="pg-opp-row"><span class="pg-ai-badge ${diff}">🤖 AI・${aiDiffLabel[diff] || diff}</span></div>`
+                : `<div class="pg-opp-row" id="pg-opp-row-${gi}"><div class="pg-opp-name-wrap"><span>👤</span><span id="pg-opp-name-${gi}">${rec.oppName || '對手'}</span><button class="pg-edit-btn" onclick="editOppName(${gi})" title="編輯對手名稱">✏️</button></div></div>`;
+            const roundsHtml = (rec.rounds || []).map((r, ri) => {
+                const rrCls = r.result === '我方勝' ? 'win' : (r.result === '對方勝' ? 'lose' : 'draw');
+                const rrText = r.result === '我方勝' ? '勝' : (r.result === '對方勝' ? '負' : '平');
+                const myFirstCls = r.firstPlayer === 'my' ? ' first-player' : '';
+                const oppFirstCls = r.firstPlayer === 'opp' ? ' first-player' : '';
+                const myWinnerCls = r.winner === 'my' ? ' winner' : '';
+                const oppWinnerCls = r.winner === 'opp' ? ' winner' : '';
+                return `<div class="pg-round">
+                    <span class="pg-round-num">R${ri+1}</span>
+                    <div class="pg-mini-card ${myC}${myFirstCls}${myWinnerCls}"><span class="mc-name">${CARD_DATA[r.my].name}</span><span class="mc-emoji">${CARD_DATA[r.my].emoji}</span><span class="mc-num">${r.my}</span></div>
+                    <span class="pg-vs">vs</span>
+                    <div class="pg-mini-card ${oppC}${oppFirstCls}${oppWinnerCls}"><span class="mc-name">${CARD_DATA[r.opp].name}</span><span class="mc-emoji">${CARD_DATA[r.opp].emoji}</span><span class="mc-num">${r.opp}</span></div>
+                    <span class="pg-round-result ${rrCls}">${rrText}</span>
+                    <span style="font-size:0.72rem;color:#aaa;width:42px;text-align:right;flex-shrink:0">${r.myScore ?? ''}:${r.oppScore ?? ''}</span>
+                </div>`;
+            }).join('');
+            return `<div class="pg-entry">
+                <div class="pg-header"><span>#${gi+1}　${dateStr}</span><span class="pg-result ${rCls}">${rText}</span></div>
+                ${oppRow}
+                ${roundsHtml}
+                <div class="pg-score-line">${rec.myScore || 0} : ${rec.oppScore || 0}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function togglePastGames() {
+        const panel = document.getElementById('past-games-panel');
+        panel.classList.toggle('active');
+        if (panel.classList.contains('active')) renderPastGames();
+    }
+
+    function closePastGames() {
+        document.getElementById('past-games-panel').classList.remove('active');
+    }
+
+    function editOppName(gi) {
+        const nameEl = document.getElementById('pg-opp-name-' + gi);
+        if (!nameEl) return;
+        const editBtn = nameEl.nextElementSibling;
+        const currentName = nameEl.textContent === '對手' ? '' : nameEl.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'pg-name-input';
+        input.value = currentName;
+        input.maxLength = 20;
+        input.placeholder = '對手名稱';
+        nameEl.style.display = 'none';
+        if (editBtn) editBtn.style.display = 'none';
+        nameEl.parentNode.insertBefore(input, nameEl.nextSibling);
+        input.focus();
+        input.select();
+        let committed = false;
+        function commit() {
+            if (committed) return;
+            committed = true;
+            saveOppName(gi, input.value.trim().slice(0, 20));
+        }
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { committed = true; nameEl.style.display = ''; if (editBtn) editBtn.style.display = ''; input.remove(); } });
+    }
+
+    function saveOppName(gi, val) {
+        const records = loadGameRecords();
+        if (records[gi] !== undefined) {
+            records[gi].oppName = val;
+            localStorage.setItem('rats-game-records', JSON.stringify(records));
+        }
+        renderPastGames();
+    }
+
+    // === AI 模式 ===
+    function showAISetup() {
+        document.getElementById('step-1').style.display = 'none';
+        document.getElementById('step-ai').style.display = 'block';
+    }
+
+    function backToSetup() {
+        document.getElementById('step-ai').style.display = 'none';
+        document.getElementById('step-1').style.display = 'block';
+    }
+
+    function startAIGame(difficulty = 'medium') {
+        aiDifficulty = difficulty;
+        isAIMode = true;
+        myColor = 'blue';
+        aiHand = [0, 1, 2, 3, 4, 5, 6, 7];
+        document.getElementById('setup-layer').style.display = 'none';
+        document.getElementById('step-ai').style.display = 'none';
+        document.getElementById('step-1').style.display = 'block';
+        const label = { easy: '簡單', medium: '中等', hard: '困難', king: '國王' }[difficulty];
+        document.getElementById('game-status').innerText = '請出牌';
+        document.getElementById('status-bar').innerText = `🤖 AI 對戰（${label}）`;
+        renderHand();
+    }
+
+    function startAINewMatch() {
+        aiHand = [0, 1, 2, 3, 4, 5, 6, 7];
+        myHand = [0, 1, 2, 3, 4, 5, 6, 7];
+        myScore = 0; oppScore = 0; drawPool = 0;
+        roundHistory = [];
+        pendingVal = null; myPlayedVal = null; oppPlayedVal = null;
+        roundFirstPlayer = '';
+        effects = { myGen: false, oppGen: false, mySpy: false, oppSpy: false };
+
+        const label = { easy: '簡單', medium: '中等', hard: '困難' }[aiDifficulty];
+        document.getElementById('gameover-overlay').classList.remove('active');
+        document.getElementById('my-slot').innerHTML = '';
+        document.getElementById('opp-slot').innerHTML = '';
+        document.getElementById('player-score').innerText = '我方: 0';
+        document.getElementById('opp-score').innerText = '對手: 0';
+        document.getElementById('game-status').innerText = '請出牌';
+        document.getElementById('status-bar').innerText = `🤖 AI 對戰（${label}）`;
+        document.getElementById('ability-desc').innerText = '準備對決...';
+        renderHistory();
+        renderHand();
+    }
+
+    function simulateBattleWin(playerCard, aiCard) {
+        const v1 = playerCard + (effects.myGen ? 2 : 0);
+        const v2 = aiCard + (effects.oppGen ? 2 : 0);
+        const p1_ign = (playerCard === 5), p2_ign = (aiCard === 5);
+        let win = 0, matchEnd = 0;
+        if ((playerCard === 0 && !p2_ign) || (aiCard === 0 && !p1_ign)) win = 0;
+        else if (playerCard === 1 && aiCard === 7 && !p2_ign) { win = 1; matchEnd = 1; }
+        else if (aiCard === 1 && playerCard === 7 && !p1_ign) { win = -1; matchEnd = -1; }
+        else {
+            const smallWin = (playerCard === 3 && !p2_ign) || (aiCard === 3 && !p1_ign);
+            if (v1 === v2) win = 0;
+            else if (smallWin) win = (v1 < v2) ? 1 : -1;
+            else win = (v1 > v2) ? 1 : -1;
+        }
+        return { win, matchEnd };
+    }
+
+    function getAICounterCard(playerCard) {
+        const useSimulate = aiDifficulty === 'hard' || aiDifficulty === 'king';
+        const ptsAtStake = 1 + drawPool;
+        let bestCard = null, bestScore = -Infinity;
+        for (const aiCard of aiHand) {
+            const result = useSimulate ? simulateBattleWin(playerCard, aiCard) : getMatrixOutcome(playerCard, aiCard);
+            const winPts = ptsAtStake + (aiCard === 4 ? 1 : 0);
+            const losePts = ptsAtStake + (playerCard === 4 ? 1 : 0);
+            const aiEnds = result.matchEnd === -1 || (result.win === -1 && oppScore + winPts >= 4);
+            const playerEnds = result.matchEnd === 1 || (result.win === 1 && myScore + losePts >= 4);
+            let score = 0;
+            if (aiEnds) score = 200;
+            else if (playerEnds) score = -200;
+            else if (result.win === -1) score = winPts * (aiCard === 4 ? 12 : 8);
+            else if (result.win === 0) score = myScore >= 3 ? 15 : 1;
+            else score = -losePts * 8;
+            if (score > bestScore) { bestScore = score; bestCard = aiCard; }
+        }
+        return bestCard ?? aiHand[0];
+    }
+
+    function getAIStrategicCard() {
+        const scoreDiff = oppScore - myScore;
+        const isHard = aiDifficulty === 'hard' || aiDifficulty === 'king';
+        const ptsAtStake = 1 + drawPool;
+        let bestCard = null, bestScore = -Infinity;
+        for (const aiCard of aiHand) {
+            let cardScore = 0;
+            // matchEnd（公主殺王子）機率 = 1/N，以此縮放避免開局偏向公主
+            const matchEndBonus = Math.max(1, Math.round(30 / myHand.length));
+            for (const playerCard of myHand) {
+                const result = isHard ? simulateBattleWin(playerCard, aiCard) : getMatrixOutcome(playerCard, aiCard);
+                const winPts = ptsAtStake + (aiCard === 4 ? 1 : 0);
+                const losePts = ptsAtStake + (playerCard === 4 ? 1 : 0);
+                if (result.matchEnd === -1) cardScore += matchEndBonus;
+                else if (result.matchEnd === 1) cardScore -= matchEndBonus;
+                else if (result.win === -1 && oppScore + winPts >= 4) cardScore += 30;
+                else if (result.win === 1 && myScore + losePts >= 4) cardScore -= 30;
+                else if (result.win === -1) cardScore += winPts;
+                else if (result.win === 0) cardScore += (myScore >= 3 ? 2 : 0.5);
+                else cardScore -= losePts;
+            }
+            if (aiCard === 6 && aiHand.includes(7) && aiHand.length > 3) cardScore += 3;
+            if (aiCard === 2 && scoreDiff < 0 && aiHand.length > 3) cardScore += 4;
+            if (aiCard === 5 && myHand.includes(3) && aiHand.length > 2) cardScore += 3;
+            if (isHard) {
+                if (aiCard === 4 && scoreDiff >= 0) cardScore += 2;
+                if (aiCard === 5 && effects.myGen) cardScore += 5;
+            }
+            if (cardScore > bestScore) { bestScore = cardScore; bestCard = aiCard; }
+        }
+        return bestCard ?? aiHand[Math.floor(Math.random() * aiHand.length)];
+    }
+
+    // 評估盤面對 AI 的優勢值（正值=AI 有利）
+    function evalGameState(pScore, aScore, pool, playerHand, aiHandArr) {
+        if (aScore >= 4) return 10000;
+        if (pScore >= 4) return -10000;
+        if (playerHand.length === 0) {
+            if (aScore > pScore) return 5000;
+            if (pScore > aScore) return -5000;
+            return 0;
+        }
+        // 分差（局面越後期權重越高）
+        const progress = (8 - playerHand.length) / 8;
+        let v = (aScore - pScore) * 150 * (1 + progress);
+        // 計算牌面勝率
+        let wins = 0;
+        for (const ac of aiHandArr) for (const pc of playerHand) {
+            const r = getMatrixOutcome(pc, ac);
+            if (r.win === -1) wins++;
+            else if (r.win === 1) wins--;
+        }
+        v += wins * 12;
+        // 懸賞池：根據牌面勝率判斷對誰有利
+        const total = aiHandArr.length * playerHand.length || 1;
+        v += pool * (wins / total) * 80;
+        // 公主留底加分
+        if (aiHandArr.includes(1) && playerHand.includes(7)) v += 25;
+        if (playerHand.includes(1) && aiHandArr.includes(7)) v -= 20;
+        return v;
+    }
+
+    // 國王級：對每張牌模擬所有玩家可能的應對，取期望值最高的牌
+    function getKingAICard() {
+        let bestCard = null, bestScore = -Infinity;
+        for (const aiCard of aiHand) {
+            let total = 0;
+            for (const playerCard of myHand) {
+                const result = simulateBattleWin(playerCard, aiCard);
+                const ptsBase = 1 + drawPool;
+                // matchEnd（公主殺王子）縮放至與 evalGameState 同量級
+                if (result.matchEnd === 1)  { total -= 1500; continue; }
+                if (result.matchEnd === -1) { total += 1500; continue; }
+                let newPS = myScore, newAS = oppScore, newDP = drawPool;
+                if (result.win === 1) {
+                    newPS += ptsBase + (playerCard === 4 ? 1 : 0); newDP = 0;
+                } else if (result.win === -1) {
+                    newAS += ptsBase + (aiCard === 4 ? 1 : 0); newDP = 0;
+                } else {
+                    newDP++;
+                }
+                if (newPS >= 4) { total -= 10000; continue; }
+                if (newAS >= 4) { total += 10000; continue; }
+                const newPH = myHand.filter(c => c !== playerCard);
+                const newAH = aiHand.filter(c => c !== aiCard);
+                total += evalGameState(newPS, newAS, newDP, newPH, newAH);
+            }
+            const avg = total / myHand.length;
+            if (avg > bestScore) { bestScore = avg; bestCard = aiCard; }
+        }
+        return bestCard ?? aiHand[0];
+    }
+
+    function aiSelectCard(knownPlayerCard = null) {
+        if (aiDifficulty === 'easy') {
+            if (Math.random() < 0.55) return aiHand[Math.floor(Math.random() * aiHand.length)];
+            return getAIStrategicCard();
+        }
+        if (aiDifficulty === 'king') {
+            if (knownPlayerCard !== null) return getAICounterCard(knownPlayerCard);
+            return getKingAICard();
+        }
+        if (knownPlayerCard !== null) return getAICounterCard(knownPlayerCard);
+        if (aiDifficulty === 'medium' && Math.random() < 0.2) return aiHand[Math.floor(Math.random() * aiHand.length)];
+        return getAIStrategicCard();
+    }
+
+    function aiPlayFirst() {
+        if (aiHand.length === 0) return;
+        const aiCard = aiDifficulty === 'king' ? getKingAICard() : getAIStrategicCard();
+        oppPlayedVal = aiCard;
+        if (!roundFirstPlayer) roundFirstPlayer = 'opp';
+        aiHand = aiHand.filter(v => v !== aiCard);
+        const oppColor = myColor === 'red' ? 'blue' : 'red';
+        document.getElementById('opp-slot').innerHTML =
+            `<div class="card ${oppColor}"><div class="name">${CARD_DATA[aiCard].name}</div><div class="emoji">${CARD_DATA[aiCard].emoji}</div><div class="num">${aiCard}</div></div>`;
+        renderHand();
+    }
+
+    function aiPlayCard() {
+        if (aiHand.length === 0) return;
+        const aiCard = aiSelectCard(effects.oppSpy ? myPlayedVal : null);
+        if (!roundFirstPlayer) roundFirstPlayer = 'opp';
+        oppPlayedVal = aiCard;
+        aiHand = aiHand.filter(v => v !== aiCard);
+        checkReveal();
+    }
+</script>
+</body>
+</html>
