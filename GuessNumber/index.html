@@ -582,10 +582,11 @@ function tryWsCreate(){
   ws.onmessage = function(e){
     var msg = JSON.parse(e.data);
     if(msg.type === 'user_joined'){
+      if(msg.sender === 'host') return; // own join notification
       if(transport !== 'none') return;
       transport = 'ws';
       if(peer){ peer.destroy(); peer = null; }
-      afterWsConnect();
+      afterWsConnect('host');
       goSetAnswer();
     } else if(msg.type==='user_left'||msg.type==='room_closed'){
       if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
@@ -593,9 +594,10 @@ function tryWsCreate(){
   };
 }
 
-function afterWsConnect(){
+function afterWsConnect(myName){
   ws.onmessage = function(e){
     var msg = JSON.parse(e.data);
+    if(msg.sender === myName) return; // ignore own echoed messages
     if(msg.type==='user_left'||msg.type==='room_closed'){
       if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
     } else if(msg.type!=='user_joined'){
@@ -644,7 +646,7 @@ function tryWsJoin(code){
   ws.onopen = function(){
     clearTimeout(timer);
     transport = 'ws';
-    afterWsConnect();
+    afterWsConnect('guest');
     setErr('');
     goSetAnswer();
   };

@@ -994,9 +994,10 @@
         }
     }
 
-    function afterWsConnect() {
+    function afterWsConnect(myName) {
         ws.onmessage = (e) => {
             const msg = JSON.parse(e.data);
+            if (msg.sender === myName) return; // ignore own echoed messages
             if (msg.type === 'user_left' || msg.type === 'room_closed') {
                 document.getElementById('game-status').innerText = '對手已離線';
             } else if (msg.type !== 'user_joined') {
@@ -1017,10 +1018,11 @@
         ws.onmessage = (e) => {
             const msg = JSON.parse(e.data);
             if (msg.type === 'user_joined') {
+                if (msg.sender === 'host') return; // own join notification
                 if (transport !== 'none') return;
                 transport = 'ws';
                 if (peer) { peer.destroy(); peer = null; }
-                afterWsConnect();
+                afterWsConnect('host');
                 setupGame();
             } else if (msg.type === 'user_left' || msg.type === 'room_closed') {
                 if (transport === 'ws') document.getElementById('game-status').innerText = '對手已離線';
@@ -1047,7 +1049,7 @@
             if (transport !== 'ws') { wsClose(); tryWebRTCGuest(code); }
         }, 5000);
         ws.onopen = () => {
-            clearTimeout(timer); transport = 'ws'; afterWsConnect(); setupGame();
+            clearTimeout(timer); transport = 'ws'; afterWsConnect('guest'); setupGame();
         };
         ws.onerror = () => { clearTimeout(timer); wsClose(); tryWebRTCGuest(code); };
         ws.onclose = (e) => { clearTimeout(timer); if (transport === 'ws') return; tryWebRTCGuest(code); };
