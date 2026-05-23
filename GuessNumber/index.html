@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v23</title>
+<title>猜數字對戰 v24</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -222,6 +222,36 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 
 /* offer result badge */
 .offer-result{font-size:.9rem;font-weight:700;color:#7c3aed;text-align:center;padding:5px 14px;background:#ede9fe;border-radius:10px;width:100%}
+
+/* chat card */
+.tc.tc-chat{border-color:#e2e8f0;background:#f8fafc;animation:none!important;cursor:pointer}
+.tc.tc-chat .tc-name{color:#64748b}
+.tc.tc-chat::before{background:#94a3b8}
+.tc.tc-chat:active{transform:scale(.88) translateY(-3px);border-color:#94a3b8;animation:cardPlay .3s ease}
+
+/* opponent chat bubble */
+#opp-chat-bubble{display:none;position:fixed;top:52px;left:50%;transform:translateX(-50%);background:#fff;border:2px solid #7c3aed;border-radius:14px;padding:6px 16px 8px;z-index:80;max-width:82vw;text-align:center;box-shadow:0 4px 16px rgba(124,58,237,.2);pointer-events:none}
+#opp-chat-bubble.show{display:flex;flex-direction:column;align-items:center;gap:2px;animation:slideIn .25s ease}
+.ocb-from{font-size:.65rem;color:#7c3aed;font-weight:800;letter-spacing:.04em}
+.ocb-msg{font-size:.95rem;color:#1e293b;line-height:1.4;max-width:260px;word-break:break-all}
+
+/* chat overlay */
+#chat-ov{justify-content:flex-end;padding:0}
+.chat-panel{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:14px 16px 28px;display:flex;flex-direction:column;gap:10px;animation:slideIn .2s ease}
+.chat-ttl{font-size:.88rem;font-weight:800;color:#64748b;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;position:relative}
+.chat-close{position:absolute;right:0;top:-2px;width:28px;height:28px;background:#f1f5f9;border:none;border-radius:50%;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;color:#64748b}
+.chat-close:active{background:#e2e8f0}
+.chat-presets{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chat-preset-btn{padding:9px 8px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.85rem;cursor:pointer;text-align:center;color:#334155;transition:.12s;line-height:1.3}
+.chat-preset-btn:active{background:#ede9fe;border-color:#7c3aed;color:#4c1d95;transform:scale(.96)}
+.chat-input-row{display:flex;gap:6px;align-items:center}
+.chat-text-inp{flex:1;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:.95rem;outline:none;background:#f8fafc;color:#1e293b;min-width:0}
+.chat-text-inp:focus{border-color:#7c3aed}
+.chat-send-btn{width:44px;height:44px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.chat-send-btn:active{background:#6d28d9;transform:scale(.93)}
+.chat-voice-btn{width:44px;height:44px;background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;border-radius:10px;font-size:1.2rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.chat-voice-btn:active{background:#e2e8f0;transform:scale(.93)}
+.chat-voice-btn.listening{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
 </style>
 </head>
 <body>
@@ -233,7 +263,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v23</p>
+  <p style="font-size:.7rem;color:#94a3b8">v24</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -287,6 +317,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 
 <!-- GAME -->
 <div id="game-screen" class="screen">
+  <div id="opp-chat-bubble"><span class="ocb-from">對手</span><span id="ocb-text"></span></div>
   <div class="ghdr">
     <span id="turn-pill" class="tpill tm">我的回合</span>
     <div class="ghdr-logo">
@@ -316,6 +347,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
   <div class="trow-wrapper">
     <div class="trow" id="tools-row"></div>
+    <div class="tc tc-chat" id="chat-btn"><span class="tc-icon">💬</span><span class="tc-name">聊天</span></div>
     <div class="tc help-tc" id="help-btn"><span class="tc-icon">📖</span><span class="tc-name">說明</span></div>
   </div>
   <div class="card-info" id="card-info">
@@ -437,6 +469,19 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
   </div>
 </div>
 
+<!-- CHAT OVERLAY -->
+<div class="ov" id="chat-ov">
+  <div class="chat-panel">
+    <div class="chat-ttl">💬 聊天 <button class="chat-close" id="chat-close-btn">✕</button></div>
+    <div class="chat-presets" id="chat-presets"></div>
+    <div class="chat-input-row">
+      <input class="chat-text-inp" id="chat-text-inp" placeholder="輸入訊息…" maxlength="40">
+      <button class="chat-voice-btn" id="chat-voice-btn" title="語音輸入">🎙</button>
+      <button class="chat-send-btn" id="chat-send-btn" title="送出">➤</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="ov" id="modal">
   <div class="ob">
@@ -533,6 +578,74 @@ function wsClose(){
 }
 
 function setErr(t){ $('lobby-err').textContent = t; }
+
+// ═══════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════
+var oppChatTimer = null, chatRecognition = null, chatListening = false;
+
+var CHAT_PRESETS = ['厲害！🎯', '快一點啦 ⏰', '快猜到了 🔥', '好難猜 😅'];
+
+function buildChatPresets(){
+  var el = $('chat-presets'); el.innerHTML = '';
+  CHAT_PRESETS.forEach(function(text){
+    var b = document.createElement('button');
+    b.className = 'chat-preset-btn'; b.textContent = text;
+    b.addEventListener('click', function(){ sendChatMsg(text); closeChatPanel(); });
+    el.appendChild(b);
+  });
+}
+
+function showOppChatBubble(text){
+  $('ocb-text').textContent = text;
+  var el = $('opp-chat-bubble');
+  el.classList.remove('show'); void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(oppChatTimer);
+  oppChatTimer = setTimeout(function(){ el.classList.remove('show'); }, 4200);
+}
+
+function openChatPanel(){
+  $('chat-ov').classList.add('show');
+  setTimeout(function(){ $('chat-text-inp').focus(); }, 120);
+}
+
+function closeChatPanel(){
+  $('chat-ov').classList.remove('show');
+  stopChatVoice();
+  $('chat-text-inp').value = '';
+}
+
+function sendChatMsg(text){
+  if(!text || !text.trim()) return;
+  if(transport === 'none') return;
+  send({ type:'chat', message: text.trim().substring(0, 40) });
+}
+
+function startChatVoice(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ showModal('提示','您的瀏覽器不支援語音輸入'); return; }
+  if(chatListening){ stopChatVoice(); return; }
+  chatRecognition = new SR();
+  chatRecognition.lang = 'zh-TW';
+  chatRecognition.interimResults = false;
+  chatRecognition.maxAlternatives = 1;
+  chatRecognition.onresult = function(e){
+    $('chat-text-inp').value = e.results[0][0].transcript;
+  };
+  chatRecognition.onend = function(){ stopChatVoice(); };
+  chatRecognition.onerror = function(){ stopChatVoice(); };
+  chatRecognition.start();
+  chatListening = true;
+  $('chat-voice-btn').classList.add('listening');
+}
+
+function stopChatVoice(){
+  if(chatRecognition){ try{ chatRecognition.stop(); }catch(e){} chatRecognition = null; }
+  chatListening = false;
+  var btn = $('chat-voice-btn');
+  if(btn) btn.classList.remove('listening');
+}
 
 // ═══════════════════════════════════════════
 // MODAL
@@ -1335,6 +1448,9 @@ function handleMsg(msg){
       G.skipOpp=false; renderEffects(); break;
 
     case 'game_over': break; // handled by 'guess' handler on loser's side
+
+    case 'chat':
+      showOppChatBubble(msg.message || ''); break;
   }
 }
 
@@ -1507,6 +1623,17 @@ document.getElementById('note-pen-btn').addEventListener('click', function(){ se
 document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
 document.getElementById('help-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
+document.getElementById('chat-btn').addEventListener('click', openChatPanel);
+document.getElementById('chat-close-btn').addEventListener('click', closeChatPanel);
+document.getElementById('chat-ov').addEventListener('click', function(e){ if(e.target === this) closeChatPanel(); });
+document.getElementById('chat-send-btn').addEventListener('click', function(){
+  var t = $('chat-text-inp').value;
+  if(t.trim()){ sendChatMsg(t); closeChatPanel(); }
+});
+document.getElementById('chat-text-inp').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ var t = this.value; if(t.trim()){ sendChatMsg(t); closeChatPanel(); } }
+});
+document.getElementById('chat-voice-btn').addEventListener('click', startChatVoice);
 document.getElementById('card-info').addEventListener('click', hideCardInfo);
 document.getElementById('ci-use-btn').addEventListener('click', function(e){
   e.stopPropagation();
@@ -1527,6 +1654,7 @@ document.getElementById('copy-link-btn').addEventListener('click', function(){
 
 (function(){
   initJoinNumpad();
+  buildChatPresets();
   var join = new URLSearchParams(location.search).get('join');
   if(join && /^\d{4}$/.test(join)){
     joinDigits = join.split('').map(Number);
