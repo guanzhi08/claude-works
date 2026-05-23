@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v25</title>
+<title>猜數字對戰 v26</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -200,8 +200,11 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .help-cd{font-size:.77rem;color:#64748b;line-height:1.5}
 
 /* note button */
-.note-btn{width:38px;height:60px;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.12s;pointer-events:auto}
+.note-btn{width:38px;height:60px;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.12s}
 .note-btn:active{background:#ddd6fe;transform:scale(.9)}
+/* guess wrapper keeps note-btn outside the dimmed guess-area */
+.guess-wrapper{display:flex;gap:6px;width:100%;flex-shrink:0;align-items:flex-end}
+.guess-wrapper .ga{flex:1}
 
 /* note overlay */
 #note-ov{align-items:stretch;padding:10px}
@@ -263,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v25</p>
+  <p style="font-size:.7rem;color:#94a3b8">v26</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -358,14 +361,16 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     </div>
     <button class="btn bp" id="ci-use-btn">使用</button>
   </div>
-  <div class="ga" id="guess-area">
-    <div class="slots-row">
-      <button class="note-btn" id="note-btn">✏️</button>
-      <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
-      <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
-      <button class="del-btn" id="guess-del">⌫</button>
+  <div class="guess-wrapper">
+    <button class="note-btn" id="note-btn">✏️</button>
+    <div class="ga" id="guess-area">
+      <div class="slots-row">
+        <div class="gsl" id="gs0"></div><div class="gsl" id="gs1"></div>
+        <div class="gsl" id="gs2"></div><div class="gsl" id="gs3"></div>
+        <button class="del-btn" id="guess-del">⌫</button>
+      </div>
+      <div class="np" id="guess-np"></div>
     </div>
-    <div class="np" id="guess-np"></div>
   </div>
 </div>
 
@@ -506,7 +511,8 @@ var PASSIVE_CARDS = {
   shield:  { name:'護盾', icon:'🛡', desc:'對手出牌時可使用：取消對方效果（僅一次）' },
   reflect: { name:'反射', icon:'🪞', desc:'對手出牌時可使用：將效果反彈回對手（僅一次）' },
 };
-var POOL = Object.keys(CARDS);
+var POOL     = Object.keys(CARDS);
+var ALL_POOL = POOL.concat(Object.keys(PASSIVE_CARDS));
 
 // ═══════════════════════════════════════════
 // STATE
@@ -537,8 +543,8 @@ function resetG(myTurn){
     secretActive:    false,
     skipMe:          false,
     skipOpp:         false,
-    myShield:        true,
-    myReflect:       true,
+    myShield:        false,
+    myReflect:       false,
     usedTool:        false,
     guessedThisTurn: false,
     pendCard:        null,
@@ -668,10 +674,16 @@ function hideModal(){
 // ═══════════════════════════════════════════
 // CONNECTION
 // ═══════════════════════════════════════════
+function genRoomCode(){
+  var d=[0,1,2,3,4,5,6,7,8,9];
+  for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=d[i];d[i]=d[j];d[j]=t; }
+  return d.slice(0,4).join('');
+}
+
 function createRoom(){
   setErr('');
   isHost   = true;
-  roomCode = String(Math.floor(1000 + Math.random() * 9000));
+  roomCode = genRoomCode();
   wsInviteUrl = location.origin + location.pathname + '?join=' + roomCode;
 
   $('qrbox').innerHTML = '';
@@ -925,7 +937,7 @@ function startGame(){
   resetG(turn);
   G.myAnswer = ansDigits.slice();
   if(new URLSearchParams(location.search).get('test')==='1'){
-    G.myCards = POOL.slice();
+    G.myCards = POOL.slice(); G.myShield = true; G.myReflect = true;
   }
   myReady = false; oppReady = false;
   showScreen('game-screen');
@@ -957,25 +969,46 @@ function onMyTurnStart(){
   if(G.myTurnCount % 3 === 0) showTurnStartOffer();
 }
 
+function makeOffer(){
+  var held = G.myCards.concat(G.myPendingCards);
+  if(G.myShield)  held.push('shield');
+  if(G.myReflect) held.push('reflect');
+  var available = shuffled(ALL_POOL).filter(function(c){ return held.indexOf(c)<0; });
+  // If fewer than 2 unique options remain, fall back to full pool
+  if(available.length < 2) available = shuffled(ALL_POOL);
+  return available.slice(0, 2);
+}
+
+function onCardPicked(card, pending){
+  var isPassive = PASSIVE_CARDS[card] !== undefined;
+  if(isPassive){
+    if(card === 'shield')  G.myShield  = true;
+    if(card === 'reflect') G.myReflect = true;
+    addLog('my', '🛡 取得被動道具：' + PASSIVE_CARDS[card].name, 'lt');
+  } else if(pending){
+    G.myPendingCards.push(card);
+    addLog('my', '🎴 取得道具（下回合可用）：' + CARDS[card].name, 'lt');
+  } else {
+    G.myCards.push(card);
+    addLog('my', '✨ 取得道具：' + CARDS[card].name, 'lt');
+  }
+  send({type:'card_pick', card:card});
+  renderTools();
+}
+
 function showTurnStartOffer(){
-  var offer = shuffled(POOL).slice(0, 2);
+  var offer = makeOffer();
   showOffer(offer, '第 '+G.myTurnCount+' 回合里程碑！', function(picked){
-    G.myPendingCards.push(picked);
-    send({type:'card_pick', card:picked});
-    addLog('my','🎴 取得道具（下回合可用）：'+CARDS[picked].name,'lt');
-    renderTools();
+    onCardPicked(picked, true);
   });
 }
 
 function checkMilestoneOffer(a, b){
   if(a !== 1 && a !== 2 && a !== 3) return;
-  var offer = shuffled(POOL).slice(0, 2);
+  var offer = makeOffer();
   addLog('my','🎴 '+a+'A！可以選一張道具牌','lt');
   showOffer(offer, a+'A'+b+'B 里程碑！', function(picked){
-    G.myCards.push(picked);
-    send({type:'card_pick', card:picked});
-    addLog('my','✨ 取得道具：'+CARDS[picked].name,'lt');
-    renderTools();
+    onCardPicked(picked, false);
   });
 }
 
@@ -993,8 +1026,6 @@ function renderGame(){
   var ga = $('guess-area');
   ga.style.opacity      = G.myTurn ? '1' : '.45';
   ga.style.pointerEvents = G.myTurn ? 'auto' : 'none';
-  $('note-btn').style.opacity      = '1';
-  $('note-btn').style.pointerEvents = 'auto';
 
   var oppHide = G.secretActive;
   $('opp-hbadge').style.display = oppHide ? '' : 'none';
@@ -1031,6 +1062,10 @@ function renderLog(id, log, hidden){
 function renderTools(){
   var row = $('tools-row'); row.innerHTML = '';
   hideCardInfo();
+  // Passive cards at left (only when held)
+  if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
+  if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
+  // Active cards
   var showCards = G.myTurn || new URLSearchParams(location.search).get('test')==='1';
   if(showCards){
     G.myCards.forEach(function(card){
@@ -1042,8 +1077,6 @@ function renderTools(){
       row.appendChild(el);
     });
   }
-  if(G.myShield)  row.appendChild(makeCard('shield',  true, false));
-  if(G.myReflect) row.appendChild(makeCard('reflect', true, false));
 }
 
 function makeCard(cardId, passive, spent){
@@ -1181,7 +1214,7 @@ function resolveMyTool(card, action){
 function applyToolEffect(card, hitMe){
   if(!hitMe){
     switch(card){
-      case 'fog':    G.fogOppNext=true; send({type:'fx_fog'}); addLog('my','霧化：對手下次猜測模糊','lt'); break;
+      case 'fog':    G.fogOppNext=true; send({type:'fx_fog'}); addLog('my','霧化已發動：對手下次猜測結果模糊','lt'); break;
       case 'focus':  send({type:'fx_focus'}); addLog('my','聚焦：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
       case 'secret': send({type:'fx_secret'}); addLog('my','保密：你往後的猜測紀錄對對手永久隱藏','lt'); break;
       case 'interrogation': openInterrogation(); break;
@@ -1189,7 +1222,7 @@ function applyToolEffect(card, hitMe){
     }
   } else {
     switch(card){
-      case 'fog':    send({type:'fx_fog_me'}); addLog('my','霧化反射：你的下次猜測結果模糊','lt'); break;
+      case 'fog':    send({type:'fx_fog_me'}); addLog('my','霧化反射：效果反彈回對手','lt'); break;
       case 'focus':  G.focusOppNext=true; send({type:'fx_focus_me'}); addLog('my','聚焦反射：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
       case 'secret': G.secretActive=true; send({type:'fx_secret_me'}); addLog('my','保密反射：對手的猜測紀錄對你永久隱藏','lt'); break;
       case 'interrogation': send({type:'fx_interrogation_me'}); addLog('my','審訊反射：效果反彈，等待對手發問','lt'); break;
@@ -1429,11 +1462,11 @@ function handleMsg(msg){
     case 'counter':
       resolveMyTool(msg.card || G.pendCard, msg.action); break;
 
-    case 'fx_fog':    G.fogOppNext=true;   addLog('my','霧化：對手下次猜測結果模糊','lt'); renderEffects(); break;
+    case 'fx_fog':    addLog('my','霧化：你的下次猜測結果將模糊','lt'); renderEffects(); break;
     case 'fx_focus':  G.focusOppNext=true; addLog('my','聚焦：你的下一次猜測結果將包含詳細位置','lt'); renderEffects(); break;
     case 'fx_secret': G.secretActive=true;   addLog('my','保密：對手往後的猜測紀錄永久隱藏','lt'); renderEffects(); break;
 
-    case 'fx_fog_me':    G.fogOppNext=true;   addLog('my','霧化（反射）：對手下次猜測模糊','lt'); renderEffects(); break;
+    case 'fx_fog_me':    G.fogOppNext=true; addLog('my','霧化（反射）：對手下次猜測模糊','lt'); renderEffects(); break;
     case 'fx_focus_me':  addLog('my','聚焦（反射）：你的下一次猜測將得到詳細 ABX 位置','lt'); break;
     case 'fx_secret_me': addLog('my','保密（反射）：對手的猜測紀錄對你永久隱藏','lt'); break;
     case 'fx_interrogation_me': addLog('my','審訊（反射）：你現在可以向對手發問','lt'); openInterrogation(); break;
@@ -1489,9 +1522,9 @@ function handleMsg(msg){
 
 function applyIncomingTool(card, reflected){
   switch(card){
-    case 'fog':    G.fogOppNext=true;   addLog('my','霧化：你的下次猜測結果模糊','lt'); break;
+    case 'fog':    addLog('my','霧化：你的下次猜測結果將模糊','lt'); break;
     case 'focus':  addLog('my','聚焦：對手的下一次猜測將得到詳細 ABX 位置','lt'); break;
-    case 'secret': G.secretActive=true;   addLog('my','保密：你往後的猜測紀錄對對手永久隱藏','lt'); break;
+    case 'secret': G.secretActive=true; addLog('my','保密：你往後的猜測紀錄對對手永久隱藏','lt'); break;
   }
   renderEffects();
 }
