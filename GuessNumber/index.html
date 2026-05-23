@@ -1003,12 +1003,13 @@ function showTurnStartOffer(){
   });
 }
 
-function checkMilestoneOffer(a, b){
-  if(a !== 1 && a !== 2 && a !== 3) return;
+function checkMilestoneOffer(a, b, done){
+  if(a !== 1 && a !== 2 && a !== 3){ done(); return; }
   var offer = makeOffer();
   addLog('my','🎴 '+a+'A！可以選一張道具牌','lt');
   showOffer(offer, a+'A'+b+'B 里程碑！', function(picked){
     onCardPicked(picked, false);
+    done();
   });
 }
 
@@ -1321,11 +1322,13 @@ function showOffer(cards, subtitle, onPick){
   res.style.display = subtitle ? '' : 'none';
   var el=$('offer-list'); el.innerHTML='';
   cards.forEach(function(card){
+    var info = CARDS[card] || PASSIVE_CARDS[card];
+    if(!info) return;
     var d=document.createElement('div');
     d.className='offer-card';
-    d.innerHTML='<span class="offer-card-icon">'+CARDS[card].icon+'</span>'
-      +'<div class="offer-card-name">'+CARDS[card].name+'</div>'
-      +'<div class="offer-card-desc">'+CARDS[card].desc+'</div>';
+    d.innerHTML='<span class="offer-card-icon">'+info.icon+'</span>'
+      +'<div class="offer-card-name">'+info.name+'</div>'
+      +'<div class="offer-card-desc">'+info.desc+'</div>';
     d.addEventListener('click',function(){ $('offer-ov').classList.remove('show'); onPick(card); });
     el.appendChild(d);
   });
@@ -1439,8 +1442,7 @@ function handleMsg(msg){
         showModal('遊戲結束','你猜中了！🎉\n對手的答案是 '+gStr,'返回大廳',backToLobby);
         return;
       }
-      checkMilestoneOffer(a, b);
-      advanceTurn();
+      checkMilestoneOffer(a, b, advanceTurn);
       break;
     }
 
