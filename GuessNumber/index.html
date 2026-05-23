@@ -607,7 +607,7 @@ function showOppChatBubble(text){
 
 function openChatPanel(){
   $('chat-ov').classList.add('show');
-  setTimeout(function(){ $('chat-text-inp').focus(); }, 120);
+  setTimeout(startChatVoice, 180);
 }
 
 function closeChatPanel(){
@@ -624,7 +624,7 @@ function sendChatMsg(text){
 
 function startChatVoice(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ showModal('提示','您的瀏覽器不支援語音輸入'); return; }
+  if(!SR){ $('chat-text-inp').focus(); return; }
   if(chatListening){ stopChatVoice(); return; }
   chatRecognition = new SR();
   chatRecognition.lang = 'zh-TW';
