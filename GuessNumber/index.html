@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v27</title>
+<title>猜數字對戰 v28</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -262,7 +262,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v27</p>
+  <p style="font-size:.7rem;color:#94a3b8">v28</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -543,6 +543,8 @@ function resetG(myTurn){
     guessedThisTurn: false,
     pendCard:        null,
     gameOver:        false,
+    milestone:       { 1:false, 2:false, 3:false },
+    acquiredCards:   [],
   };
 }
 
@@ -964,16 +966,15 @@ function onMyTurnStart(){
 }
 
 function makeOffer(){
-  var held = G.myCards.concat(G.myPendingCards);
-  if(G.myShield)  held.push('shield');
-  if(G.myReflect) held.push('reflect');
-  var available = shuffled(ALL_POOL).filter(function(c){ return held.indexOf(c)<0; });
-  // If fewer than 2 unique options remain, fall back to full pool
-  if(available.length < 2) available = shuffled(ALL_POOL);
+  // Only offer cards that have never been acquired this game
+  var available = shuffled(ALL_POOL).filter(function(c){
+    return G.acquiredCards.indexOf(c) < 0;
+  });
   return available.slice(0, 2);
 }
 
 function onCardPicked(card, pending){
+  G.acquiredCards.push(card); // track permanently so it's never re-offered
   var isPassive = PASSIVE_CARDS[card] !== undefined;
   if(isPassive){
     if(card === 'shield')  G.myShield  = true;
@@ -992,6 +993,7 @@ function onCardPicked(card, pending){
 
 function showTurnStartOffer(){
   var offer = makeOffer();
+  if(offer.length === 0) return; // all cards acquired
   showOffer(offer, '第 '+G.myTurnCount+' 回合里程碑！', function(picked){
     onCardPicked(picked, true);
   });
@@ -999,9 +1001,12 @@ function showTurnStartOffer(){
 
 function checkMilestoneOffer(a, b, done){
   if(a !== 1 && a !== 2 && a !== 3){ done(); return; }
+  if(G.milestone[a]){ done(); return; } // only first time each milestone
+  G.milestone[a] = true;
   var offer = makeOffer();
-  addLog('my','🎴 '+a+'A！可以選一張道具牌','lt');
-  showOffer(offer, a+'A'+b+'B 里程碑！', function(picked){
+  if(offer.length === 0){ done(); return; } // all cards acquired, skip offer
+  addLog('my','🎴 第一次 '+a+'A！可以選一張道具牌','lt');
+  showOffer(offer, a+'A'+b+'B 首次里程碑！', function(picked){
     onCardPicked(picked, false);
     done();
   });

@@ -1,6 +1,6 @@
 # 猜數字對戰 GuessNumber
 
-> 版本：v27 ／ 單檔純前端 HTML 遊戲，雙人即時對戰
+> 版本：v28 ／ 單檔純前端 HTML 遊戲，雙人即時對戰
 
 ---
 
@@ -20,10 +20,11 @@
 | 時機 | 條件 | 取得方式 |
 |------|------|----------|
 | 我的回合開始 | 回合數為 3 的倍數（第3、6、9…回合） | 二選一，當回合取得的牌**下回合才能使用** |
-| 我的回合結束 | 猜測結果為 1A、2A 或 3A | 二選一，下回合起可使用 |
+| 我的回合結束 | **首次**猜測結果為 1A、2A 或 3A（每個里程碑只觸發一次） | 二選一，下回合起可使用 |
 
 - 道具池包含所有**主動牌 + 被動牌**（共 7 種）
-- 每次抽牌會過濾已持有的牌，避免重複取得
+- 每張道具卡**整場只能獲得一次**（以 `acquiredCards` 追蹤）
+- 所有卡都獲得過後不再提供選牌機會
 
 #### 主動道具牌（我的回合開始、猜測前使用，每回合限 1 次）
 
@@ -208,18 +209,24 @@ advanceTurn()
 
 ```js
 function makeOffer()
-  // 過濾已持有的牌（myCards + myPendingCards + shield + reflect）
-  // 從 ALL_POOL 隨機選 2 張
+  // 過濾 G.acquiredCards（整場已取得的牌，含已消耗的被動牌）
+  // 從 ALL_POOL 隨機選最多 2 張；若為空則不提供選牌
   // ALL_POOL = POOL(active 5) + PASSIVE_POOL(shield, reflect)
+
+function onCardPicked(card, pending)
+  // G.acquiredCards.push(card)  ← 永久記錄，不再重複提供
+  // 被動牌 → myShield/myReflect = true
+  // 主動牌 + pending → myPendingCards
+  // 主動牌 + !pending → myCards
 
 function onMyTurnStart()
   // 1. myPendingCards → myCards（上回合選的牌現在可用）
   // 2. myTurnCount++
   // 3. if myTurnCount % 3 === 0: showTurnStartOffer()
 
-// 回合開始選牌 → onCardPicked(card, pending=true) → myPendingCards
-// 里程碑選牌   → onCardPicked(card, pending=false) → myCards（立即可用）
-// 被動牌       → 直接設 myShield / myReflect = true
+// G.milestone = { 1:false, 2:false, 3:false }
+// checkMilestoneOffer: 只在 !G.milestone[a] 時觸發，觸發後設 true
+// 若 makeOffer() 回傳空陣列，直接 done()（跳過選牌）
 ```
 
 ### 聊天系統
@@ -287,6 +294,7 @@ game-screen      → 遊戲主畫面
 
 | 版本 | 說明 |
 |------|------|
+| v28 | 里程碑只觸發一次；每張牌整場只獲得一次（acquiredCards）；README 更新 |
 | v27 | 筆記按鈕回到數字格左側並雙回合 enabled；無道具時聊天/說明靠右；README |
 | v26 | showOffer 支援被動牌查找修正；checkMilestoneOffer callback 防止回合提前切換 |
 | v25 | 道具系統大改（無預設牌、3倍回合/里程碑抽牌、guessedThisTurn）；審訊/勒索移除拒絕 |
