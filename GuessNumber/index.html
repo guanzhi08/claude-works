@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v33</title>
+<title>猜數字對戰 v34</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -178,7 +178,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .tc-side-btn:active{background:#e2e8f0;transform:scale(.92)}
 
 /* help overlay */
-.help-ob{padding:0;max-height:88vh;max-width:80vw}
+.help-ob{padding:0;max-height:88vh;max-width:95vw;width:95vw}
 .help-hdr{padding:14px 18px 10px;border-bottom:1px solid #e2e8f0;flex-shrink:0;width:100%;text-align:center}
 .help-body{overflow-y:auto;padding:12px 18px 6px;flex:1;width:100%;min-height:0;text-align:left}
 .help-body::-webkit-scrollbar{width:3px}.help-body::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
@@ -265,7 +265,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v33</p>
+  <p style="font-size:.7rem;color:#94a3b8">v34</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -449,7 +449,6 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-card-row"><span class="help-ci">🪞</span><div><div class="help-cn">反射</div><div class="help-cd">對手使用道具時觸發：<b>將效果反彈回對手</b>，讓對手承受自己的道具（全場僅 1 次）</div></div></div>
       </div>
 
-    </div>
       <div class="help-sec">
         <div class="help-sec-ttl">🎮 單人練習模式</div>
         <div class="help-rule">電腦隨機產生一組 <b>4 位不重複數字</b>，玩家猜測，電腦不會猜回來</div>
@@ -458,6 +457,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-rule">猜中後顯示共花幾回合，可立即再玩一次</div>
       </div>
 
+    </div>
     <div class="help-ftr"><button class="btn bs" id="help-close-btn">關閉</button></div>
   </div>
 </div>
