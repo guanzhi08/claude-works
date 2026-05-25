@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v34</title>
+<title>猜數字對戰 v35</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -217,7 +217,8 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .note-sm-btn.eraser-on{background:#ddd6fe;color:#7c3aed}
 .note-sm-btn.btn-danger{background:#fee2e2;color:#dc2626}
 .note-sm-btn.btn-muted{background:#e2e8f0;color:#374151}
-#note-canvas{flex:1;width:100%;background:rgba(254,252,232,.25);cursor:crosshair;touch-action:none;display:block;min-height:0}
+#note-canvas{flex:1;width:100%;background:#fefce8;cursor:crosshair;touch-action:none;display:block;min-height:0}
+.note-sm-btn.transp-on{background:#d1fae5;color:#065f46}
 
 /* help card (static in trow-wrapper) */
 .help-tc{animation:none!important;cursor:pointer;flex-shrink:0}
@@ -265,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v34</p>
+  <p style="font-size:.7rem;color:#94a3b8">v35</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -469,6 +470,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
       <div class="note-hdr-l">
         <button class="note-sm-btn pen-on" id="note-pen-btn" title="畫筆">🖊</button>
         <button class="note-sm-btn" id="note-eraser-btn" title="橡皮擦">🧹</button>
+        <button class="note-sm-btn" id="note-transp-btn" title="切換透明背景">透</button>
         <button class="note-sm-btn" id="note-undo-btn" title="復原">↩</button>
         <button class="note-sm-btn" id="note-redo-btn" title="重做">↪</button>
       </div>
@@ -1637,6 +1639,7 @@ function appendEl(parent, tag, cls, text){
 // ═══════════════════════════════════════════
 var noteDrawing = false, noteLx = 0, noteLy = 0, noteCtx = null;
 var noteMode = 'pen';
+var noteTransparent = false;
 var noteHistory = [], noteRedoStack = [];
 
 function notePos(e, canvas){
@@ -1749,6 +1752,12 @@ function openNote(){
   }
 }
 
+function toggleNoteBg(){
+  noteTransparent = !noteTransparent;
+  $('note-canvas').style.background = noteTransparent ? 'rgba(254,252,232,.25)' : '#fefce8';
+  $('note-transp-btn').classList.toggle('transp-on', noteTransparent);
+}
+
 function clearNote(){
   if(!noteCtx) return;
   noteSaveState();
@@ -1776,6 +1785,7 @@ document.getElementById('note-undo-btn').addEventListener('click', noteUndo);
 document.getElementById('note-redo-btn').addEventListener('click', noteRedo);
 document.getElementById('note-pen-btn').addEventListener('click', function(){ setNoteMode('pen'); });
 document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
+document.getElementById('note-transp-btn').addEventListener('click', toggleNoteBg);
 document.getElementById('lobby-rules-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
