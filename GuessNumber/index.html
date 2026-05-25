@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v28</title>
+<title>猜數字對戰 v29</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -198,7 +198,10 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 .help-cn{font-size:.85rem;font-weight:700;color:#1e293b;margin-bottom:2px}
 .help-cd{font-size:.77rem;color:#64748b;line-height:1.5}
 
-/* note button */
+/* rules button (lobby) */
+.rules-btn{width:38px;height:62px;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex-shrink:0;user-select:none;transition:.12s}
+.rules-btn span{font-size:.54rem;font-weight:700;color:#7c3aed;line-height:1}
+.rules-btn:active{background:#ddd6fe;transform:scale(.9)}
 .note-btn{width:38px;height:60px;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;transition:.12s;pointer-events:auto!important;opacity:1!important}
 .note-btn:active{background:#ddd6fe;transform:scale(.9)}
 
@@ -262,7 +265,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v28</p>
+  <p style="font-size:.7rem;color:#94a3b8">v29</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
@@ -270,6 +273,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div style="flex:1;height:1px;background:#e2e8f0"></div>
   </div>
   <div class="slots-row">
+    <button class="rules-btn" id="lobby-rules-btn">📖<span>規則</span></button>
     <div class="ds" id="js0"></div><div class="ds" id="js1"></div>
     <div class="ds" id="js2"></div><div class="ds" id="js3"></div>
     <button class="del-btn" id="join-del">⌫</button>
@@ -1690,6 +1694,7 @@ document.getElementById('note-undo-btn').addEventListener('click', noteUndo);
 document.getElementById('note-redo-btn').addEventListener('click', noteRedo);
 document.getElementById('note-pen-btn').addEventListener('click', function(){ setNoteMode('pen'); });
 document.getElementById('note-eraser-btn').addEventListener('click', toggleEraser);
+document.getElementById('lobby-rules-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-btn').addEventListener('click', function(){ $('help-ov').classList.add('show'); });
 document.getElementById('help-close-btn').addEventListener('click', function(){ $('help-ov').classList.remove('show'); });
 document.getElementById('chat-btn').addEventListener('click', openChatPanel);
