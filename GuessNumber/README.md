@@ -1,6 +1,6 @@
 # 猜數字對戰 GuessNumber
 
-> 版本：v28 ／ 單檔純前端 HTML 遊戲，雙人即時對戰
+> 版本：v30 ／ 單檔純前端 HTML 遊戲，雙人即時對戰
 
 ---
 
@@ -294,6 +294,8 @@ game-screen      → 遊戲主畫面
 
 | 版本 | 說明 |
 |------|------|
+| v30 | 筆記畫布半透明（透明背景 + destination-out 橡皮擦），可透視猜測紀錄與數字鍵盤 |
+| v29 | 首頁新增規則按鈕（📖 規則）在四位數格左側 |
 | v28 | 里程碑只觸發一次；每張牌整場只獲得一次（acquiredCards）；README 更新 |
 | v27 | 筆記按鈕回到數字格左側並雙回合 enabled；無道具時聊天/說明靠右；README |
 | v26 | showOffer 支援被動牌查找修正；checkMilestoneOffer callback 防止回合提前切換 |
