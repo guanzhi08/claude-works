@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v40</title>
+<title>猜數字對戰 v41</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v40</p>
+  <p style="font-size:.7rem;color:#94a3b8">v41</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -1258,15 +1258,15 @@ function submitGuess(){
 // TOOL PLAY
 // ═══════════════════════════════════════════
 function playTool(card){
-  if(G.usedTool){ showModal('提示','本回合已使用過一張道具了'); return; }
+  if(!isSolo && G.usedTool){ showModal('提示','本回合已使用過一張道具了'); return; }
   if(!G.myCards.includes(card)) return;
-  G.usedTool = true;
+  if(!isSolo) G.usedTool = true;
   if(isSolo){
     G.myCards = G.myCards.filter(function(c){ return c!==card; });
     delete G.cardReadyTurns[card];
     addLog('my','▶ 使用「'+CARDS[card].name+'」','lt');
     applyToolEffect(card, false);
-    renderTools();
+    renderGame();
     return;
   }
   G.pendCard = card;
