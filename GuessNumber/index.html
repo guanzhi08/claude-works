@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v38</title>
+<title>猜數字對戰 v39</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v38</p>
+  <p style="font-size:.7rem;color:#94a3b8">v39</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -544,6 +544,7 @@ function resetG(myTurn){
     myTurn:          !!myTurn,
     myCards:         [],
     myPendingCards:  [],
+    cardReadyTurns:  {},
     myTurnCount:     0,
     myLog:           [],
     oppLog:          [],
@@ -993,9 +994,6 @@ function shuffled(arr){
 }
 
 function onMyTurnStart(){
-  // Pending cards picked at start of previous turn become usable
-  G.myPendingCards.forEach(function(c){ G.myCards.push(c); });
-  G.myPendingCards = [];
   G.myTurnCount++;
   if(G.myTurnCount % 3 === 0) showTurnStartOffer();
 }
@@ -1015,12 +1013,14 @@ function onCardPicked(card, pending){
     if(card === 'shield')  G.myShield  = true;
     if(card === 'reflect') G.myReflect = true;
     addLog('my', '🛡 取得被動道具：' + PASSIVE_CARDS[card].name, 'lt');
-  } else if(pending){
-    G.myPendingCards.push(card);
-    addLog('my', '🎴 取得道具（下回合可用）：' + CARDS[card].name, 'lt');
   } else {
     G.myCards.push(card);
-    addLog('my', '✨ 取得道具：' + CARDS[card].name, 'lt');
+    if(pending){
+      G.cardReadyTurns[card] = G.myTurnCount + 1;
+      addLog('my', '🎴 取得道具（下回合可用）：' + CARDS[card].name, 'lt');
+    } else {
+      addLog('my', '✨ 取得道具：' + CARDS[card].name, 'lt');
+    }
   }
   send({type:'card_pick', card:card});
   renderTools();
@@ -1118,12 +1118,14 @@ function renderTools(){
   var showCards = G.myTurn || new URLSearchParams(location.search).get('test')==='1';
   if(showCards){
     G.myCards.forEach(function(card){
-      row.appendChild(makeCard(card, false, G.usedTool || !G.myTurn || G.guessedThisTurn));
-    });
-    G.myPendingCards.forEach(function(card){
-      var el = makeCard(card, false, true);
-      el.title = '下回合可用';
-      row.appendChild(el);
+      var notReady = G.cardReadyTurns[card] && G.myTurnCount < G.cardReadyTurns[card];
+      if(notReady){
+        var el = makeCard(card, false, true);
+        el.title = '下回合可用';
+        row.appendChild(el);
+      } else {
+        row.appendChild(makeCard(card, false, G.usedTool || !G.myTurn || G.guessedThisTurn));
+      }
     });
   }
 }
@@ -1259,6 +1261,7 @@ function playTool(card){
   G.usedTool = true;
   if(isSolo){
     G.myCards = G.myCards.filter(function(c){ return c!==card; });
+    delete G.cardReadyTurns[card];
     addLog('my','▶ 使用「'+CARDS[card].name+'」','lt');
     applyToolEffect(card, false);
     renderTools();
@@ -1274,6 +1277,7 @@ function resolveMyTool(card, action){
   hideModal();
   G.pendCard = null;
   G.myCards = G.myCards.filter(function(c){ return c!==card; });
+  delete G.cardReadyTurns[card];
   if(action==='shield'){
     addLog('my','🛡 對手護盾，'+CARDS[card].name+' 被取消','lt');
   } else if(action==='reflect'){
