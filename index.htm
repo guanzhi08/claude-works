@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude Works</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 60px}
+
+.header{text-align:center;margin-bottom:48px}
+.header-logo{font-size:2.4rem;font-weight:900;letter-spacing:-.5px;margin-bottom:8px}
+.header-logo span{background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header-sub{font-size:.95rem;color:#64748b}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;width:100%;max-width:960px}
+
+.card{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:28px 24px 24px;display:flex;flex-direction:column;gap:14px;text-decoration:none;color:inherit;transition:.2s;position:relative;overflow:hidden}
+.card:hover{border-color:#6366f1;transform:translateY(-3px);box-shadow:0 12px 32px rgba(99,102,241,.18)}
+.card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(99,102,241,.06),transparent);opacity:0;transition:.2s}
+.card:hover::before{opacity:1}
+
+.card-icon{font-size:2.6rem;line-height:1}
+.card-title{font-size:1.15rem;font-weight:800;color:#f1f5f9}
+.card-desc{font-size:.85rem;color:#94a3b8;line-height:1.65;flex:1}
+
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:#0f172a;color:#94a3b8;border:1px solid #334155}
+.tag.mp{background:#1e1b4b;color:#a5b4fc;border-color:#3730a3}
+.tag.ai{background:#052e16;color:#6ee7b7;border-color:#14532d}
+.tag.solo{background:#1c1917;color:#d6d3d1;border-color:#44403c}
+.tag.card{background:#2d1b69;color:#e9d5ff;border-color:#6d28d9}
+.tag.ws{background:#0c1a2e;color:#93c5fd;border-color:#1d4ed8}
+
+.play-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:.85rem;font-weight:700;padding:9px 18px;border-radius:12px;align-self:flex-start;margin-top:2px;transition:.15s}
+.card:hover .play-btn{gap:10px}
+
+.footer{margin-top:56px;font-size:.78rem;color:#334155;text-align:center;line-height:1.8}
+.footer a{color:#475569;text-decoration:none}
+.footer a:hover{color:#818cf8}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">Claude <span>Works</span></div>
+  <p class="header-sub">由 Claude Code 輔助開發的遊戲集合</p>
+</header>
+
+<div class="grid">
+
+  <a class="card" href="./chess/index.html">
+    <div class="card-icon">♟️</div>
+    <div class="card-title">Chess 西洋棋</div>
+    <div class="card-desc">單人西洋棋遊戲，支援 AI 對手（Minimax + Alpha-Beta 剪枝）。三種難度可選，可選擇執白或執黑。</div>
+    <div class="tags">
+      <span class="tag solo">單人</span>
+      <span class="tag ai">AI 對手</span>
+    </div>
+    <div class="play-btn">開始遊戲 →</div>
+  </a>
+
+  <a class="card" href="./ChickenArmy/index.html">
+    <div class="card-icon">🐔</div>
+    <div class="card-title">全軍出雞 Regroup!</div>
+    <div class="card-desc">2–4 人卡牌疊放戰鬥桌遊，輪流出牌爭奪陣地。本地多人對戰，純前端單檔實作。</div>
+    <div class="tags">
+      <span class="tag mp">本地多人</span>
+      <span class="tag card">卡牌</span>
+    </div>
+    <div class="play-btn">開始遊戲 →</div>
+  </a>
+
+  <a class="card" href="./GuessNumber/index.html">
+    <div class="card-icon">🔢</div>
+    <div class="card-title">猜數字對戰</div>
+    <div class="card-desc">雙人線上對戰猜數字遊戲。透過 WebRTC 即時連線，加入道具牌策略系統，支援手機觸控操作及單人練習模式。</div>
+    <div class="tags">
+      <span class="tag mp">線上雙人</span>
+      <span class="tag ws">WebRTC</span>
+      <span class="tag solo">單人練習</span>
+    </div>
+    <div class="play-btn">開始遊戲 →</div>
+  </a>
+
+  <a class="card" href="./BraveRats/index.html">
+    <div class="card-icon">🐀</div>
+    <div class="card-title">鼠國稱王 BraveRats</div>
+    <div class="card-desc">雙人同步出牌卡牌對戰。WebSocket 優先連線（自動降級 WebRTC），支援 AI 單人模式。</div>
+    <div class="tags">
+      <span class="tag mp">線上雙人</span>
+      <span class="tag ws">WebSocket</span>
+      <span class="tag ai">AI 對手</span>
+      <span class="tag card">卡牌</span>
+    </div>
+    <div class="play-btn">開始遊戲 →</div>
+  </a>
+
+</div>
+
+<footer class="footer">
+  由 <a href="https://claude.ai/code" target="_blank">Claude Code</a> 輔助開發 ·
+  <a href="https://github.com/guanzhi08/claude-works" target="_blank">GitHub</a>
+</footer>
+
+</body>
+</html>
