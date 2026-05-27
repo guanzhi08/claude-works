@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v42</title>
+<title>猜數字對戰 v43</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v42</p>
+  <p style="font-size:.7rem;color:#94a3b8">v43</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -1118,13 +1118,13 @@ function renderTools(){
   var showCards = G.myTurn || new URLSearchParams(location.search).get('test')==='1';
   if(showCards){
     G.myCards.forEach(function(card){
-      var notReady = G.cardReadyTurns[card] && G.myTurnCount < G.cardReadyTurns[card];
-      if(notReady){
-        var el = makeCard(card, false, true);
-        el.title = '下回合可用';
-        row.appendChild(el);
+      if(isSolo){
+        row.appendChild(makeCard(card, false, false));
       } else {
-        row.appendChild(makeCard(card, false, G.usedTool || !G.myTurn || G.guessedThisTurn));
+        var notReady = G.cardReadyTurns[card] && G.myTurnCount < G.cardReadyTurns[card];
+        var el = makeCard(card, false, notReady || G.usedTool || !G.myTurn || G.guessedThisTurn);
+        if(notReady) el.title = '下回合可用';
+        row.appendChild(el);
       }
     });
   }
@@ -1136,7 +1136,7 @@ function makeCard(cardId, passive, spent){
   el.className = 'tc' + (passive ? ' passive' : '') + (spent ? ' spent' : '');
   el.innerHTML = '<span class="tc-icon">'+info.icon+'</span><span class="tc-name">'+info.name+'</span>';
   el.addEventListener('click', function(){
-    showCardInfo(cardId, info.icon, info.name, info.desc, !passive && !spent && G.myTurn && !G.guessedThisTurn);
+    showCardInfo(cardId, info.icon, info.name, info.desc, !passive && !spent && G.myTurn && (!G.guessedThisTurn || isSolo));
   });
   return el;
 }
