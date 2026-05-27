@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v45</title>
+<title>猜數字對戰 v46</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v45</p>
+  <p style="font-size:.7rem;color:#94a3b8">v46</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -850,6 +850,7 @@ function renderJoinSlots(){
 
 function backToLobby(){
   hideModal();
+  if(isSolo && !G.gameOver) return; // spurious call during active solo — ignore
   isSolo = false;
   transport = 'none';
   wsClose();
@@ -1238,7 +1239,7 @@ function submitGuess(){
     var gStr = G.lastGuess.join('');
     var ev = evalGuess(G.lastGuess, G.computerAnswer);
     var detail = '';
-    if(G.focusOppNext){ detail = posDetail(G.lastGuess, G.computerAnswer); G.focusOppNext=false; }
+    if(G.focusOppNext){ detail = posDetail(G.lastGuess, G.computerAnswer); G.focusOppNext=false; renderEffects(); }
     addLog('my', gStr+'  '+fmtResult(ev.a, ev.b, 'normal', detail), 'le');
     G.input=[]; renderGuessSlots();
     if(ev.a===4){
