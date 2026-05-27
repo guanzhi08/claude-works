@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v44</title>
+<title>猜數字對戰 v45</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v44</p>
+  <p style="font-size:.7rem;color:#94a3b8">v45</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -717,7 +717,7 @@ function tryWsCreate(){
 
   ws.onerror = function(){ wsClose(); };
   ws.onclose = function(){
-    if(transport === 'ws' && !G.gameOver)
+    if(transport === 'ws' && !G.gameOver && !isSolo)
       showModal('連線中斷','WebSocket 中斷','返回大廳', backToLobby);
   };
   ws.onmessage = function(e){
@@ -730,7 +730,7 @@ function tryWsCreate(){
       afterWsConnect('host');
       goSetAnswer();
     } else if(msg.type==='user_left'||msg.type==='room_closed'){
-      if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
+      if(!G.gameOver && !isSolo) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
     }
   };
 }
@@ -740,13 +740,13 @@ function afterWsConnect(myName){
     var msg = JSON.parse(e.data);
     if(msg.sender === myName) return; // ignore own echoed messages
     if(msg.type==='user_left'||msg.type==='room_closed'){
-      if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
+      if(!G.gameOver && !isSolo) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
     } else if(msg.type!=='user_joined'){
       handleMsg(msg.payload);
     }
   };
   ws.onclose = function(){
-    if(!G.gameOver) showModal('連線中斷','連線已中斷','返回大廳', backToLobby);
+    if(!G.gameOver && !isSolo) showModal('連線中斷','連線已中斷','返回大廳', backToLobby);
   };
   ws.onerror = null;
 }
@@ -821,7 +821,7 @@ function joinRoomWebRTC(code){
 function setupConn(){
   conn.on('data', handleMsg);
   conn.on('close', function(){
-    if(!G.gameOver) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
+    if(!G.gameOver && !isSolo) showModal('連線中斷','對手已離線','返回大廳', backToLobby);
   });
 }
 
