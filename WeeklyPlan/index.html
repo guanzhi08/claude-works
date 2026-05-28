@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>週行程編輯器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f2ed;--surface:#faf8f4;--surface2:#ede9e2;
+  --border:#d5cec3;--border-light:#e8e3db;
+  --text:#3a3530;--text-muted:#8c8278;--text-light:#b5ada4;
+  --accent:#7a9e87;--tick-major:#6b6259;--tick-minor:#b5ada4;--row-hover:#f0ece5;
+}
+.theme-clay{--bg:#f7f0ea;--surface:#fdf9f6;--surface2:#ede4da;--border:#d6c9bb;--border-light:#e8ddd2;--text:#3d3028;--text-muted:#907c6e;--text-light:#b8a898;--accent:#c4956a;--tick-major:#6e5d50;--tick-minor:#b8a898;--row-hover:#f0e8df}
+.theme-slate{--bg:#eef0f2;--surface:#f5f6f8;--surface2:#e0e3e8;--border:#c8cdd6;--border-light:#dde0e8;--text:#2c3240;--text-muted:#7a8296;--text-light:#a8adb8;--accent:#6b8fad;--tick-major:#5a6278;--tick-minor:#a8adb8;--row-hover:#e5e8f0}
+.theme-blush{--bg:#f7f0f0;--surface:#fdf8f8;--surface2:#ede0e0;--border:#d6c4c4;--border-light:#e8d8d8;--text:#3d2828;--text-muted:#907272;--text-light:#b8a0a0;--accent:#c97b7b;--tick-major:#7a5555;--tick-minor:#b8a0a0;--row-hover:#f0e5e5}
+.theme-moss{--bg:#eff2ec;--surface:#f7f9f5;--surface2:#dde3d8;--border:#c3ccba;--border-light:#d8e0d0;--text:#2a3326;--text-muted:#6e7d66;--text-light:#a0ad98;--accent:#6e8c5c;--tick-major:#4e6040;--tick-minor:#a0ad98;--row-hover:#e4ece0}
+
+body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s}
+
+/* ── Header ── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;backdrop-filter:blur(8px)}
+.header-left h1{font-size:16px;font-weight:400;letter-spacing:.12em}
+.header-left p{font-size:10px;color:var(--text-muted);letter-spacing:.06em;margin-top:2px;font-family:'DM Mono',monospace}
+.header-right{display:flex;align-items:center;gap:10px}
+.theme-switcher{display:flex;gap:6px;align-items:center}
+.theme-switcher label{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-right:2px}
+.theme-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
+.theme-dot:hover{transform:scale(1.2)}
+.theme-dot.active{border-color:var(--text);transform:scale(1.1)}
+.theme-dot[data-theme="sage"]{background:#7a9e87}.theme-dot[data-theme="clay"]{background:#c4956a}
+.theme-dot[data-theme="slate"]{background:#6b8fad}.theme-dot[data-theme="blush"]{background:#c97b7b}
+.theme-dot[data-theme="moss"]{background:#6e8c5c}
+.btn{font-family:'DM Mono',monospace;font-size:11px;padding:8px 14px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;border-radius:3px;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:var(--surface2);color:var(--text)}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{opacity:.85;color:#fff}
+
+.main{padding:20px 16px 40px;max-width:1200px;margin:0 auto}
+
+/* ── Chart ── */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 16px 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chart-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chart-title{font-size:12px;font-weight:400;letter-spacing:.12em;color:var(--text-muted);font-family:'DM Mono',monospace}
+#week-label{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace;cursor:pointer;border-bottom:1px dotted var(--border)}
+
+/* ── Time axis ── */
+.time-axis{margin-left:52px;position:relative;min-width:600px;height:24px;margin-bottom:4px}
+.time-label{font-family:'DM Mono',monospace;font-size:8px;color:var(--text-muted);display:block;white-space:nowrap;position:absolute;bottom:6px}
+.time-tick{position:absolute;bottom:0;width:1px}
+.time-tick.major{height:6px;background:var(--tick-major)}
+.time-tick.minor{height:3px;background:var(--tick-minor);opacity:.5}
+
+/* ── Schedule ──
+   BAR_H=34 FLAG_SPACE=22 GAP=8 ROW_H=64
+   Each row: 22px flag zone on top, 34px bar, 8px gap below
+*/
+.schedule-area{min-width:600px;position:relative}
+.day-row{display:flex;align-items:flex-end;padding-top:22px;margin-bottom:8px;position:relative}
+.day-label{width:52px;flex-shrink:0;font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;padding-right:10px;text-align:right;user-select:none;padding-bottom:6px}
+.day-bar-container{flex:1;height:34px;background:var(--surface2);border-radius:2px;position:relative;cursor:crosshair;border:1px solid var(--border-light);transition:background .15s;touch-action:none;overflow:visible}
+.day-bar-container:hover{background:var(--row-hover)}
+.bar-tick{position:absolute;top:0;width:1px;pointer-events:none}
+.bar-tick.major{height:100%;background:var(--border);opacity:.5}
+.bar-tick.minor{height:40%;top:30%;background:var(--border);opacity:.3}
+
+/* ── Flag: overflows ABOVE bar ──
+   .flag-pin is positioned inside bar with overflow:visible,
+   bottom=100% so it sits above bar top.
+   The line extends DOWN through the full bar height (34px).
+*/
+.flag-pin{
+  position:absolute;
+  /* bottom set to bar top; overflow goes upward */
+  bottom:0; /* anchored at bar bottom — JS sets left% */
+  width:0;overflow:visible;
+  pointer-events:auto;cursor:pointer;
+  z-index:6;-webkit-tap-highlight-color:transparent
+}
+/* Vertical line: from bar-bottom UP through bar, continuing above to flag */
+.flag-line{
+  position:absolute;
+  bottom:0;left:-1px;
+  width:2px;
+  /* height = bar_h(34) + flag_space(22) */
+  height:56px;
+  border-radius:1px;
+  pointer-events:none
+}
+/* Banner sits at top of the line (above bar) */
+.flag-head{
+  position:absolute;
+  bottom:34px; /* sits just above bar top */
+  left:1px;
+  display:flex;flex-direction:column;align-items:flex-start;
+  pointer-events:none
+}
+.flag-banner{
+  height:14px;padding:0 7px 0 4px;
+  border-radius:2px 2px 2px 0;
+  display:flex;align-items:center;
+  white-space:nowrap;
+  font-family:'DM Mono',monospace;font-size:9px;color:#fff;letter-spacing:.03em;
+  position:relative
+}
+/* small down-left notch */
+.flag-banner::after{
+  content:'';position:absolute;bottom:-5px;left:0;
+  border-left:5px solid transparent;
+  border-top:5px solid currentColor
+}
+.flag-title-tag{
+  font-family:'DM Mono',monospace;font-size:8px;
+  color:var(--text-muted);letter-spacing:.03em;
+  margin-top:2px;white-space:nowrap;
+  background:var(--surface);border:1px solid var(--border-light);
+  padding:1px 5px;border-radius:2px;
+  max-width:80px;overflow:hidden;text-overflow:ellipsis
+}
+.flag-pin.selected .flag-line{width:3px;left:-1.5px}
+.flag-pin.selected .flag-banner{filter:brightness(.9)}
+
+/* ── Range event block ── */
+.event-block{
+  position:absolute;top:4px;height:26px;border-radius:2px;
+  display:flex;align-items:center;padding:0 8px;
+  overflow:visible;user-select:none;z-index:4;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:filter .12s
+}
+.event-block:hover{filter:brightness(.93)}
+.event-block.selected{outline:2px solid rgba(0,0,0,.45);outline-offset:1px;z-index:12}
+.event-label{font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Noto Serif TC',serif;flex:1;pointer-events:none}
+
+/* ── Drag preview ── */
+.drag-preview{position:absolute;top:4px;height:26px;background:var(--accent);opacity:.25;border-radius:2px;pointer-events:none;display:none;z-index:2}
+
+/* ── Floating selection UI ──
+   Appears below (or above if near bottom) the selected event.
+   Contains: color picker, title input, day selector (cross-day), time clock, delete.
+*/
+.sel-float{
+  position:absolute;top:calc(100% + 8px);left:0;
+  z-index:60;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.14);
+  width:230px;pointer-events:auto
+}
+/* caret pointing up */
+.sel-float-caret{
+  position:absolute;top:-7px;left:24px;
+  width:14px;height:7px;overflow:hidden;pointer-events:none
+}
+.sel-float-caret::before{content:'';position:absolute;top:1px;left:0;border:7px solid transparent;border-bottom-color:var(--border)}
+.sel-float-caret::after{content:'';position:absolute;top:2px;left:1px;border:6px solid transparent;border-bottom-color:var(--surface)}
+
+/* Top bar: color swatch row + delete */
+.sf-top{display:flex;align-items:center;gap:6px;padding:8px 10px 6px;border-bottom:1px solid var(--border-light)}
+.sf-colors{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.sf-color{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s;flex-shrink:0}
+.sf-color:hover{transform:scale(1.2)}
+.sf-color.active{border-color:var(--text);transform:scale(1.1)}
+.sf-del{background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;line-height:1;padding:2px 4px;border-radius:3px;transition:color .12s,background .12s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.sf-del:hover{color:#c97b7b;background:#fff0f0}
+
+/* Title */
+.sf-title-row{padding:6px 10px;border-bottom:1px solid var(--border-light)}
+.sf-title-inp{width:100%;font-family:'Noto Serif TC',serif;font-size:12px;color:var(--text);border:1px solid var(--border-light);background:var(--bg);border-radius:3px;padding:5px 8px;outline:none;transition:border-color .15s}
+.sf-title-inp:focus{border-color:var(--accent)}
+
+/* Day selector for cross-day move */
+.sf-day-row{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border-light)}
+.sf-day-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);width:28px;flex-shrink:0}
+.sf-day-btns{display:flex;gap:3px;flex-wrap:wrap}
+.sf-day-btn{font-family:'DM Mono',monospace;font-size:8px;padding:3px 5px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);border-radius:2px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent}
+.sf-day-btn:hover{background:var(--surface2)}
+.sf-day-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Clock widget CSS removed ── */
+
+/* ── Modal (quick-add) ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:400;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+@media(min-width:520px){.modal-overlay{align-items:center}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:24px 24px calc(24px + env(safe-area-inset-bottom,0));width:100%;max-width:480px}
+@media(min-width:520px){.modal{border-radius:6px;padding:28px 32px}}
+.modal h3{font-size:13px;font-weight:400;letter-spacing:.1em;margin-bottom:14px}
+.modal-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px}
+.modal-actions-right{display:flex;gap:8px}
+.qa-type-row{display:flex;gap:8px;margin-bottom:14px}
+.qa-type-btn{flex:1;font-family:'DM Mono',monospace;font-size:11px;padding:12px 0 10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;transition:all .15s;border-radius:4px;text-align:center}
+.qa-type-btn .qi{display:block;font-size:18px;line-height:1;margin-bottom:4px}
+.qa-type-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:9px;letter-spacing:.08em;color:var(--text-muted);font-family:'DM Mono',monospace;text-transform:uppercase}
+.form-group input,.form-group select{font-family:'DM Mono',monospace;font-size:13px;padding:8px 10px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent)}
+.qa-fields{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.qa-fields .form-group{flex:1;min-width:90px}
+.color-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
+.csw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s}
+.csw:hover{transform:scale(1.15)}
+.csw.selected{border-color:var(--text)}
+.hint{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:8px;line-height:1.6}
+.hint span{color:var(--text-muted)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>週行程編輯器</h1>
+    <p>weekly schedule / 每週計劃</p>
+  </div>
+  <div class="header-right">
+    <div class="theme-switcher">
+      <label>風格</label>
+      <div class="theme-dot active" data-theme="sage" title="鼠尾草"></div>
+      <div class="theme-dot" data-theme="clay" title="陶土"></div>
+      <div class="theme-dot" data-theme="slate" title="板岩"></div>
+      <div class="theme-dot" data-theme="blush" title="胭脂"></div>
+      <div class="theme-dot" data-theme="moss" title="苔蘚"></div>
+    </div>
+    <button class="btn" onclick="clearAll()">清除</button>
+    <button class="btn btn-accent" onclick="exportImage()">匯出</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="chart-wrap" id="chart-wrap">
+    <div class="chart-title-row">
+      <span class="chart-title">每週行程</span>
+      <span id="week-label" onclick="editWeekLabel()" title="點擊編輯"></span>
+    </div>
+    <div class="time-axis" id="time-axis"></div>
+    <div class="schedule-area" id="schedule-area"></div>
+    <p class="hint" style="margin-top:12px;padding:0 2px">在長條圖上 <span>拖曳</span> 建立時段 · <span>點擊空白</span> 新增 · <span>點擊事件</span> 選取 · 旗標可拖曳移動</p>
+  </div>
+</div>
+
+<!-- Quick-add modal -->
+<div class="modal-overlay" id="modal-qa">
+  <div class="modal">
+    <h3 id="qa-h3" style="display:flex;justify-content:space-between;align-items:baseline">
+      新增事件<span id="qa-hint" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-light);font-weight:400"></span>
+    </h3>
+    <div class="qa-type-row">
+      <button class="qa-type-btn active" id="qa-range" onclick="qaType('range')"><span class="qi">▬</span>時段</button>
+      <button class="qa-type-btn" id="qa-point" onclick="qaType('point')"><span class="qi">⚑</span>旗標</button>
+    </div>
+    <div class="qa-fields" id="qa-fields"></div>
+    <div class="form-group" style="width:100%;margin-bottom:12px">
+      <label>標題</label><input type="text" id="qa-title" style="width:100%" value="行程">
+    </div>
+    <div class="form-group">
+      <label>顏色</label><div class="color-row" id="qa-colors"></div>
+    </div>
+    <div class="modal-actions"><div></div><div class="modal-actions-right">
+      <button class="btn" onclick="cancelQA()">取消</button>
+      <button class="btn btn-accent" style="padding:9px 18px" onclick="confirmQA()">新增</button>
+    </div></div>
+  </div>
+</div>
+
+<!-- Week label modal -->
+<div class="modal-overlay" id="modal-wl">
+  <div class="modal">
+    <h3>編輯週標題</h3>
+    <div class="form-group" style="width:100%"><label>標題</label><input type="text" id="wl-inp" style="width:100%"></div>
+    <div class="modal-actions"><div></div><div class="modal-actions-right">
+      <button class="btn" onclick="closeM('modal-wl')">取消</button>
+      <button class="btn btn-accent" onclick="saveWL()">確認</button>
+    </div></div>
+  </div>
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const DAYS    = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+const COLORS  = ['#7a9e87','#c4956a','#9b8ea8','#6b8fad','#c97b7b','#a09e6e','#7eb8b5','#c4a672'];
+const S_HOUR  = 0, E_HOUR = 24, SLOTS = (E_HOUR - S_HOUR) * 2;
+const BAR_H   = 34;
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let G = {
+  events: [], weekLabel: defWeekLabel(),
+  theme: 'sage', selColor: COLORS[0]
+};
+let selId = null, pending = null;
+
+function defWeekLabel(){const n=new Date(),y=n.getFullYear(),w=Math.ceil(((n-new Date(y,0,1))/864e5+new Date(y,0,1).getDay()+1)/7);return`${y} W${String(w).padStart(2,'0')}`;}
+function save(){localStorage.setItem('sch-v8',JSON.stringify({events:G.events,weekLabel:G.weekLabel,theme:G.theme,selColor:G.selColor}));}
+function load(){try{const d=JSON.parse(localStorage.getItem('sch-v8')||'{}');if(d.events)G.events=d.events;if(d.weekLabel)G.weekLabel=d.weekLabel;if(d.theme)G.theme=d.theme;if(d.selColor)G.selColor=d.selColor;}catch(e){}}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const pct   = s => (s/SLOTS*100)+'%';
+const s2str = s => { const t=s*30,h=S_HOUR+Math.floor(t/60),m=t%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; };
+const t2s   = t => { const [h,m]=t.split(':').map(Number); return (h-S_HOUR)*2+(m>=30?1:0); };
+const uid   = () => Math.random().toString(36).slice(2,9);
+const cx    = (e,el) => { const r=el.getBoundingClientRect(); return Math.max(0,Math.min(SLOTS,Math.round(((e.touches?e.touches[0]:e).clientX-r.left)/r.width*SLOTS))); };
+
+// ─── Time axis ────────────────────────────────────────────────────────────────
+function renderAxis(){
+  const ax=document.getElementById('time-axis'); ax.innerHTML='';
+  for(let s=0;s<=SLOTS;s++){
+    if(s%2===0){const l=document.createElement('span');l.className='time-label';l.style.left=pct(s);l.textContent=`${S_HOUR+s/2}:00`;ax.appendChild(l);}
+    const t=document.createElement('div');t.className='time-tick '+(s%2===0?'major':'minor');t.style.left=pct(s);ax.appendChild(t);
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render(){
+  const area=document.getElementById('schedule-area'); area.innerHTML='';
+  DAYS.forEach((day,di)=>{
+    const row=document.createElement('div'); row.className='day-row';
+    const lbl=document.createElement('div'); lbl.className='day-label'; lbl.textContent=day;
+    row.appendChild(lbl);
+    const bar=document.createElement('div'); bar.className='day-bar-container'; bar.dataset.day=di;
+    // grid ticks
+    for(let s=1;s<SLOTS;s++){const t=document.createElement('div');t.className='bar-tick '+(s%2===0?'major':'minor');t.style.left=pct(s);bar.appendChild(t);}
+    // drag preview
+    const prev=document.createElement('div'); prev.className='drag-preview'; bar.appendChild(prev);
+    // range events
+    G.events.filter(e=>e.day===di&&e.type==='range').forEach(ev=>renderRange(bar,ev));
+    // flags
+    G.events.filter(e=>e.day===di&&e.type==='point').forEach(ev=>renderFlag(bar,ev));
+    // floating UI for selected event on this bar
+    const sev=G.events.find(e=>e.id===selId&&e.day===di);
+    if(sev) setTimeout(()=>renderFloatUI(bar,sev),0);
+    // bar interaction
+    setupBar(bar,di,prev);
+    row.appendChild(bar);
+    area.appendChild(row);
+  });
+  document.getElementById('week-label').textContent=G.weekLabel;
+  renderLegend();
+}
+
+// ─── Flag ─────────────────────────────────────────────────────────────────────
+function renderFlag(bar, ev){
+  const isSel = selId===ev.id;
+  const pin = document.createElement('div');
+  pin.className = 'flag-pin'+(isSel?' selected':'');
+  pin.style.left = pct(ev.start);
+  pin.style.height = '0';
+  pin.style.zIndex = isSel ? '65' : '6'; // above float (z-index:60) when selected
+  pin.dataset.id = ev.id;
+
+  // Full-height line (bar_h + flag_space above = 56px total)
+  const line = document.createElement('div');
+  line.className = 'flag-line';
+  line.style.background = ev.color;
+  line.style.height = (BAR_H + 22) + 'px'; // extends from bar-bottom up to above bar
+  pin.appendChild(line);
+
+  // Head: banner with title on top row, time on bottom row
+  const head = document.createElement('div');
+  head.className = 'flag-head';
+
+  const banner = document.createElement('div');
+  banner.className = 'flag-banner';
+  banner.style.background = ev.color;
+  banner.style.color = ev.color;
+  // Two-line layout: title above, time below
+  banner.style.flexDirection = 'column';
+  banner.style.alignItems = 'flex-start';
+  banner.style.height = 'auto';
+  banner.style.padding = '3px 7px 3px 4px';
+  banner.style.gap = '1px';
+
+  const bannerTitle = document.createElement('span');
+  bannerTitle.style.cssText = 'font-size:9px;line-height:1.2;color:#fff;font-family:"Noto Serif TC",serif;font-weight:400;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block';
+  bannerTitle.textContent = ev.title;
+
+  const bannerTime = document.createElement('span');
+  bannerTime.style.cssText = 'font-size:8px;line-height:1.2;color:rgba(255,255,255,.75);font-family:"DM Mono",monospace;display:block';
+  bannerTime.textContent = s2str(ev.start);
+
+  banner.appendChild(bannerTitle);
+  banner.appendChild(bannerTime);
+  head.appendChild(banner);
+
+  pin.appendChild(head);
+
+  // Drag to move flag (pointer events)
+  let dragActive = false, dragMoved = false;
+  const onPtrDown = e => {
+    e.stopPropagation(); e.preventDefault();
+    dragActive = true; dragMoved = false;
+    const startX = (e.touches||[e])[0].clientX;
+    const barRect = bar.getBoundingClientRect();
+    const origSlot = ev.start;
+
+    const onMove = me => {
+      const clientX = (me.touches||[me])[0].clientX;
+      if(Math.abs(clientX-startX)>4) dragMoved=true;
+      if(!dragMoved) return;
+      const newSlot = Math.max(0,Math.min(SLOTS,Math.round((clientX-barRect.left)/barRect.width*SLOTS)));
+      ev.start = ev.end = newSlot;
+      pin.style.left = pct(newSlot);
+      line.style.background = ev.color;
+      bannerTime.textContent = s2str(newSlot);
+    };
+    const onUp = () => {
+      dragActive = false;
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+      window.removeEventListener('touchmove',onMove);
+      window.removeEventListener('touchend',onUp);
+      if(dragMoved){ save(); render(); }
+      else { selectEv(ev.id); }
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    window.addEventListener('touchmove',onMove,{passive:false});
+    window.addEventListener('touchend',onUp);
+  };
+  pin.addEventListener('mousedown', onPtrDown);
+  pin.addEventListener('touchstart', onPtrDown, {passive:false});
+
+  bar.appendChild(pin);
+}
+
+// ─── Range block ──────────────────────────────────────────────────────────────
+function renderRange(bar, ev){
+  const isSel = selId===ev.id;
+  const block = document.createElement('div');
+  block.className = 'event-block'+(isSel?' selected':'');
+  block.style.left = pct(ev.start);
+  block.style.width = pct(ev.end-ev.start);
+  block.style.background = ev.color;
+  block.dataset.id = ev.id;
+  const lbl=document.createElement('span'); lbl.className='event-label'; lbl.textContent=ev.title;
+  block.appendChild(lbl);
+
+  let dragMoved=false;
+  const onPtrDown = e => {
+    if(e.button!==undefined&&e.button!==0) return;
+    e.stopPropagation(); e.preventDefault();
+    dragMoved=false;
+    const rect=bar.getBoundingClientRect(), dur=ev.end-ev.start, origS=ev.start;
+    const startX=(e.touches||[e])[0].clientX;
+    const onMove=me=>{
+      const clientX=(me.touches||[me])[0].clientX;
+      const ds=Math.round((clientX-startX)/rect.width*SLOTS);
+      if(Math.abs(ds)>0) dragMoved=true;
+      const ns=Math.max(0,Math.min(SLOTS-dur,origS+ds));
+      ev.start=ns; ev.end=ns+dur;
+      block.style.left=pct(ns);
+    };
+    const onUp=()=>{
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+      window.removeEventListener('touchmove',onMove);
+      window.removeEventListener('touchend',onUp);
+      if(dragMoved){save();render();}
+      else selectEv(ev.id);
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    window.addEventListener('touchmove',onMove,{passive:false});
+    window.addEventListener('touchend',onUp);
+  };
+  block.addEventListener('mousedown',onPtrDown);
+  block.addEventListener('touchstart',onPtrDown,{passive:false});
+
+  // Resize handles (shown when selected)
+  if(isSel){
+    ['left','right'].forEach(side=>{
+      const h=document.createElement('div');
+      h.style.cssText=`position:absolute;top:50%;transform:translateY(-50%);width:26px;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:3px;cursor:ew-resize;z-index:15;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.1);touch-action:none`;
+      h.innerHTML=`<svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><line x1="2.5" y1="2" x2="2.5" y2="12"/><line x1="5.5" y1="2" x2="5.5" y2="12"/></svg>`;
+      if(side==='left') h.style.left='calc('+pct(ev.start)+' - 30px)';
+      else h.style.left='calc('+pct(ev.end)+' + 4px)';
+      h.style.position='absolute';
+      const onHDown=e=>{
+        e.stopPropagation(); e.preventDefault();
+        const rect=bar.getBoundingClientRect();
+        const onHMove=me=>{
+          const slot=Math.max(0,Math.min(SLOTS,Math.round(((me.touches||[me])[0].clientX-rect.left)/rect.width*SLOTS)));
+          if(side==='left') ev.start=Math.min(slot,ev.end-1);
+          else ev.end=Math.max(slot,ev.start+1);
+          block.style.left=pct(ev.start);
+          block.style.width=pct(ev.end-ev.start);
+          if(side==='left') h.style.left='calc('+pct(ev.start)+' - 30px)';
+          else h.style.left='calc('+pct(ev.end)+' + 4px)';
+        };
+        const onHUp=()=>{
+          window.removeEventListener('mousemove',onHMove);
+          window.removeEventListener('mouseup',onHUp);
+          window.removeEventListener('touchmove',onHMove);
+          window.removeEventListener('touchend',onHUp);
+          save(); render();
+        };
+        window.addEventListener('mousemove',onHMove);
+        window.addEventListener('mouseup',onHUp);
+        window.addEventListener('touchmove',onHMove,{passive:false});
+        window.addEventListener('touchend',onHUp);
+      };
+      h.addEventListener('mousedown',onHDown);
+      h.addEventListener('touchstart',onHDown,{passive:false});
+      bar.appendChild(h);
+    });
+  }
+  bar.appendChild(block);
+}
+
+// ─── Floating selection UI ────────────────────────────────────────────────────
+function renderFloatUI(bar, ev){
+  const isRange = ev.type==='range';
+  const float = document.createElement('div'); float.className='sel-float';
+
+  // Caret
+  const caret=document.createElement('div'); caret.className='sel-float-caret'; float.appendChild(caret);
+
+  // ── Row 1: colors + delete ──
+  const sfTop=document.createElement('div'); sfTop.className='sf-top';
+  const sfColors=document.createElement('div'); sfColors.className='sf-colors';
+  COLORS.forEach(c=>{
+    const sw=document.createElement('div'); sw.className='sf-color'+(c===ev.color?' active':'');
+    sw.style.background=c;
+    sw.addEventListener('click',e=>{e.stopPropagation();ev.color=c;G.selColor=c;save();render();});
+    sw.addEventListener('mousedown',e=>e.stopPropagation());
+    sfColors.appendChild(sw);
+  });
+  sfTop.appendChild(sfColors);
+  const delBtn=document.createElement('button'); delBtn.className='sf-del'; delBtn.textContent='×'; delBtn.title='刪除';
+  delBtn.addEventListener('mousedown',e=>e.stopPropagation());
+  delBtn.addEventListener('click',e=>{e.stopPropagation();deleteEv(ev.id);});
+  sfTop.appendChild(delBtn);
+  float.appendChild(sfTop);
+
+  // ── Row 2: title ──
+  const titleRow=document.createElement('div'); titleRow.className='sf-title-row';
+  const titleInp=document.createElement('input'); titleInp.className='sf-title-inp';
+  titleInp.type='text'; titleInp.value=ev.title; titleInp.placeholder='標題…';
+  titleInp.addEventListener('mousedown',e=>e.stopPropagation());
+  titleInp.addEventListener('change',()=>{ev.title=titleInp.value.trim()||ev.title;save();render();});
+  titleInp.addEventListener('keydown',e=>{if(e.key==='Enter'){ev.title=titleInp.value.trim()||ev.title;save();render();}if(e.key==='Escape')deselect();});
+  titleRow.appendChild(titleInp); float.appendChild(titleRow);
+
+  // ── Row 3: day selector (cross-day) ──
+  const dayRow=document.createElement('div'); dayRow.className='sf-day-row';
+  const dayLbl=document.createElement('span'); dayLbl.className='sf-day-label'; dayLbl.textContent='星期';
+  dayRow.appendChild(dayLbl);
+  const dayBtns=document.createElement('div'); dayBtns.className='sf-day-btns';
+  DAYS.forEach((d,i)=>{
+    const b=document.createElement('button'); b.className='sf-day-btn'+(ev.day===i?' active':'');
+    b.textContent=d;
+    b.addEventListener('mousedown',e=>e.stopPropagation());
+    b.addEventListener('click',e=>{e.stopPropagation();ev.day=i;save();render();});
+    dayBtns.appendChild(b);
+  });
+  dayRow.appendChild(dayBtns); float.appendChild(dayRow);
+
+  // ── Row 4: time inputs (simple, consistent for both range and flag) ──
+  const timeSec = document.createElement('div');
+  timeSec.style.cssText = 'padding:8px 10px 10px';
+
+  if (isRange) {
+    // Start time row
+    const rowS = document.createElement('div');
+    rowS.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
+    const lblS = document.createElement('span');
+    lblS.style.cssText = 'font-family:"DM Mono",monospace;font-size:9px;color:var(--text-muted);width:28px;flex-shrink:0';
+    lblS.textContent = '開始';
+    const inpS = document.createElement('input');
+    inpS.type = 'time'; inpS.step = '1800'; inpS.value = s2str(ev.start);
+    inpS.style.cssText = 'flex:1;font-family:"DM Mono",monospace;font-size:12px;padding:5px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none';
+    inpS.addEventListener('mousedown', e => e.stopPropagation());
+    inpS.addEventListener('focus', e => e.stopPropagation());
+    rowS.appendChild(lblS); rowS.appendChild(inpS);
+    timeSec.appendChild(rowS);
+
+    // End time row
+    const rowE = document.createElement('div');
+    rowE.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:8px';
+    const lblE = document.createElement('span');
+    lblE.style.cssText = 'font-family:"DM Mono",monospace;font-size:9px;color:var(--text-muted);width:28px;flex-shrink:0';
+    lblE.textContent = '結束';
+    const inpE = document.createElement('input');
+    inpE.type = 'time'; inpE.step = '1800'; inpE.value = s2str(ev.end);
+    inpE.style.cssText = 'flex:1;font-family:"DM Mono",monospace;font-size:12px;padding:5px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none';
+    inpE.addEventListener('mousedown', e => e.stopPropagation());
+    inpE.addEventListener('focus', e => e.stopPropagation());
+    rowE.appendChild(lblE); rowE.appendChild(inpE);
+    timeSec.appendChild(rowE);
+
+    const applyBtn = document.createElement('button');
+    applyBtn.style.cssText = 'width:100%;padding:7px;background:var(--accent);color:#fff;border:none;border-radius:3px;font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;letter-spacing:.06em';
+    applyBtn.textContent = '套用時間';
+    applyBtn.addEventListener('mousedown', e => e.stopPropagation());
+    applyBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const ns = t2s(inpS.value), ne = t2s(inpE.value);
+      if (ne <= ns) { alert('結束時間需晚於開始時間'); return; }
+      ev.start = ns; ev.end = ne; save(); render();
+    });
+    timeSec.appendChild(applyBtn);
+  } else {
+    // Point: single time input
+    const rowT = document.createElement('div');
+    rowT.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:8px';
+    const lblT = document.createElement('span');
+    lblT.style.cssText = 'font-family:"DM Mono",monospace;font-size:9px;color:var(--text-muted);width:28px;flex-shrink:0';
+    lblT.textContent = '時間';
+    const inpT = document.createElement('input');
+    inpT.type = 'time'; inpT.step = '1800'; inpT.value = s2str(ev.start);
+    inpT.style.cssText = 'flex:1;font-family:"DM Mono",monospace;font-size:12px;padding:5px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none';
+    inpT.addEventListener('mousedown', e => e.stopPropagation());
+    inpT.addEventListener('focus', e => e.stopPropagation());
+    rowT.appendChild(lblT); rowT.appendChild(inpT);
+    timeSec.appendChild(rowT);
+
+    const applyBtn = document.createElement('button');
+    applyBtn.style.cssText = 'width:100%;padding:7px;background:var(--accent);color:#fff;border:none;border-radius:3px;font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;letter-spacing:.06em';
+    applyBtn.textContent = '套用時間';
+    applyBtn.addEventListener('mousedown', e => e.stopPropagation());
+    applyBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      ev.start = ev.end = t2s(inpT.value); save(); render();
+    });
+    timeSec.appendChild(applyBtn);
+  }
+
+  float.appendChild(timeSec);
+
+  // Stop all events on float from propagating to deselect handler
+  float.addEventListener('mousedown',e=>e.stopPropagation());
+  float.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+
+  bar.appendChild(float);
+
+  // Position float: centered on event, clamped to bar
+  requestAnimationFrame(()=>{
+    const barW=bar.getBoundingClientRect().width;
+    const fw=float.offsetWidth||230;
+    const evCenterPct=isRange ? (ev.start+(ev.end-ev.start)/2)/SLOTS : ev.start/SLOTS;
+    const ideal=evCenterPct*barW - fw/2;
+    const clamped=Math.max(0,Math.min(barW-fw,ideal));
+    float.style.left=clamped+'px';
+    // position caret
+    const caretX=evCenterPct*barW - clamped - 7;
+    caret.style.left=Math.max(10,Math.min(fw-24,caretX))+'px';
+  });
+}
+
+// ─── Bar interaction ──────────────────────────────────────────────────────────
+function setupBar(bar, di, prev){
+  let ds=null, dragging=false;
+  const startNew=clientX=>{dragging=false;ds=cx({clientX},bar);prev.style.left=pct(ds);prev.style.width='0%';prev.style.display='block';deselect(false);};
+  const moveNew=clientX=>{if(ds===null)return;const cur=cx({clientX},bar),s=Math.min(ds,cur),en=Math.max(ds,cur);prev.style.left=pct(s);prev.style.width=pct(en-s);if(en-s>=1)dragging=true;};
+  const endNew=clientX=>{
+    if(ds===null)return; prev.style.display='none';
+    const cur=cx({clientX},bar),s=Math.min(ds,cur),en=Math.max(ds,cur);
+    const wasClick=!dragging||en-s<1; ds=null;dragging=false;
+    openQA({day:di,start:s,end:wasClick?s:en});
+  };
+  bar.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    if(e.target.closest('.event-block,.flag-pin,.sel-float,.event-block *,[style*="cursor:ew-resize"]'))return;
+    e.preventDefault(); startNew(e.clientX);
+  });
+  window.addEventListener('mousemove',e=>{if(ds!==null)moveNew(e.clientX);});
+  window.addEventListener('mouseup',e=>{if(ds!==null)endNew(e.clientX);});
+  bar.addEventListener('touchstart',e=>{
+    if(e.target.closest('.event-block,.flag-pin,.sel-float'))return;
+    startNew(e.touches[0].clientX);
+  },{passive:true});
+  bar.addEventListener('touchmove',e=>{if(ds!==null){e.preventDefault();moveNew(e.touches[0].clientX);}},{passive:false});
+  bar.addEventListener('touchend',e=>{if(ds!==null)endNew(e.changedTouches[0].clientX);});
+}
+
+// ─── Select / deselect ───────────────────────────────────────────────────────
+function selectEv(id){ selId=id; render(); }
+function deselect(rerender=true){ selId=null; if(rerender)render(); }
+
+document.addEventListener('mousedown',e=>{
+  if(!selId)return;
+  if(e.target.closest('.event-block,.flag-pin,.sel-float,.modal-overlay'))return;
+  deselect();
+});
+
+// ─── Delete ───────────────────────────────────────────────────────────────────
+function deleteEv(id){
+  G.events=G.events.filter(e=>e.id!==id);
+  if(selId===id)selId=null;
+  save(); render();
+}
+function clearAll(){if(!confirm('確定清除所有事件？'))return;G.events=[];selId=null;save();render();}
+
+// ─── Quick-add modal ──────────────────────────────────────────────────────────
+let pendingType='range';
+function openQA(partial){
+  pending={id:uid(),day:partial.day,type:'range',start:partial.start,end:partial.end,color:G.selColor,title:'行程'};
+  pendingType='range';
+  document.getElementById('qa-range').classList.add('active');
+  document.getElementById('qa-point').classList.remove('active');
+  document.getElementById('qa-hint').textContent = (partial.start===partial.end)?s2str(partial.start):`${s2str(partial.start)} – ${s2str(partial.end)}`;
+  document.getElementById('qa-title').value='行程';
+  buildQAFields(); buildQAColors();
+  document.getElementById('modal-qa').classList.add('open');
+  setTimeout(()=>{const i=document.getElementById('qa-title');i.focus();i.select();},40);
+}
+function qaType(t){
+  if(!pending)return; pendingType=t; pending.type=t; pending.title=t==='range'?'行程':'事件';
+  document.getElementById('qa-range').classList.toggle('active',t==='range');
+  document.getElementById('qa-point').classList.toggle('active',t==='point');
+  document.getElementById('qa-title').value=pending.title;
+  buildQAFields();
+  setTimeout(()=>document.getElementById('qa-title')?.focus(),20);
+}
+function buildQAFields(){
+  const c=document.getElementById('qa-fields'); c.innerHTML='';
+  if(!pending)return;
+  if(pending.type==='point'){
+    const fg=document.createElement('div');fg.className='form-group';
+    fg.innerHTML=`<label>時間點</label><input type="time" id="qa-pt" step="1800" value="${s2str(pending.start)}" style="min-width:100px">`;
+    c.appendChild(fg);
+  } else {
+    const endV=pending.end>pending.start?pending.end:pending.start+2;
+    const fgs=document.createElement('div');fgs.className='form-group';
+    fgs.innerHTML=`<label>開始</label><input type="time" id="qa-s" step="1800" value="${s2str(pending.start)}" style="min-width:100px">`;
+    const fge=document.createElement('div');fge.className='form-group';
+    fge.innerHTML=`<label>結束</label><input type="time" id="qa-e" step="1800" value="${s2str(Math.min(endV,SLOTS))}" style="min-width:100px">`;
+    c.appendChild(fgs);c.appendChild(fge);
+  }
+}
+function buildQAColors(){
+  const cr=document.getElementById('qa-colors');cr.innerHTML='';
+  COLORS.forEach(c=>{
+    const sw=document.createElement('div');sw.className='csw'+(c===G.selColor?' selected':'');sw.style.background=c;
+    sw.onclick=()=>{cr.querySelectorAll('.csw').forEach(s=>s.classList.remove('selected'));sw.classList.add('selected');if(pending)pending.color=c;G.selColor=c;};
+    cr.appendChild(sw);
+  });
+}
+function cancelQA(){document.getElementById('modal-qa').classList.remove('open');pending=null;}
+function confirmQA(){
+  if(!pending)return;
+  const t=document.getElementById('qa-title');
+  pending.title=t.value.trim()||pending.title;
+  if(pending.type==='point'){
+    const pt=document.getElementById('qa-pt');if(pt)pending.start=pending.end=t2s(pt.value);
+  } else {
+    const qs=document.getElementById('qa-s'),qe=document.getElementById('qa-e');
+    if(qs&&qe){const ns=t2s(qs.value),ne=t2s(qe.value);if(ne<=ns){alert('結束時間需晚於開始時間');return;}pending.start=ns;pending.end=ne;}
+  }
+  G.events.push(pending);save();render();
+  document.getElementById('modal-qa').classList.remove('open');pending=null;
+}
+document.getElementById('qa-title').addEventListener('keydown',e=>{if(e.key==='Enter')confirmQA();if(e.key==='Escape')cancelQA();});
+document.getElementById('modal-qa').addEventListener('mousedown',e=>{if(e.target===document.getElementById('modal-qa'))cancelQA();});
+
+// ─── Week label ───────────────────────────────────────────────────────────────
+function editWeekLabel(){document.getElementById('wl-inp').value=G.weekLabel;document.getElementById('modal-wl').classList.add('open');setTimeout(()=>document.getElementById('wl-inp').select(),40);}
+function saveWL(){G.weekLabel=document.getElementById('wl-inp').value||G.weekLabel;closeM('modal-wl');save();render();}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.getElementById('wl-inp').addEventListener('keydown',e=>{if(e.key==='Enter')saveWL();if(e.key==='Escape')closeM('modal-wl');});
+document.getElementById('modal-wl').addEventListener('mousedown',e=>{if(e.target===document.getElementById('modal-wl'))closeM('modal-wl');});
+
+// ─── Legend ───────────────────────────────────────────────────────────────────
+function renderLegend(){
+  let el=document.getElementById('legend-bar');
+  if(!el){el=document.createElement('div');el.id='legend-bar';el.style.cssText='display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border-light)';document.querySelector('.chart-wrap').appendChild(el);}
+  const seen={};G.events.forEach(e=>{seen[e.color+'|'+e.title]=e;});
+  const uniq=Object.values(seen).slice(0,12);
+  if(!uniq.length){el.innerHTML='';return;}
+  el.innerHTML='<span style="font-size:10px;color:var(--text-light);font-family:\'DM Mono\',monospace;margin-right:2px">圖例</span>';
+  uniq.forEach(e=>{const item=document.createElement('div');item.style.cssText='display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-muted);font-family:\'DM Mono\',monospace';item.innerHTML=`<div style="width:9px;height:9px;border-radius:2px;background:${e.color};flex-shrink:0"></div>${e.title}`;el.appendChild(item);});
+}
+
+// ─── Theme ────────────────────────────────────────────────────────────────────
+function applyTheme(t){
+  document.body.className=t==='sage'?'':`theme-${t}`;
+  document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===t));
+  G.theme=t;save();
+}
+document.querySelectorAll('.theme-dot').forEach(d=>d.addEventListener('click',()=>applyTheme(d.dataset.theme)));
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+async function exportImage(){
+  if(typeof html2canvas==='undefined'){const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';document.head.appendChild(s);await new Promise(r=>{s.onload=r;});}
+  const wrap=document.getElementById('chart-wrap');
+  const canvas=await html2canvas(wrap,{scale:2,useCORS:true,logging:false,backgroundColor:getComputedStyle(document.body).getPropertyValue('--surface')||'#faf8f4'});
+  const a=document.createElement('a');a.download=`schedule-${G.weekLabel.replace(/\s/g,'-')}.png`;a.href=canvas.toDataURL('image/png');a.click();
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+load();
+applyTheme(G.theme);
+renderAxis();
+render();
+</script>
+</body>
+</html>
