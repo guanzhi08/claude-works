@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>週行程編輯器</title>
+<title>週行程編輯器 v1</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -95,8 +95,9 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
   bottom:34px; /* sits just above bar top */
   left:1px;
   display:flex;flex-direction:column;align-items:flex-start;
-  pointer-events:none
+  pointer-events:auto;cursor:grab
 }
+.flag-head:active{cursor:grabbing}
 .flag-banner{
   height:14px;padding:0 7px 0 4px;
   border-radius:2px 2px 2px 0;
@@ -212,7 +213,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 
 <div class="header">
   <div class="header-left">
-    <h1>週行程編輯器</h1>
+    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v1</span></h1>
     <p>weekly schedule / 每週計劃</p>
   </div>
   <div class="header-right">
@@ -317,6 +318,8 @@ function render(){
   DAYS.forEach((day,di)=>{
     const row=document.createElement('div'); row.className='day-row';
     const lbl=document.createElement('div'); lbl.className='day-label'; lbl.textContent=day;
+    lbl.style.cursor='pointer'; lbl.title='點擊新增事件';
+    lbl.addEventListener('click',()=>openQA({day:di,start:24,end:24}));
     row.appendChild(lbl);
     const bar=document.createElement('div'); bar.className='day-bar-container'; bar.dataset.day=di;
     // grid ticks
@@ -385,14 +388,13 @@ function renderFlag(bar, ev){
 
   pin.appendChild(head);
 
-  // Drag to move flag (pointer events)
+  // Drag to move flag — attached to both pin and head (banner area)
   let dragActive = false, dragMoved = false;
   const onPtrDown = e => {
     e.stopPropagation(); e.preventDefault();
     dragActive = true; dragMoved = false;
     const startX = (e.touches||[e])[0].clientX;
     const barRect = bar.getBoundingClientRect();
-    const origSlot = ev.start;
 
     const onMove = me => {
       const clientX = (me.touches||[me])[0].clientX;
@@ -420,6 +422,8 @@ function renderFlag(bar, ev){
   };
   pin.addEventListener('mousedown', onPtrDown);
   pin.addEventListener('touchstart', onPtrDown, {passive:false});
+  head.addEventListener('mousedown', onPtrDown);
+  head.addEventListener('touchstart', onPtrDown, {passive:false});
 
   bar.appendChild(pin);
 }
@@ -527,20 +531,25 @@ function renderFloatUI(bar, ev){
     sfColors.appendChild(sw);
   });
   sfTop.appendChild(sfColors);
-  const delBtn=document.createElement('button'); delBtn.className='sf-del'; delBtn.textContent='×'; delBtn.title='刪除';
-  delBtn.addEventListener('mousedown',e=>e.stopPropagation());
-  delBtn.addEventListener('click',e=>{e.stopPropagation();deleteEv(ev.id);});
-  sfTop.appendChild(delBtn);
   float.appendChild(sfTop);
 
-  // ── Row 2: title ──
+  // ── Row 2: title + red delete ──
   const titleRow=document.createElement('div'); titleRow.className='sf-title-row';
+  titleRow.style.cssText='padding:6px 10px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:6px';
   const titleInp=document.createElement('input'); titleInp.className='sf-title-inp';
+  titleInp.style.flex='1'; titleInp.style.width='auto';
   titleInp.type='text'; titleInp.value=ev.title; titleInp.placeholder='標題…';
   titleInp.addEventListener('mousedown',e=>e.stopPropagation());
   titleInp.addEventListener('change',()=>{ev.title=titleInp.value.trim()||ev.title;save();render();});
   titleInp.addEventListener('keydown',e=>{if(e.key==='Enter'){ev.title=titleInp.value.trim()||ev.title;save();render();}if(e.key==='Escape')deselect();});
-  titleRow.appendChild(titleInp); float.appendChild(titleRow);
+  const delBtn=document.createElement('button');
+  delBtn.style.cssText='flex-shrink:0;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;font-size:11px;font-weight:600;padding:5px 9px;border-radius:3px;cursor:pointer;font-family:"DM Mono",monospace;transition:background .12s;-webkit-tap-highlight-color:transparent';
+  delBtn.textContent='刪除';
+  delBtn.addEventListener('mouseover',()=>delBtn.style.background='#fecaca');
+  delBtn.addEventListener('mouseout',()=>delBtn.style.background='#fee2e2');
+  delBtn.addEventListener('mousedown',e=>e.stopPropagation());
+  delBtn.addEventListener('click',e=>{e.stopPropagation();deleteEv(ev.id);});
+  titleRow.appendChild(titleInp); titleRow.appendChild(delBtn); float.appendChild(titleRow);
 
   // ── Row 3: day selector (cross-day) ──
   const dayRow=document.createElement('div'); dayRow.className='sf-day-row';
