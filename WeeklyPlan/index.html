@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>週行程編輯器 v1</title>
+<title>週行程編輯器 v2</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -38,88 +38,64 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 .btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-accent:hover{opacity:.85;color:#fff}
 
-.main{padding:20px 16px 40px;max-width:1200px;margin:0 auto}
+.main{padding:20px 16px 40px;max-width:1400px;margin:0 auto}
 
 /* ── Chart ── */
-.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 16px 24px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.chart-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 16px 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+.chart-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .chart-title{font-size:12px;font-weight:400;letter-spacing:.12em;color:var(--text-muted);font-family:'DM Mono',monospace}
 #week-label{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace;cursor:pointer;border-bottom:1px dotted var(--border)}
 
+/* ── Mode bar ── */
+.mode-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.mode-toggle{display:flex;border:1px solid var(--border);border-radius:4px;overflow:hidden;flex-shrink:0}
+.mode-btn{font-family:'DM Mono',monospace;font-size:10px;padding:6px 12px;border:none;border-right:1px solid var(--border);background:var(--bg);color:var(--text-muted);cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.mode-btn:last-child{border-right:none}
+.mode-btn.active{background:var(--accent);color:#fff}
+.zoom-controls{display:flex;align-items:center;gap:5px}
+.zoom-btn{width:28px;height:28px;font-size:15px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1}
+.zoom-btn:hover{background:var(--surface2);color:var(--text)}
+.zoom-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);min-width:38px;text-align:center}
+.browse-hint{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-light);padding:3px 8px;background:var(--surface2);border-radius:3px;display:none}
+.browse-hint.visible{display:inline}
+
 /* ── Time axis ── */
-.time-axis{margin-left:52px;position:relative;min-width:600px;height:24px;margin-bottom:4px}
+.time-axis{margin-left:52px;position:relative;height:24px;margin-bottom:4px}
 .time-label{font-family:'DM Mono',monospace;font-size:8px;color:var(--text-muted);display:block;white-space:nowrap;position:absolute;bottom:6px}
 .time-tick{position:absolute;bottom:0;width:1px}
 .time-tick.major{height:6px;background:var(--tick-major)}
 .time-tick.minor{height:3px;background:var(--tick-minor);opacity:.5}
 
-/* ── Schedule ──
-   BAR_H=34 FLAG_SPACE=22 GAP=8 ROW_H=64
-   Each row: 22px flag zone on top, 34px bar, 8px gap below
-*/
-.schedule-area{min-width:600px;position:relative}
+/* ── Schedule ── */
+.schedule-area{position:relative}
 .day-row{display:flex;align-items:flex-end;padding-top:22px;margin-bottom:8px;position:relative}
-.day-label{width:52px;flex-shrink:0;font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;padding-right:10px;text-align:right;user-select:none;padding-bottom:6px}
+.day-label{width:52px;flex-shrink:0;font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;padding-right:10px;text-align:right;user-select:none;padding-bottom:6px;cursor:pointer;transition:color .12s}
+.day-label:hover{color:var(--accent)}
 .day-bar-container{flex:1;height:34px;background:var(--surface2);border-radius:2px;position:relative;cursor:crosshair;border:1px solid var(--border-light);transition:background .15s;touch-action:none;overflow:visible}
 .day-bar-container:hover{background:var(--row-hover)}
+.day-bar-container.browse{cursor:default}
 .bar-tick{position:absolute;top:0;width:1px;pointer-events:none}
 .bar-tick.major{height:100%;background:var(--border);opacity:.5}
 .bar-tick.minor{height:40%;top:30%;background:var(--border);opacity:.3}
 
-/* ── Flag: overflows ABOVE bar ──
-   .flag-pin is positioned inside bar with overflow:visible,
-   bottom=100% so it sits above bar top.
-   The line extends DOWN through the full bar height (34px).
-*/
+/* ── Flag ── */
 .flag-pin{
-  position:absolute;
-  /* bottom set to bar top; overflow goes upward */
-  bottom:0; /* anchored at bar bottom — JS sets left% */
-  width:0;overflow:visible;
-  pointer-events:auto;cursor:pointer;
-  z-index:6;-webkit-tap-highlight-color:transparent
+  position:absolute;bottom:0;width:0;overflow:visible;
+  pointer-events:auto;cursor:pointer;z-index:6;-webkit-tap-highlight-color:transparent
 }
-/* Vertical line: from bar-bottom UP through bar, continuing above to flag */
-.flag-line{
-  position:absolute;
-  bottom:0;left:-1px;
-  width:2px;
-  /* height = bar_h(34) + flag_space(22) */
-  height:56px;
-  border-radius:1px;
-  pointer-events:none
-}
-/* Banner sits at top of the line (above bar) */
+.flag-line{position:absolute;bottom:0;left:-1px;width:2px;border-radius:1px;pointer-events:none}
 .flag-head{
-  position:absolute;
-  bottom:34px; /* sits just above bar top */
-  left:1px;
+  position:absolute;bottom:34px;left:1px;
   display:flex;flex-direction:column;align-items:flex-start;
   pointer-events:auto;cursor:grab
 }
 .flag-head:active{cursor:grabbing}
 .flag-banner{
-  height:14px;padding:0 7px 0 4px;
-  border-radius:2px 2px 2px 0;
-  display:flex;align-items:center;
-  white-space:nowrap;
-  font-family:'DM Mono',monospace;font-size:9px;color:#fff;letter-spacing:.03em;
-  position:relative
+  height:14px;padding:0 7px 0 4px;border-radius:2px 2px 2px 0;
+  display:flex;align-items:center;white-space:nowrap;
+  font-family:'DM Mono',monospace;font-size:9px;color:#fff;letter-spacing:.03em;position:relative
 }
-/* small down-left notch */
-.flag-banner::after{
-  content:'';position:absolute;bottom:-5px;left:0;
-  border-left:5px solid transparent;
-  border-top:5px solid currentColor
-}
-.flag-title-tag{
-  font-family:'DM Mono',monospace;font-size:8px;
-  color:var(--text-muted);letter-spacing:.03em;
-  margin-top:2px;white-space:nowrap;
-  background:var(--surface);border:1px solid var(--border-light);
-  padding:1px 5px;border-radius:2px;
-  max-width:80px;overflow:hidden;text-overflow:ellipsis
-}
+.flag-banner::after{content:'';position:absolute;bottom:-5px;left:0;border-left:5px solid transparent;border-top:5px solid currentColor}
 .flag-pin.selected .flag-line{width:3px;left:-1.5px}
 .flag-pin.selected .flag-banner{filter:brightness(.9)}
 
@@ -132,44 +108,39 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 }
 .event-block:hover{filter:brightness(.93)}
 .event-block.selected{outline:2px solid rgba(0,0,0,.45);outline-offset:1px;z-index:12}
+.event-block.ghost{background:transparent!important}
 .event-label{font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Noto Serif TC',serif;flex:1;pointer-events:none}
 
 /* ── Drag preview ── */
 .drag-preview{position:absolute;top:4px;height:26px;background:var(--accent);opacity:.25;border-radius:2px;pointer-events:none;display:none;z-index:2}
 
-/* ── Floating selection UI ──
-   Appears below (or above if near bottom) the selected event.
-   Contains: color picker, title input, day selector (cross-day), time clock, delete.
-*/
+/* ── Floating selection UI ── */
 .sel-float{
   position:absolute;top:calc(100% + 8px);left:0;
   z-index:60;background:var(--surface);border:1px solid var(--border);
   border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.14);
-  width:230px;pointer-events:auto
+  width:240px;pointer-events:auto
 }
-/* caret pointing up */
-.sel-float-caret{
-  position:absolute;top:-7px;left:24px;
-  width:14px;height:7px;overflow:hidden;pointer-events:none
-}
+.sel-float-caret{position:absolute;top:-7px;left:24px;width:14px;height:7px;overflow:hidden;pointer-events:none}
 .sel-float-caret::before{content:'';position:absolute;top:1px;left:0;border:7px solid transparent;border-bottom-color:var(--border)}
 .sel-float-caret::after{content:'';position:absolute;top:2px;left:1px;border:6px solid transparent;border-bottom-color:var(--surface)}
-
-/* Top bar: color swatch row + delete */
 .sf-top{display:flex;align-items:center;gap:6px;padding:8px 10px 6px;border-bottom:1px solid var(--border-light)}
 .sf-colors{display:flex;gap:5px;flex:1;flex-wrap:wrap}
 .sf-color{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s;flex-shrink:0}
 .sf-color:hover{transform:scale(1.2)}
 .sf-color.active{border-color:var(--text);transform:scale(1.1)}
-.sf-del{background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;line-height:1;padding:2px 4px;border-radius:3px;transition:color .12s,background .12s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-.sf-del:hover{color:#c97b7b;background:#fff0f0}
-
-/* Title */
-.sf-title-row{padding:6px 10px;border-bottom:1px solid var(--border-light)}
-.sf-title-inp{width:100%;font-family:'Noto Serif TC',serif;font-size:12px;color:var(--text);border:1px solid var(--border-light);background:var(--bg);border-radius:3px;padding:5px 8px;outline:none;transition:border-color .15s}
+/* ghost toggle inside sf-top */
+.sf-ghost-wrap{display:flex;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;padding:2px 4px;border-radius:3px;transition:background .12s}
+.sf-ghost-wrap:hover{background:var(--surface2)}
+.sf-ghost-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--text-muted)}
+.sf-ghost-chk{width:13px;height:13px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
+/* Title row with delete */
+.sf-title-row{padding:6px 10px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:6px}
+.sf-title-inp{flex:1;width:auto;font-family:'Noto Serif TC',serif;font-size:12px;color:var(--text);border:1px solid var(--border-light);background:var(--bg);border-radius:3px;padding:5px 8px;outline:none;transition:border-color .15s}
 .sf-title-inp:focus{border-color:var(--accent)}
-
-/* Day selector for cross-day move */
+.sf-del{flex-shrink:0;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;font-size:11px;font-weight:600;padding:5px 9px;border-radius:3px;cursor:pointer;font-family:'DM Mono',monospace;transition:background .12s;-webkit-tap-highlight-color:transparent}
+.sf-del:hover{background:#fecaca}
+/* Day selector */
 .sf-day-row{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border-light)}
 .sf-day-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);width:28px;flex-shrink:0}
 .sf-day-btns{display:flex;gap:3px;flex-wrap:wrap}
@@ -177,9 +148,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 .sf-day-btn:hover{background:var(--surface2)}
 .sf-day-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 
-/* ── Clock widget CSS removed ── */
-
-/* ── Modal (quick-add) ── */
+/* ── Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:400;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
 @media(min-width:520px){.modal-overlay{align-items:center}}
@@ -202,8 +171,23 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 .csw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s}
 .csw:hover{transform:scale(1.15)}
 .csw.selected{border-color:var(--text)}
+.qa-ghost-row{display:flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:2px}
+.qa-ghost-row input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
+.qa-ghost-row label{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;cursor:pointer}
 .hint{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:8px;line-height:1.6}
 .hint span{color:var(--text-muted)}
+
+/* ── Pie chart ── */
+.pie-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);display:none}
+.pie-section.has-data{display:block}
+.pie-title{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:12px}
+.pie-wrap{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.pie-legend{display:flex;flex-direction:column;gap:5px;min-width:130px;padding-top:4px}
+.pie-legend-item{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)}
+.pie-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.pie-pct{color:var(--text-light);margin-left:auto;padding-left:8px;white-space:nowrap}
+.pie-total{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-light);margin-top:8px;padding-top:6px;border-top:1px solid var(--border-light)}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -213,7 +197,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 
 <div class="header">
   <div class="header-left">
-    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v1</span></h1>
+    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v2</span></h1>
     <p>weekly schedule / 每週計劃</p>
   </div>
   <div class="header-right">
@@ -236,9 +220,33 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
       <span class="chart-title">每週行程</span>
       <span id="week-label" onclick="editWeekLabel()" title="點擊編輯"></span>
     </div>
+
+    <!-- Mode + Zoom bar -->
+    <div class="mode-bar">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-edit" onclick="setMode('edit')">✏️ 編輯</button>
+        <button class="mode-btn" id="btn-browse" onclick="setMode('browse')">👁 瀏覽</button>
+      </div>
+      <div class="zoom-controls" id="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()" title="縮小">−</button>
+        <span class="zoom-label" id="zoom-label">100%</span>
+        <button class="zoom-btn" onclick="zoomIn()" title="放大">+</button>
+      </div>
+      <span class="browse-hint" id="browse-hint">拖曳平移 · 捏合縮放</span>
+    </div>
+
     <div class="time-axis" id="time-axis"></div>
     <div class="schedule-area" id="schedule-area"></div>
-    <p class="hint" style="margin-top:12px;padding:0 2px">在長條圖上 <span>拖曳</span> 建立時段 · <span>點擊空白</span> 新增 · <span>點擊事件</span> 選取 · 旗標可拖曳移動</p>
+    <p class="hint" style="margin-top:12px;padding:0 2px">
+      <span>編輯模式</span>：拖曳建立時段 · 點擊空白新增 · 點擊事件選取 · 旗標可拖曳移動 ·
+      <span>瀏覽模式</span>：拖曳平移 · 捏合縮放
+    </p>
+
+    <!-- Pie chart -->
+    <div class="pie-section" id="pie-section">
+      <div class="pie-title">每週時間統計（實心事件）</div>
+      <div id="pie-container"></div>
+    </div>
   </div>
 </div>
 
@@ -253,11 +261,15 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
       <button class="qa-type-btn" id="qa-point" onclick="qaType('point')"><span class="qi">⚑</span>旗標</button>
     </div>
     <div class="qa-fields" id="qa-fields"></div>
-    <div class="form-group" style="width:100%;margin-bottom:12px">
-      <label>標題</label><input type="text" id="qa-title" style="width:100%" value="行程">
+    <div class="form-group" style="width:100%;margin-bottom:8px">
+      <label>標題</label><input type="text" id="qa-title" style="width:100%" value="行程" inputmode="text" autocomplete="off">
     </div>
     <div class="form-group">
       <label>顏色</label><div class="color-row" id="qa-colors"></div>
+    </div>
+    <div class="qa-ghost-row">
+      <input type="checkbox" id="qa-ghost">
+      <label for="qa-ghost">未定事件（透明框）</label>
     </div>
     <div class="modal-actions"><div></div><div class="modal-actions-right">
       <button class="btn" onclick="cancelQA()">取消</button>
@@ -284,6 +296,9 @@ const DAYS    = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
 const COLORS  = ['#7a9e87','#c4956a','#9b8ea8','#6b8fad','#c97b7b','#a09e6e','#7eb8b5','#c4a672'];
 const S_HOUR  = 0, E_HOUR = 24, SLOTS = (E_HOUR - S_HOUR) * 2;
 const BAR_H   = 34;
+const SLOT_W_BASE = 26; // px per slot at 100%
+const SLOT_W_MIN  = 10;
+const SLOT_W_MAX  = 80;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let G = {
@@ -291,10 +306,12 @@ let G = {
   theme: 'sage', selColor: COLORS[0]
 };
 let selId = null, pending = null;
+let SLOT_W = SLOT_W_BASE; // current px/slot (controls zoom)
+let mode = 'edit';        // 'edit' | 'browse'
 
 function defWeekLabel(){const n=new Date(),y=n.getFullYear(),w=Math.ceil(((n-new Date(y,0,1))/864e5+new Date(y,0,1).getDay()+1)/7);return`${y} W${String(w).padStart(2,'0')}`;}
-function save(){localStorage.setItem('sch-v8',JSON.stringify({events:G.events,weekLabel:G.weekLabel,theme:G.theme,selColor:G.selColor}));}
-function load(){try{const d=JSON.parse(localStorage.getItem('sch-v8')||'{}');if(d.events)G.events=d.events;if(d.weekLabel)G.weekLabel=d.weekLabel;if(d.theme)G.theme=d.theme;if(d.selColor)G.selColor=d.selColor;}catch(e){}}
+function save(){localStorage.setItem('sch-v9',JSON.stringify({events:G.events,weekLabel:G.weekLabel,theme:G.theme,selColor:G.selColor,slotW:SLOT_W}));}
+function load(){try{const d=JSON.parse(localStorage.getItem('sch-v9')||'{}');if(d.events)G.events=d.events;if(d.weekLabel)G.weekLabel=d.weekLabel;if(d.theme)G.theme=d.theme;if(d.selColor)G.selColor=d.selColor;if(d.slotW)SLOT_W=d.slotW;}catch(e){}}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const pct   = s => (s/SLOTS*100)+'%';
@@ -303,6 +320,39 @@ const t2s   = t => { const [h,m]=t.split(':').map(Number); return (h-S_HOUR)*2+(
 const uid   = () => Math.random().toString(36).slice(2,9);
 const cx    = (e,el) => { const r=el.getBoundingClientRect(); return Math.max(0,Math.min(SLOTS,Math.round(((e.touches?e.touches[0]:e).clientX-r.left)/r.width*SLOTS))); };
 
+// ─── Zoom / Width ─────────────────────────────────────────────────────────────
+function totalW(){ return SLOT_W * SLOTS; }
+function applyWidth(){
+  const w = totalW()+'px';
+  document.getElementById('time-axis').style.minWidth = w;
+  document.getElementById('schedule-area').style.minWidth = w;
+  const pctVal = Math.round(SLOT_W / SLOT_W_BASE * 100);
+  document.getElementById('zoom-label').textContent = pctVal + '%';
+}
+function zoomIn(){
+  SLOT_W = Math.min(SLOT_W_MAX, Math.round(SLOT_W * 1.3));
+  applyWidth(); save();
+}
+function zoomOut(){
+  SLOT_W = Math.max(SLOT_W_MIN, Math.round(SLOT_W / 1.3));
+  applyWidth(); save();
+}
+
+// ─── Mode ─────────────────────────────────────────────────────────────────────
+function setMode(m){
+  mode = m;
+  document.getElementById('btn-edit').classList.toggle('active', m==='edit');
+  document.getElementById('btn-browse').classList.toggle('active', m==='browse');
+  document.getElementById('browse-hint').classList.toggle('visible', m==='browse');
+  const wrap = document.getElementById('chart-wrap');
+  wrap.style.cursor = m==='browse' ? 'grab' : '';
+  // toggle bar cursors
+  document.querySelectorAll('.day-bar-container').forEach(b=>{
+    b.classList.toggle('browse', m==='browse');
+    b.style.cursor = m==='browse' ? 'default' : 'crosshair';
+  });
+}
+
 // ─── Time axis ────────────────────────────────────────────────────────────────
 function renderAxis(){
   const ax=document.getElementById('time-axis'); ax.innerHTML='';
@@ -310,6 +360,7 @@ function renderAxis(){
     if(s%2===0){const l=document.createElement('span');l.className='time-label';l.style.left=pct(s);l.textContent=`${S_HOUR+s/2}:00`;ax.appendChild(l);}
     const t=document.createElement('div');t.className='time-tick '+(s%2===0?'major':'minor');t.style.left=pct(s);ax.appendChild(t);
   }
+  applyWidth();
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -318,28 +369,25 @@ function render(){
   DAYS.forEach((day,di)=>{
     const row=document.createElement('div'); row.className='day-row';
     const lbl=document.createElement('div'); lbl.className='day-label'; lbl.textContent=day;
-    lbl.style.cursor='pointer'; lbl.title='點擊新增事件';
+    lbl.title='點擊新增事件';
     lbl.addEventListener('click',()=>openQA({day:di,start:24,end:24}));
     row.appendChild(lbl);
     const bar=document.createElement('div'); bar.className='day-bar-container'; bar.dataset.day=di;
-    // grid ticks
+    if(mode==='browse') bar.classList.add('browse');
     for(let s=1;s<SLOTS;s++){const t=document.createElement('div');t.className='bar-tick '+(s%2===0?'major':'minor');t.style.left=pct(s);bar.appendChild(t);}
-    // drag preview
     const prev=document.createElement('div'); prev.className='drag-preview'; bar.appendChild(prev);
-    // range events
     G.events.filter(e=>e.day===di&&e.type==='range').forEach(ev=>renderRange(bar,ev));
-    // flags
     G.events.filter(e=>e.day===di&&e.type==='point').forEach(ev=>renderFlag(bar,ev));
-    // floating UI for selected event on this bar
     const sev=G.events.find(e=>e.id===selId&&e.day===di);
     if(sev) setTimeout(()=>renderFloatUI(bar,sev),0);
-    // bar interaction
     setupBar(bar,di,prev);
     row.appendChild(bar);
     area.appendChild(row);
   });
   document.getElementById('week-label').textContent=G.weekLabel;
+  applyWidth();
   renderLegend();
+  renderPie();
 }
 
 // ─── Flag ─────────────────────────────────────────────────────────────────────
@@ -349,25 +397,23 @@ function renderFlag(bar, ev){
   pin.className = 'flag-pin'+(isSel?' selected':'');
   pin.style.left = pct(ev.start);
   pin.style.height = '0';
-  pin.style.zIndex = isSel ? '65' : '6'; // above float (z-index:60) when selected
+  pin.style.zIndex = isSel ? '65' : '6';
   pin.dataset.id = ev.id;
 
-  // Full-height line (bar_h + flag_space above = 56px total)
   const line = document.createElement('div');
   line.className = 'flag-line';
   line.style.background = ev.color;
-  line.style.height = (BAR_H + 22) + 'px'; // extends from bar-bottom up to above bar
+  line.style.opacity = ev.ghost ? '0.4' : '1';
+  line.style.height = (BAR_H + 22) + 'px';
   pin.appendChild(line);
 
-  // Head: banner with title on top row, time on bottom row
   const head = document.createElement('div');
   head.className = 'flag-head';
 
   const banner = document.createElement('div');
   banner.className = 'flag-banner';
-  banner.style.background = ev.color;
-  banner.style.color = ev.color;
-  // Two-line layout: title above, time below
+  banner.style.background = ev.ghost ? 'transparent' : ev.color;
+  banner.style.border = ev.ghost ? `1.5px dashed ${ev.color}` : 'none';
   banner.style.flexDirection = 'column';
   banner.style.alignItems = 'flex-start';
   banner.style.height = 'auto';
@@ -375,27 +421,25 @@ function renderFlag(bar, ev){
   banner.style.gap = '1px';
 
   const bannerTitle = document.createElement('span');
-  bannerTitle.style.cssText = 'font-size:9px;line-height:1.2;color:#fff;font-family:"Noto Serif TC",serif;font-weight:400;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block';
+  bannerTitle.style.cssText = 'font-size:9px;line-height:1.2;color:'+(ev.ghost?ev.color:'#fff')+';font-family:"Noto Serif TC",serif;font-weight:400;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block';
   bannerTitle.textContent = ev.title;
 
   const bannerTime = document.createElement('span');
-  bannerTime.style.cssText = 'font-size:8px;line-height:1.2;color:rgba(255,255,255,.75);font-family:"DM Mono",monospace;display:block';
+  bannerTime.style.cssText = 'font-size:8px;line-height:1.2;color:'+(ev.ghost?ev.color:'rgba(255,255,255,.75)')+';font-family:"DM Mono",monospace;display:block';
   bannerTime.textContent = s2str(ev.start);
 
   banner.appendChild(bannerTitle);
   banner.appendChild(bannerTime);
   head.appendChild(banner);
-
   pin.appendChild(head);
 
-  // Drag to move flag — attached to both pin and head (banner area)
-  let dragActive = false, dragMoved = false;
+  // Shared drag handler (pin + head)
+  let dragMoved = false;
   const onPtrDown = e => {
     e.stopPropagation(); e.preventDefault();
-    dragActive = true; dragMoved = false;
+    dragMoved = false;
     const startX = (e.touches||[e])[0].clientX;
     const barRect = bar.getBoundingClientRect();
-
     const onMove = me => {
       const clientX = (me.touches||[me])[0].clientX;
       if(Math.abs(clientX-startX)>4) dragMoved=true;
@@ -403,11 +447,9 @@ function renderFlag(bar, ev){
       const newSlot = Math.max(0,Math.min(SLOTS,Math.round((clientX-barRect.left)/barRect.width*SLOTS)));
       ev.start = ev.end = newSlot;
       pin.style.left = pct(newSlot);
-      line.style.background = ev.color;
       bannerTime.textContent = s2str(newSlot);
     };
     const onUp = () => {
-      dragActive = false;
       window.removeEventListener('mousemove',onMove);
       window.removeEventListener('mouseup',onUp);
       window.removeEventListener('touchmove',onMove);
@@ -432,12 +474,19 @@ function renderFlag(bar, ev){
 function renderRange(bar, ev){
   const isSel = selId===ev.id;
   const block = document.createElement('div');
-  block.className = 'event-block'+(isSel?' selected':'');
+  block.className = 'event-block'+(isSel?' selected':'')+(ev.ghost?' ghost':'');
   block.style.left = pct(ev.start);
   block.style.width = pct(ev.end-ev.start);
-  block.style.background = ev.color;
+  if(ev.ghost){
+    block.style.border = `2px dashed ${ev.color}`;
+    block.style.background = 'transparent';
+  } else {
+    block.style.background = ev.color;
+  }
   block.dataset.id = ev.id;
-  const lbl=document.createElement('span'); lbl.className='event-label'; lbl.textContent=ev.title;
+  const lbl=document.createElement('span'); lbl.className='event-label';
+  lbl.style.color = ev.ghost ? ev.color : '#fff';
+  lbl.textContent=ev.title;
   block.appendChild(lbl);
 
   let dragMoved=false;
@@ -471,7 +520,6 @@ function renderRange(bar, ev){
   block.addEventListener('mousedown',onPtrDown);
   block.addEventListener('touchstart',onPtrDown,{passive:false});
 
-  // Resize handles (shown when selected)
   if(isSel){
     ['left','right'].forEach(side=>{
       const h=document.createElement('div');
@@ -516,11 +564,9 @@ function renderRange(bar, ev){
 function renderFloatUI(bar, ev){
   const isRange = ev.type==='range';
   const float = document.createElement('div'); float.className='sel-float';
-
-  // Caret
   const caret=document.createElement('div'); caret.className='sel-float-caret'; float.appendChild(caret);
 
-  // ── Row 1: colors + delete ──
+  // ── Row 1: colors + ghost toggle ──
   const sfTop=document.createElement('div'); sfTop.className='sf-top';
   const sfColors=document.createElement('div'); sfColors.className='sf-colors';
   COLORS.forEach(c=>{
@@ -531,27 +577,29 @@ function renderFloatUI(bar, ev){
     sfColors.appendChild(sw);
   });
   sfTop.appendChild(sfColors);
+  // ghost toggle
+  const ghostWrap=document.createElement('label'); ghostWrap.className='sf-ghost-wrap'; ghostWrap.title='未定/透明事件';
+  ghostWrap.addEventListener('mousedown',e=>e.stopPropagation());
+  const ghostChk=document.createElement('input'); ghostChk.type='checkbox'; ghostChk.className='sf-ghost-chk'; ghostChk.checked=!!ev.ghost;
+  ghostChk.addEventListener('change',()=>{ev.ghost=ghostChk.checked;save();render();});
+  const ghostLbl=document.createElement('span'); ghostLbl.className='sf-ghost-lbl'; ghostLbl.textContent='未定';
+  ghostWrap.appendChild(ghostChk); ghostWrap.appendChild(ghostLbl);
+  sfTop.appendChild(ghostWrap);
   float.appendChild(sfTop);
 
-  // ── Row 2: title + red delete ──
+  // ── Row 2: title + delete ──
   const titleRow=document.createElement('div'); titleRow.className='sf-title-row';
-  titleRow.style.cssText='padding:6px 10px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:6px';
   const titleInp=document.createElement('input'); titleInp.className='sf-title-inp';
-  titleInp.style.flex='1'; titleInp.style.width='auto';
   titleInp.type='text'; titleInp.value=ev.title; titleInp.placeholder='標題…';
   titleInp.addEventListener('mousedown',e=>e.stopPropagation());
   titleInp.addEventListener('change',()=>{ev.title=titleInp.value.trim()||ev.title;save();render();});
   titleInp.addEventListener('keydown',e=>{if(e.key==='Enter'){ev.title=titleInp.value.trim()||ev.title;save();render();}if(e.key==='Escape')deselect();});
-  const delBtn=document.createElement('button');
-  delBtn.style.cssText='flex-shrink:0;background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;font-size:11px;font-weight:600;padding:5px 9px;border-radius:3px;cursor:pointer;font-family:"DM Mono",monospace;transition:background .12s;-webkit-tap-highlight-color:transparent';
-  delBtn.textContent='刪除';
-  delBtn.addEventListener('mouseover',()=>delBtn.style.background='#fecaca');
-  delBtn.addEventListener('mouseout',()=>delBtn.style.background='#fee2e2');
+  const delBtn=document.createElement('button'); delBtn.className='sf-del'; delBtn.textContent='刪除';
   delBtn.addEventListener('mousedown',e=>e.stopPropagation());
   delBtn.addEventListener('click',e=>{e.stopPropagation();deleteEv(ev.id);});
   titleRow.appendChild(titleInp); titleRow.appendChild(delBtn); float.appendChild(titleRow);
 
-  // ── Row 3: day selector (cross-day) ──
+  // ── Row 3: day selector ──
   const dayRow=document.createElement('div'); dayRow.className='sf-day-row';
   const dayLbl=document.createElement('span'); dayLbl.className='sf-day-label'; dayLbl.textContent='星期';
   dayRow.appendChild(dayLbl);
@@ -565,12 +613,10 @@ function renderFloatUI(bar, ev){
   });
   dayRow.appendChild(dayBtns); float.appendChild(dayRow);
 
-  // ── Row 4: time inputs (simple, consistent for both range and flag) ──
+  // ── Row 4: time inputs ──
   const timeSec = document.createElement('div');
   timeSec.style.cssText = 'padding:8px 10px 10px';
-
   if (isRange) {
-    // Start time row
     const rowS = document.createElement('div');
     rowS.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
     const lblS = document.createElement('span');
@@ -581,10 +627,8 @@ function renderFloatUI(bar, ev){
     inpS.style.cssText = 'flex:1;font-family:"DM Mono",monospace;font-size:12px;padding:5px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none';
     inpS.addEventListener('mousedown', e => e.stopPropagation());
     inpS.addEventListener('focus', e => e.stopPropagation());
-    rowS.appendChild(lblS); rowS.appendChild(inpS);
-    timeSec.appendChild(rowS);
+    rowS.appendChild(lblS); rowS.appendChild(inpS); timeSec.appendChild(rowS);
 
-    // End time row
     const rowE = document.createElement('div');
     rowE.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:8px';
     const lblE = document.createElement('span');
@@ -595,8 +639,7 @@ function renderFloatUI(bar, ev){
     inpE.style.cssText = 'flex:1;font-family:"DM Mono",monospace;font-size:12px;padding:5px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none';
     inpE.addEventListener('mousedown', e => e.stopPropagation());
     inpE.addEventListener('focus', e => e.stopPropagation());
-    rowE.appendChild(lblE); rowE.appendChild(inpE);
-    timeSec.appendChild(rowE);
+    rowE.appendChild(lblE); rowE.appendChild(inpE); timeSec.appendChild(rowE);
 
     const applyBtn = document.createElement('button');
     applyBtn.style.cssText = 'width:100%;padding:7px;background:var(--accent);color:#fff;border:none;border-radius:3px;font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;letter-spacing:.06em';
@@ -610,7 +653,6 @@ function renderFloatUI(bar, ev){
     });
     timeSec.appendChild(applyBtn);
   } else {
-    // Point: single time input
     const rowT = document.createElement('div');
     rowT.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:8px';
     const lblT = document.createElement('span');
@@ -621,8 +663,7 @@ function renderFloatUI(bar, ev){
     inpT.style.cssText = 'flex:1;font-family:"DM Mono",monospace;font-size:12px;padding:5px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:3px;outline:none';
     inpT.addEventListener('mousedown', e => e.stopPropagation());
     inpT.addEventListener('focus', e => e.stopPropagation());
-    rowT.appendChild(lblT); rowT.appendChild(inpT);
-    timeSec.appendChild(rowT);
+    rowT.appendChild(lblT); rowT.appendChild(inpT); timeSec.appendChild(rowT);
 
     const applyBtn = document.createElement('button');
     applyBtn.style.cssText = 'width:100%;padding:7px;background:var(--accent);color:#fff;border:none;border-radius:3px;font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;letter-spacing:.06em';
@@ -634,24 +675,19 @@ function renderFloatUI(bar, ev){
     });
     timeSec.appendChild(applyBtn);
   }
-
   float.appendChild(timeSec);
 
-  // Stop all events on float from propagating to deselect handler
   float.addEventListener('mousedown',e=>e.stopPropagation());
   float.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
-
   bar.appendChild(float);
 
-  // Position float: centered on event, clamped to bar
   requestAnimationFrame(()=>{
     const barW=bar.getBoundingClientRect().width;
-    const fw=float.offsetWidth||230;
+    const fw=float.offsetWidth||240;
     const evCenterPct=isRange ? (ev.start+(ev.end-ev.start)/2)/SLOTS : ev.start/SLOTS;
     const ideal=evCenterPct*barW - fw/2;
     const clamped=Math.max(0,Math.min(barW-fw,ideal));
     float.style.left=clamped+'px';
-    // position caret
     const caretX=evCenterPct*barW - clamped - 7;
     caret.style.left=Math.max(10,Math.min(fw-24,caretX))+'px';
   });
@@ -669,6 +705,7 @@ function setupBar(bar, di, prev){
     openQA({day:di,start:s,end:wasClick?s:en});
   };
   bar.addEventListener('mousedown',e=>{
+    if(mode!=='edit') return;
     if(e.button!==0)return;
     if(e.target.closest('.event-block,.flag-pin,.sel-float,.event-block *,[style*="cursor:ew-resize"]'))return;
     e.preventDefault(); startNew(e.clientX);
@@ -676,12 +713,58 @@ function setupBar(bar, di, prev){
   window.addEventListener('mousemove',e=>{if(ds!==null)moveNew(e.clientX);});
   window.addEventListener('mouseup',e=>{if(ds!==null)endNew(e.clientX);});
   bar.addEventListener('touchstart',e=>{
+    if(mode!=='edit') return;
     if(e.target.closest('.event-block,.flag-pin,.sel-float'))return;
     startNew(e.touches[0].clientX);
   },{passive:true});
   bar.addEventListener('touchmove',e=>{if(ds!==null){e.preventDefault();moveNew(e.touches[0].clientX);}},{passive:false});
   bar.addEventListener('touchend',e=>{if(ds!==null)endNew(e.changedTouches[0].clientX);});
 }
+
+// ─── Browse mode: pan + pinch zoom ───────────────────────────────────────────
+(function(){
+  const wrap = document.getElementById('chart-wrap');
+  let panStart = null;
+  // Mouse pan
+  wrap.addEventListener('mousedown', e => {
+    if(mode !== 'browse') return;
+    if(e.target.closest('.event-block,.flag-pin,.sel-float,.mode-bar')) return;
+    panStart = { x: e.clientX, scroll: wrap.scrollLeft };
+    wrap.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if(!panStart) return;
+    wrap.scrollLeft = panStart.scroll - (e.clientX - panStart.x);
+  });
+  window.addEventListener('mouseup', () => {
+    if(panStart){ panStart = null; wrap.style.cursor = mode==='browse'?'grab':''; }
+  });
+  // Touch pan + pinch zoom
+  let touch0 = null;
+  wrap.addEventListener('touchstart', e => {
+    if(mode !== 'browse') return;
+    if(e.touches.length === 1){
+      touch0 = { x: e.touches[0].clientX, scroll: wrap.scrollLeft, pinch: false };
+    } else if(e.touches.length === 2){
+      touch0 = { dist: Math.abs(e.touches[0].clientX - e.touches[1].clientX), sw: SLOT_W, scroll: wrap.scrollLeft, pinch: true };
+    }
+  }, { passive: true });
+  wrap.addEventListener('touchmove', e => {
+    if(mode !== 'browse' || !touch0) return;
+    if(!touch0.pinch && e.touches.length === 1){
+      wrap.scrollLeft = touch0.scroll - (e.touches[0].clientX - touch0.x);
+    } else if(touch0.pinch && e.touches.length === 2){
+      const newDist = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+      if(touch0.dist > 0){
+        const scale = newDist / touch0.dist;
+        SLOT_W = Math.max(SLOT_W_MIN, Math.min(SLOT_W_MAX, Math.round(touch0.sw * scale)));
+        applyWidth(); render();
+      }
+    }
+  }, { passive: true });
+  wrap.addEventListener('touchend', () => { touch0 = null; });
+})();
 
 // ─── Select / deselect ───────────────────────────────────────────────────────
 function selectEv(id){ selId=id; render(); }
@@ -704,15 +787,16 @@ function clearAll(){if(!confirm('確定清除所有事件？'))return;G.events=[
 // ─── Quick-add modal ──────────────────────────────────────────────────────────
 let pendingType='range';
 function openQA(partial){
-  pending={id:uid(),day:partial.day,type:'range',start:partial.start,end:partial.end,color:G.selColor,title:'行程'};
+  pending={id:uid(),day:partial.day,type:'range',start:partial.start,end:partial.end,color:G.selColor,title:'行程',ghost:false};
   pendingType='range';
   document.getElementById('qa-range').classList.add('active');
   document.getElementById('qa-point').classList.remove('active');
   document.getElementById('qa-hint').textContent = (partial.start===partial.end)?s2str(partial.start):`${s2str(partial.start)} – ${s2str(partial.end)}`;
   document.getElementById('qa-title').value='行程';
+  document.getElementById('qa-ghost').checked = false;
   buildQAFields(); buildQAColors();
   document.getElementById('modal-qa').classList.add('open');
-  setTimeout(()=>{const i=document.getElementById('qa-title');i.focus();i.select();},40);
+  // No auto-focus — user taps the field when ready
 }
 function qaType(t){
   if(!pending)return; pendingType=t; pending.type=t; pending.title=t==='range'?'行程':'事件';
@@ -720,7 +804,6 @@ function qaType(t){
   document.getElementById('qa-point').classList.toggle('active',t==='point');
   document.getElementById('qa-title').value=pending.title;
   buildQAFields();
-  setTimeout(()=>document.getElementById('qa-title')?.focus(),20);
 }
 function buildQAFields(){
   const c=document.getElementById('qa-fields'); c.innerHTML='';
@@ -751,6 +834,7 @@ function confirmQA(){
   if(!pending)return;
   const t=document.getElementById('qa-title');
   pending.title=t.value.trim()||pending.title;
+  pending.ghost = document.getElementById('qa-ghost').checked;
   if(pending.type==='point'){
     const pt=document.getElementById('qa-pt');if(pt)pending.start=pending.end=t2s(pt.value);
   } else {
@@ -770,15 +854,91 @@ function closeM(id){document.getElementById(id).classList.remove('open');}
 document.getElementById('wl-inp').addEventListener('keydown',e=>{if(e.key==='Enter')saveWL();if(e.key==='Escape')closeM('modal-wl');});
 document.getElementById('modal-wl').addEventListener('mousedown',e=>{if(e.target===document.getElementById('modal-wl'))closeM('modal-wl');});
 
+// ─── Pie chart ────────────────────────────────────────────────────────────────
+function renderPie(){
+  const section = document.getElementById('pie-section');
+  const container = document.getElementById('pie-container');
+
+  // Only solid (non-ghost) range events
+  const rangeEvs = G.events.filter(e => e.type==='range' && !e.ghost);
+  const groups = {};
+  rangeEvs.forEach(ev => {
+    const hrs = (ev.end - ev.start) * 0.5;
+    if(!groups[ev.title]) groups[ev.title] = { title: ev.title, color: ev.color, hours: 0 };
+    groups[ev.title].hours += hrs;
+    groups[ev.title].color = ev.color;
+  });
+
+  const items = Object.values(groups).sort((a,b) => b.hours - a.hours);
+  if(!items.length){ section.classList.remove('has-data'); return; }
+  section.classList.add('has-data');
+
+  const total = items.reduce((s,g) => s + g.hours, 0);
+  const R = 52, CX = 62, CY = 62, W = 124, H = 124;
+
+  // Build SVG slices
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  if(items.length === 1){
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', CX); c.setAttribute('cy', CY); c.setAttribute('r', R);
+    c.setAttribute('fill', items[0].color);
+    svg.appendChild(c);
+  } else {
+    let angle = -Math.PI / 2;
+    items.forEach(g => {
+      const frac = g.hours / total;
+      const a2 = angle + frac * 2 * Math.PI;
+      const x1 = CX + R * Math.cos(angle), y1 = CY + R * Math.sin(angle);
+      const x2 = CX + R * Math.cos(a2),   y2 = CY + R * Math.sin(a2);
+      const large = frac > 0.5 ? 1 : 0;
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', `M${CX},${CY}L${x1.toFixed(2)},${y1.toFixed(2)}A${R},${R},0,${large},1,${x2.toFixed(2)},${y2.toFixed(2)}Z`);
+      path.setAttribute('fill', g.color);
+      path.setAttribute('stroke', 'var(--surface)');
+      path.setAttribute('stroke-width', '1.5');
+      svg.appendChild(path);
+      angle = a2;
+    });
+  }
+
+  // Legend
+  const legend = document.createElement('div'); legend.className = 'pie-legend';
+  items.forEach(g => {
+    const item = document.createElement('div'); item.className = 'pie-legend-item';
+    const dot = document.createElement('div'); dot.className = 'pie-swatch'; dot.style.background = g.color;
+    const name = document.createElement('span');
+    name.textContent = g.title;
+    name.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px';
+    const dur = document.createElement('span'); dur.className = 'pie-pct';
+    const h = Math.floor(g.hours), m = Math.round((g.hours - h) * 60);
+    dur.textContent = m ? `${h}h${m}m` : `${h}h`;
+    item.appendChild(dot); item.appendChild(name); item.appendChild(dur);
+    legend.appendChild(item);
+  });
+  const totalEl = document.createElement('div'); totalEl.className = 'pie-total';
+  const th = Math.floor(total), tm = Math.round((total - th) * 60);
+  totalEl.textContent = `合計 ${th}h${tm?tm+'m':''}`;
+  legend.appendChild(totalEl);
+
+  container.innerHTML = '';
+  const wrap = document.createElement('div'); wrap.className = 'pie-wrap';
+  wrap.appendChild(svg); wrap.appendChild(legend);
+  container.appendChild(wrap);
+}
+
 // ─── Legend ───────────────────────────────────────────────────────────────────
 function renderLegend(){
   let el=document.getElementById('legend-bar');
-  if(!el){el=document.createElement('div');el.id='legend-bar';el.style.cssText='display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border-light)';document.querySelector('.chart-wrap').appendChild(el);}
+  if(!el){el=document.createElement('div');el.id='legend-bar';el.style.cssText='display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border-light)';document.querySelector('.chart-wrap').insertBefore(el,document.getElementById('pie-section'));}
   const seen={};G.events.forEach(e=>{seen[e.color+'|'+e.title]=e;});
   const uniq=Object.values(seen).slice(0,12);
   if(!uniq.length){el.innerHTML='';return;}
   el.innerHTML='<span style="font-size:10px;color:var(--text-light);font-family:\'DM Mono\',monospace;margin-right:2px">圖例</span>';
-  uniq.forEach(e=>{const item=document.createElement('div');item.style.cssText='display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-muted);font-family:\'DM Mono\',monospace';item.innerHTML=`<div style="width:9px;height:9px;border-radius:2px;background:${e.color};flex-shrink:0"></div>${e.title}`;el.appendChild(item);});
+  uniq.forEach(e=>{const item=document.createElement('div');item.style.cssText='display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-muted);font-family:\'DM Mono\',monospace';item.innerHTML=`<div style="width:9px;height:9px;border-radius:2px;background:${e.color};flex-shrink:0;${e.ghost?'outline:1.5px dashed '+e.color+';background:transparent':''}"></div>${e.title}`;el.appendChild(item);});
 }
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
