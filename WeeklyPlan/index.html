@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>週行程編輯器 v2</title>
+<title>週行程編輯器 v3</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -174,13 +174,25 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 .qa-ghost-row{display:flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:2px}
 .qa-ghost-row input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
 .qa-ghost-row label{font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;cursor:pointer}
+/* multi-day selector in modal */
+.qa-days-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.qa-day-btn{font-family:'DM Mono',monospace;font-size:9px;padding:4px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);border-radius:3px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent}
+.qa-day-btn:hover{background:var(--surface2)}
+.qa-day-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .hint{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:8px;line-height:1.6}
 .hint span{color:var(--text-muted)}
 
 /* ── Pie chart ── */
 .pie-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);display:none}
 .pie-section.has-data{display:block}
-.pie-title{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:12px}
+.pie-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.pie-title{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:.08em;flex-shrink:0}
+.pie-tabs{display:flex;gap:3px;flex-wrap:wrap}
+.pie-tab{font-family:'DM Mono',monospace;font-size:8px;padding:3px 7px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);border-radius:3px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent}
+.pie-tab:hover{background:var(--surface2)}
+.pie-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pie-panels{display:flex;gap:16px;flex-wrap:wrap}
+.pie-panel{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .pie-wrap{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
 .pie-legend{display:flex;flex-direction:column;gap:5px;min-width:130px;padding-top:4px}
 .pie-legend-item{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)}
@@ -197,7 +209,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 
 <div class="header">
   <div class="header-left">
-    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v2</span></h1>
+    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v3</span></h1>
     <p>weekly schedule / 每週計劃</p>
   </div>
   <div class="header-right">
@@ -244,7 +256,10 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 
     <!-- Pie chart -->
     <div class="pie-section" id="pie-section">
-      <div class="pie-title">每週時間統計（實心事件）</div>
+      <div class="pie-header">
+        <span class="pie-title">時間統計</span>
+        <div class="pie-tabs" id="pie-tabs"></div>
+      </div>
       <div id="pie-container"></div>
     </div>
   </div>
@@ -266,6 +281,10 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
     </div>
     <div class="form-group">
       <label>顏色</label><div class="color-row" id="qa-colors"></div>
+    </div>
+    <div class="form-group" style="margin-top:10px;margin-bottom:4px">
+      <label>適用日期（可多選）</label>
+      <div class="qa-days-row" id="qa-days"></div>
     </div>
     <div class="qa-ghost-row">
       <input type="checkbox" id="qa-ghost">
@@ -306,8 +325,10 @@ let G = {
   theme: 'sage', selColor: COLORS[0]
 };
 let selId = null, pending = null;
-let SLOT_W = SLOT_W_BASE; // current px/slot (controls zoom)
-let mode = 'edit';        // 'edit' | 'browse'
+let pendingDays = new Set(); // multi-day selection for QA modal
+let SLOT_W = SLOT_W_BASE;   // current px/slot (controls zoom)
+let mode = 'edit';           // 'edit' | 'browse'
+let pieMode = 'all';         // 'all' | 0‥6 (day index)
 
 function defWeekLabel(){const n=new Date(),y=n.getFullYear(),w=Math.ceil(((n-new Date(y,0,1))/864e5+new Date(y,0,1).getDay()+1)/7);return`${y} W${String(w).padStart(2,'0')}`;}
 function save(){localStorage.setItem('sch-v9',JSON.stringify({events:G.events,weekLabel:G.weekLabel,theme:G.theme,selColor:G.selColor,slotW:SLOT_W}));}
@@ -788,13 +809,14 @@ function clearAll(){if(!confirm('確定清除所有事件？'))return;G.events=[
 let pendingType='range';
 function openQA(partial){
   pending={id:uid(),day:partial.day,type:'range',start:partial.start,end:partial.end,color:G.selColor,title:'行程',ghost:false};
+  pendingDays = new Set([partial.day]);
   pendingType='range';
   document.getElementById('qa-range').classList.add('active');
   document.getElementById('qa-point').classList.remove('active');
   document.getElementById('qa-hint').textContent = (partial.start===partial.end)?s2str(partial.start):`${s2str(partial.start)} – ${s2str(partial.end)}`;
   document.getElementById('qa-title').value='行程';
   document.getElementById('qa-ghost').checked = false;
-  buildQAFields(); buildQAColors();
+  buildQAFields(); buildQAColors(); buildQADays();
   document.getElementById('modal-qa').classList.add('open');
   // No auto-focus — user taps the field when ready
 }
@@ -829,6 +851,21 @@ function buildQAColors(){
     cr.appendChild(sw);
   });
 }
+function buildQADays(){
+  const c=document.getElementById('qa-days'); c.innerHTML='';
+  DAYS.forEach((d,i)=>{
+    const b=document.createElement('button'); b.className='qa-day-btn'+(pendingDays.has(i)?' active':'');
+    b.textContent=d; b.type='button';
+    b.addEventListener('click',()=>{
+      if(pendingDays.has(i)){
+        if(pendingDays.size>1){ pendingDays.delete(i); b.classList.remove('active'); }
+      } else {
+        pendingDays.add(i); b.classList.add('active');
+      }
+    });
+    c.appendChild(b);
+  });
+}
 function cancelQA(){document.getElementById('modal-qa').classList.remove('open');pending=null;}
 function confirmQA(){
   if(!pending)return;
@@ -841,7 +878,12 @@ function confirmQA(){
     const qs=document.getElementById('qa-s'),qe=document.getElementById('qa-e');
     if(qs&&qe){const ns=t2s(qs.value),ne=t2s(qe.value);if(ne<=ns){alert('結束時間需晚於開始時間');return;}pending.start=ns;pending.end=ne;}
   }
-  G.events.push(pending);save();render();
+  // one event per selected day
+  const days=[...pendingDays];
+  (days.length?days:[pending.day]).forEach(di=>{
+    G.events.push(Object.assign({},pending,{id:uid(),day:di}));
+  });
+  save();render();
   document.getElementById('modal-qa').classList.remove('open');pending=null;
 }
 document.getElementById('qa-title').addEventListener('keydown',e=>{if(e.key==='Enter')confirmQA();if(e.key==='Escape')cancelQA();});
@@ -855,79 +897,92 @@ document.getElementById('wl-inp').addEventListener('keydown',e=>{if(e.key==='Ent
 document.getElementById('modal-wl').addEventListener('mousedown',e=>{if(e.target===document.getElementById('modal-wl'))closeM('modal-wl');});
 
 // ─── Pie chart ────────────────────────────────────────────────────────────────
-function renderPie(){
-  const section = document.getElementById('pie-section');
-  const container = document.getElementById('pie-container');
-
-  // Only solid (non-ghost) range events
-  const rangeEvs = G.events.filter(e => e.type==='range' && !e.ghost);
-  const groups = {};
-  rangeEvs.forEach(ev => {
-    const hrs = (ev.end - ev.start) * 0.5;
-    if(!groups[ev.title]) groups[ev.title] = { title: ev.title, color: ev.color, hours: 0 };
-    groups[ev.title].hours += hrs;
-    groups[ev.title].color = ev.color;
+function buildPieSVG(evs){
+  const groups={};
+  evs.forEach(ev=>{
+    const hrs=(ev.end-ev.start)*0.5;
+    if(!groups[ev.title]) groups[ev.title]={title:ev.title,color:ev.color,hours:0};
+    groups[ev.title].hours+=hrs; groups[ev.title].color=ev.color;
   });
-
-  const items = Object.values(groups).sort((a,b) => b.hours - a.hours);
-  if(!items.length){ section.classList.remove('has-data'); return; }
-  section.classList.add('has-data');
-
-  const total = items.reduce((s,g) => s + g.hours, 0);
-  const R = 52, CX = 62, CY = 62, W = 124, H = 124;
-
-  // Build SVG slices
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('width', W); svg.setAttribute('height', H);
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-
-  if(items.length === 1){
-    const c = document.createElementNS(ns, 'circle');
-    c.setAttribute('cx', CX); c.setAttribute('cy', CY); c.setAttribute('r', R);
-    c.setAttribute('fill', items[0].color);
-    svg.appendChild(c);
+  const items=Object.values(groups).sort((a,b)=>b.hours-a.hours);
+  if(!items.length) return null;
+  const total=items.reduce((s,g)=>s+g.hours,0);
+  const R=48,CX=58,CY=58,W=116,H=116;
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  if(items.length===1){
+    const c=document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx',CX);c.setAttribute('cy',CY);c.setAttribute('r',R);
+    c.setAttribute('fill',items[0].color); svg.appendChild(c);
   } else {
-    let angle = -Math.PI / 2;
-    items.forEach(g => {
-      const frac = g.hours / total;
-      const a2 = angle + frac * 2 * Math.PI;
-      const x1 = CX + R * Math.cos(angle), y1 = CY + R * Math.sin(angle);
-      const x2 = CX + R * Math.cos(a2),   y2 = CY + R * Math.sin(a2);
-      const large = frac > 0.5 ? 1 : 0;
-      const path = document.createElementNS(ns, 'path');
-      path.setAttribute('d', `M${CX},${CY}L${x1.toFixed(2)},${y1.toFixed(2)}A${R},${R},0,${large},1,${x2.toFixed(2)},${y2.toFixed(2)}Z`);
-      path.setAttribute('fill', g.color);
-      path.setAttribute('stroke', 'var(--surface)');
-      path.setAttribute('stroke-width', '1.5');
-      svg.appendChild(path);
-      angle = a2;
+    let angle=-Math.PI/2;
+    items.forEach(g=>{
+      const frac=g.hours/total, a2=angle+frac*2*Math.PI;
+      const x1=CX+R*Math.cos(angle),y1=CY+R*Math.sin(angle);
+      const x2=CX+R*Math.cos(a2),  y2=CY+R*Math.sin(a2);
+      const path=document.createElementNS(svgNS,'path');
+      path.setAttribute('d',`M${CX},${CY}L${x1.toFixed(2)},${y1.toFixed(2)}A${R},${R},0,${frac>.5?1:0},1,${x2.toFixed(2)},${y2.toFixed(2)}Z`);
+      path.setAttribute('fill',g.color);
+      path.setAttribute('stroke','var(--surface)'); path.setAttribute('stroke-width','1.5');
+      svg.appendChild(path); angle=a2;
     });
   }
-
   // Legend
-  const legend = document.createElement('div'); legend.className = 'pie-legend';
-  items.forEach(g => {
-    const item = document.createElement('div'); item.className = 'pie-legend-item';
-    const dot = document.createElement('div'); dot.className = 'pie-swatch'; dot.style.background = g.color;
-    const name = document.createElement('span');
-    name.textContent = g.title;
-    name.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px';
-    const dur = document.createElement('span'); dur.className = 'pie-pct';
-    const h = Math.floor(g.hours), m = Math.round((g.hours - h) * 60);
-    dur.textContent = m ? `${h}h${m}m` : `${h}h`;
+  const legend=document.createElement('div'); legend.className='pie-legend';
+  items.forEach(g=>{
+    const item=document.createElement('div'); item.className='pie-legend-item';
+    const dot=document.createElement('div'); dot.className='pie-swatch'; dot.style.background=g.color;
+    const name=document.createElement('span');
+    name.textContent=g.title; name.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px';
+    const dur=document.createElement('span'); dur.className='pie-pct';
+    const h=Math.floor(g.hours),m=Math.round((g.hours-h)*60);
+    dur.textContent=m?`${h}h${m}m`:`${h}h`;
     item.appendChild(dot); item.appendChild(name); item.appendChild(dur);
     legend.appendChild(item);
   });
-  const totalEl = document.createElement('div'); totalEl.className = 'pie-total';
-  const th = Math.floor(total), tm = Math.round((total - th) * 60);
-  totalEl.textContent = `合計 ${th}h${tm?tm+'m':''}`;
+  const totalEl=document.createElement('div'); totalEl.className='pie-total';
+  const th=Math.floor(total),tm=Math.round((total-th)*60);
+  totalEl.textContent=`合計 ${th}h${tm?tm+'m':''}`;
   legend.appendChild(totalEl);
-
-  container.innerHTML = '';
-  const wrap = document.createElement('div'); wrap.className = 'pie-wrap';
+  const wrap=document.createElement('div'); wrap.className='pie-wrap';
   wrap.appendChild(svg); wrap.appendChild(legend);
-  container.appendChild(wrap);
+  return {wrap,hasData:items.length>0};
+}
+
+function renderPie(){
+  const section=document.getElementById('pie-section');
+  const container=document.getElementById('pie-container');
+  const tabsEl=document.getElementById('pie-tabs');
+
+  const solidEvs=G.events.filter(e=>e.type==='range'&&!e.ghost);
+  if(!solidEvs.length){ section.classList.remove('has-data'); return; }
+  section.classList.add('has-data');
+
+  // Build tabs: 全部 + MON‥SUN (only days that have events)
+  const daysWithEvs=new Set(solidEvs.map(e=>e.day));
+  tabsEl.innerHTML='';
+  const tabDefs=[{key:'all',label:'全部'},...DAYS.map((d,i)=>({key:i,label:d})).filter(t=>daysWithEvs.has(t.key))];
+  // ensure pieMode is valid
+  if(pieMode!=='all' && !daysWithEvs.has(pieMode)) pieMode='all';
+  tabDefs.forEach(td=>{
+    const btn=document.createElement('button'); btn.className='pie-tab'+(pieMode===td.key?' active':'');
+    btn.textContent=td.label; btn.type='button';
+    btn.addEventListener('click',()=>{ pieMode=td.key; renderPie(); });
+    tabsEl.appendChild(btn);
+  });
+
+  container.innerHTML='';
+  if(pieMode==='all'){
+    const r=buildPieSVG(solidEvs);
+    if(r) container.appendChild(r.wrap);
+  } else {
+    // show selected day only
+    const dayEvs=solidEvs.filter(e=>e.day===pieMode);
+    const r=buildPieSVG(dayEvs);
+    if(r) container.appendChild(r.wrap);
+  }
 }
 
 // ─── Legend ───────────────────────────────────────────────────────────────────
