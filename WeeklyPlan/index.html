@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>週行程編輯器 v3</title>
+<title>週行程編輯器 v4</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -71,7 +71,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 .day-row{display:flex;align-items:flex-end;padding-top:22px;margin-bottom:8px;position:relative}
 .day-label{width:52px;flex-shrink:0;font-size:10px;color:var(--text-muted);font-family:'DM Mono',monospace;padding-right:10px;text-align:right;user-select:none;padding-bottom:6px;cursor:pointer;transition:color .12s}
 .day-label:hover{color:var(--accent)}
-.day-bar-container{flex:1;height:34px;background:var(--surface2);border-radius:2px;position:relative;cursor:crosshair;border:1px solid var(--border-light);transition:background .15s;touch-action:none;overflow:visible}
+.day-bar-container{flex:1;height:34px;background:var(--surface2);border-radius:2px;position:relative;cursor:crosshair;box-shadow:inset 0 0 0 1px var(--border-light);transition:background .15s;touch-action:none;overflow:visible}
 .day-bar-container:hover{background:var(--row-hover)}
 .day-bar-container.browse{cursor:default}
 .bar-tick{position:absolute;top:0;width:1px;pointer-events:none}
@@ -209,7 +209,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--bg);color:var(--text);mi
 
 <div class="header">
   <div class="header-left">
-    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v3</span></h1>
+    <h1>週行程編輯器 <span style="font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:.04em">v4</span></h1>
     <p>weekly schedule / 每週計劃</p>
   </div>
   <div class="header-right">
@@ -725,21 +725,26 @@ function setupBar(bar, di, prev){
     const wasClick=!dragging||en-s<1; ds=null;dragging=false;
     openQA({day:di,start:s,end:wasClick?s:en});
   };
+  const cancelNew=()=>{ds=null;dragging=false;prev.style.display='none';};
   bar.addEventListener('mousedown',e=>{
     if(mode!=='edit') return;
     if(e.button!==0)return;
     if(e.target.closest('.event-block,.flag-pin,.sel-float,.event-block *,[style*="cursor:ew-resize"]'))return;
     e.preventDefault(); startNew(e.clientX);
+    const onMove=e=>{moveNew(e.clientX);};
+    const onUp=e=>{endNew(e.clientX);window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
   });
-  window.addEventListener('mousemove',e=>{if(ds!==null)moveNew(e.clientX);});
-  window.addEventListener('mouseup',e=>{if(ds!==null)endNew(e.clientX);});
   bar.addEventListener('touchstart',e=>{
     if(mode!=='edit') return;
     if(e.target.closest('.event-block,.flag-pin,.sel-float'))return;
+    e.preventDefault();
     startNew(e.touches[0].clientX);
-  },{passive:true});
+  },{passive:false});
   bar.addEventListener('touchmove',e=>{if(ds!==null){e.preventDefault();moveNew(e.touches[0].clientX);}},{passive:false});
   bar.addEventListener('touchend',e=>{if(ds!==null)endNew(e.changedTouches[0].clientX);});
+  bar.addEventListener('touchcancel',cancelNew);
 }
 
 // ─── Browse mode: pan + pinch zoom ───────────────────────────────────────────
