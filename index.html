@@ -6,39 +6,37 @@
 <title>Claude Works</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 60px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f6f9;color:#1a1d23;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:48px 16px 64px}
 
-.header{text-align:center;margin-bottom:48px}
-.header-logo{font-size:2.4rem;font-weight:900;letter-spacing:-.5px;margin-bottom:8px}
-.header-logo span{background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.header-sub{font-size:.95rem;color:#64748b}
+.header{text-align:center;margin-bottom:52px}
+.header-logo{font-size:2.2rem;font-weight:900;letter-spacing:-.5px;margin-bottom:8px;color:#111}
+.header-logo span{color:#4f6ef7}
+.header-sub{font-size:.9rem;color:#8b92a0;letter-spacing:.01em}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;width:100%;max-width:960px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;width:100%;max-width:960px}
 
-.card{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:28px 24px 24px;display:flex;flex-direction:column;gap:14px;text-decoration:none;color:inherit;transition:.2s;position:relative;overflow:hidden}
-.card:hover{border-color:#6366f1;transform:translateY(-3px);box-shadow:0 12px 32px rgba(99,102,241,.18)}
-.card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(99,102,241,.06),transparent);opacity:0;transition:.2s}
-.card:hover::before{opacity:1}
+.card{background:#fff;border:1.5px solid #e8eaf0;border-radius:16px;padding:26px 22px 22px;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s,transform .15s}
+.card:hover{border-color:#c0c8f8;box-shadow:0 4px 20px rgba(79,110,247,.08);transform:translateY(-2px)}
 
-.card-icon{font-size:2.6rem;line-height:1}
-.card-title{font-size:1.15rem;font-weight:800;color:#f1f5f9}
-.card-desc{font-size:.85rem;color:#94a3b8;line-height:1.65;flex:1}
+.card-icon{font-size:2.2rem;line-height:1}
+.card-title{font-size:1.05rem;font-weight:800;color:#111}
+.card-desc{font-size:.82rem;color:#6b7280;line-height:1.7;flex:1}
 
-.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:#0f172a;color:#94a3b8;border:1px solid #334155}
-.tag.mp{background:#1e1b4b;color:#a5b4fc;border-color:#3730a3}
-.tag.ai{background:#052e16;color:#6ee7b7;border-color:#14532d}
-.tag.solo{background:#1c1917;color:#d6d3d1;border-color:#44403c}
-.tag.card{background:#2d1b69;color:#e9d5ff;border-color:#6d28d9}
-.tag.ws{background:#0c1a2e;color:#93c5fd;border-color:#1d4ed8}
-.tag.tool{background:#1a2e1a;color:#86efac;border-color:#166534}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.tag{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:6px;background:#f0f2f8;color:#7a84a0;border:none;letter-spacing:.02em}
+.tag.mp{background:#eef0ff;color:#5262c9}
+.tag.ai{background:#edfaf4;color:#2d8a5e}
+.tag.solo{background:#f5f5f5;color:#888}
+.tag.card{background:#f5eeff;color:#7c4db0}
+.tag.ws{background:#eaf4ff;color:#3370b8}
+.tag.tool{background:#edfff3;color:#2e7d4f}
 
-.play-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:.85rem;font-weight:700;padding:9px 18px;border-radius:12px;align-self:flex-start;margin-top:2px;transition:.15s}
-.card:hover .play-btn{gap:10px}
+.play-btn{display:inline-flex;align-items:center;gap:5px;background:#4f6ef7;color:#fff;font-size:.78rem;font-weight:700;padding:7px 14px;border-radius:8px;align-self:flex-start;margin-top:2px;transition:background .15s,gap .12s}
+.card:hover .play-btn{background:#3b5ce4;gap:8px}
 
-.footer{margin-top:56px;font-size:.78rem;color:#334155;text-align:center;line-height:1.8}
-.footer a{color:#475569;text-decoration:none}
-.footer a:hover{color:#818cf8}
+.footer{margin-top:56px;font-size:.75rem;color:#bcc0ca;text-align:center;line-height:1.9}
+.footer a{color:#bcc0ca;text-decoration:none}
+.footer a:hover{color:#4f6ef7}
 </style>
 </head>
 <body>
@@ -96,7 +94,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="play-btn">開始遊戲 →</div>
   </a>
-
 
   <a class="card" href="./WeeklyPlan/index.html">
     <div class="card-icon">🗓️</div>
