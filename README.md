@@ -11,3 +11,4 @@
 | [猜數字對戰 GuessNumber](./GuessNumber/index.html) | 雙人線上對戰猜數字遊戲，WebRTC 即時連線，道具牌策略，手機觸控操作 |
 | [鼠國稱王 BraveRats](./BraveRats/index.html) | 雙人同步出牌卡牌對戰，WebSocket 優先連線（自動降級 WebRTC），支援 AI 單人模式 |
 | [個人週曆 WeeklyPlan](./WeeklyPlan/index.html) | 視覺化週行程編輯器，拖曳建立時段、旗標事件，支援跨日移動、多主題、PNG 匯出 |
+| [劇本節點編輯器 FriendGame](./FriendGame/index.html) | 視覺化文字 AVG 劇本編輯器，拖拉節點建立對話／選項／條件／效果流程，支援連線、遊玩測試、JSON 匯出 |

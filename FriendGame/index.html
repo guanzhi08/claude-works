@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>✨ 劇本節點編輯器</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f3ff;--sur:#fff;--su2:#f0eaff;--bdr:#e0d0f8;--bd2:#c4a8f0;
+  --txt:#3a2560;--dim:#896fb5;--mut:#c4aee0;
+  --ac:#8b5cf6;--a2:#7c3aed;--gl:rgba(139,92,246,.14);
+  --dc:#3b82f6;--db:#eff6ff;--dd:#bfdbfe;
+  --cc:#f59e0b;--cb:#fffbeb;--cd:#fde68a;
+  --kc:#8b5cf6;--kb:#f5f3ff;--kd:#ddd6fe;
+  --ec:#10b981;--eb:#ecfdf5;--ed:#6ee7b7;
+  --nc:#f43f5e;--nb:#fff1f2;--nd:#fecdd3;
+}
+html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--txt)}
+
+/* ── TOPBAR ── */
+#bar{display:flex;align-items:center;gap:10px;padding:7px 14px;background:var(--sur);border-bottom:2px solid var(--bdr);flex-shrink:0;position:relative;z-index:300}
+.logo{font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;background:linear-gradient(120deg,var(--ac),#f43f5e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+#ename{padding:4px 12px;font-size:13px;font-family:inherit;background:var(--su2);border:1.5px solid var(--bdr);border-radius:99px;outline:none;color:var(--txt);min-width:140px}
+#ename:focus{border-color:var(--ac)}
+.sp{width:1px;height:20px;background:var(--bdr);flex-shrink:0}
+.btn{display:flex;align-items:center;gap:5px;padding:5px 13px;font-size:12px;font-family:inherit;font-weight:700;border-radius:99px;cursor:pointer;border:1.5px solid var(--bdr);background:transparent;color:var(--dim);transition:.15s;white-space:nowrap}
+.btn:hover{background:var(--su2);color:var(--txt);border-color:var(--bd2)}
+.pri{background:var(--ac)!important;color:#fff!important;border-color:var(--ac)!important}
+.pri:hover{background:var(--a2)!important}
+.ml{margin-left:auto;display:flex;gap:7px}
+
+/* ── LAYOUT ── */
+#app{display:flex;height:calc(100vh - 46px)}
+
+/* ── LEFT PANEL ── */
+#lp{width:182px;flex-shrink:0;background:var(--sur);border-right:2px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;z-index:200}
+.pt{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;padding:11px 12px 5px}
+#pal{padding:0 8px 8px;display:flex;flex-direction:column;gap:4px}
+.pi{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:11px;border:1.5px solid transparent;cursor:grab;font-size:12px;font-weight:700;color:var(--txt);transition:.15s;user-select:none}
+.pi:hover{background:var(--su2);border-color:var(--bd2);transform:translateY(-1px)}
+.pi:active{cursor:grabbing}
+.pd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ls{height:1px;background:var(--bdr);margin:5px 0}
+#chl{padding:0 8px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+.cc{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:10px;background:var(--su2);border:1.5px solid var(--bdr)}
+.ca{font-size:17px}.cn{font-size:11px;font-weight:700}.cr{font-size:10px;color:var(--mut)}
+
+/* ── CANVAS ── */
+#cv{flex:1;position:relative;overflow:hidden;background:var(--bg);background-image:radial-gradient(var(--bdr) 1.2px,transparent 1.2px);background-size:26px 26px}
+#cv.pan{cursor:grabbing}
+/* SVG sits on top, pointer-events none so nodes underneath get clicks */
+#svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5}
+
+/* ── NODES — sit directly in #cv ── */
+.node{position:absolute;width:226px;border-radius:14px;border:2px solid var(--bdr);background:var(--sur);box-shadow:0 3px 16px rgba(139,92,246,.09);z-index:10;cursor:default}
+.node.sel{border-color:var(--ac)!important;box-shadow:0 0 0 4px var(--gl),0 6px 22px rgba(139,92,246,.18)!important;z-index:20}
+.node.drg{box-shadow:0 14px 40px rgba(139,92,246,.26)!important;z-index:30;cursor:move}
+.nhd{display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:12px 12px 0 0;cursor:move;border-bottom:1.5px solid transparent}
+.ni{font-size:14px;flex-shrink:0}.nl{font-size:11px;font-weight:800;letter-spacing:.05em}
+.nid{margin-left:auto;font-size:10px;opacity:.35;font-family:monospace}
+.ndl{width:19px;height:19px;border-radius:5px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:inherit;opacity:.35;transition:.1s;flex-shrink:0}
+.ndl:hover{opacity:1;background:rgba(244,63,94,.15);color:#f43f5e}
+.nb{padding:9px 11px 12px}
+/* inputs */
+.ns,.ni2,.nta{background:var(--su2);border:1.5px solid var(--bdr);border-radius:7px;padding:5px 7px;font-size:11px;color:var(--txt);font-family:inherit;outline:none;width:100%;transition:.15s border-color}
+.nta{resize:none;min-height:50px;line-height:1.55}
+.ns:focus,.ni2:focus,.nta:focus{border-color:var(--ac)}
+.nlb{font-size:10px;font-weight:700;color:var(--mut);margin-bottom:3px;display:block}
+.spr{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sem{font-size:18px}
+/* choice */
+.cl{display:flex;flex-direction:column;gap:4px;margin-bottom:5px}
+.cr2{display:flex;align-items:center;gap:4px}
+.cno{font-size:11px;font-weight:800;min-width:14px}
+.ci{flex:1;background:var(--su2);border:1.5px solid var(--bdr);border-radius:7px;padding:4px 7px;font-size:11px;color:var(--txt);font-family:inherit;outline:none}
+.ci:focus{border-color:var(--cc)}
+.crm2{background:none;border:none;color:var(--mut);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;transition:.1s}
+.crm2:hover{color:#f43f5e}
+.cad{width:100%;padding:4px;font-size:11px;font-family:inherit;font-weight:700;background:none;border:1.5px dashed var(--cc);border-radius:7px;color:var(--cc);cursor:pointer;transition:.12s}
+.cad:hover{background:var(--cb)}
+/* condition */
+.cgr{display:grid;grid-template-columns:1fr 46px 50px;gap:4px;align-items:center}
+.cbr{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;font-weight:800;padding:0 2px}
+/* effect */
+.er{display:flex;gap:4px;margin-bottom:4px;align-items:center}
+/* end */
+.ec2{text-align:center;padding:5px 0 2px}
+.ei{font-size:26px}.el{font-size:11px;color:var(--mut);font-weight:700;margin-top:2px}
+
+/* ── PORTS ── */
+.port{position:absolute;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--bd2);background:var(--sur);z-index:15;cursor:crosshair;transition:.15s all}
+.port:hover{transform:scale(1.55)!important;background:var(--ac);border-color:var(--ac)}
+.pin{left:-7px}
+.pout{right:-7px}
+
+/* ── RIGHT PANEL ── */
+#rp{width:207px;flex-shrink:0;background:var(--sur);border-left:2px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto;z-index:200}
+.rs{padding:9px 12px;border-bottom:1.5px solid var(--bdr)}
+.rr{margin-bottom:8px}
+.rr:last-child{margin-bottom:0}
+.rl{font-size:10px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:3px}
+.rsl,.rin{width:100%;background:var(--su2);border:1.5px solid var(--bdr);border-radius:9px;padding:5px 8px;font-size:12px;color:var(--txt);font-family:inherit;outline:none}
+.rsl:focus,.rin:focus{border-color:var(--ac)}
+.ckr{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--su2);cursor:pointer;margin-bottom:4px;transition:.12s}
+.ckr:hover{border-color:var(--ac)}
+.ckr input{accent-color:var(--ac);width:13px;height:13px;cursor:pointer}
+.ckl{font-size:11px;font-weight:700;color:var(--txt)}
+.sg{display:flex;flex-direction:column;gap:5px;padding:9px 12px}
+.sr{display:flex;justify-content:space-between;align-items:center}
+.sl{font-size:11px;color:var(--mut)}.sv{font-size:12px;font-weight:800;font-family:monospace}
+
+/* ── OVERLAY CONTROLS ── */
+#mm{position:absolute;bottom:54px;right:11px;width:106px;height:66px;background:var(--sur);border:2px solid var(--bdr);border-radius:10px;overflow:hidden;z-index:50;box-shadow:0 2px 12px rgba(139,92,246,.1)}
+#zb{position:absolute;bottom:11px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;background:var(--sur);border:2px solid var(--bdr);border-radius:99px;padding:3px 6px;z-index:50;box-shadow:0 2px 10px rgba(139,92,246,.1)}
+.zbt{width:25px;height:25px;border-radius:50%;border:none;background:none;color:var(--dim);cursor:pointer;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:.1s}
+.zbt:hover{background:var(--su2);color:var(--txt)}
+#zl{font-size:11px;color:var(--dim);min-width:38px;text-align:center;font-family:monospace;font-weight:700}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:var(--txt);color:#fff;border-radius:99px;padding:7px 18px;font-size:12px;font-weight:700;z-index:9999;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+
+/* ════════════ PLAY MODAL ════════════ */
+#ov{position:fixed;inset:0;background:rgba(58,37,96,.45);backdrop-filter:blur(5px);z-index:500;display:none;align-items:center;justify-content:center}
+#ov.on{display:flex}
+#pbox{width:430px;max-height:88vh;background:var(--sur);border-radius:22px;border:2px solid var(--bdr);box-shadow:0 20px 60px rgba(58,37,96,.22);display:flex;flex-direction:column;overflow:hidden}
+#ptop{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:2px solid var(--bdr);background:var(--su2);flex-shrink:0}
+#ptitle{font-size:14px;font-weight:800;color:var(--txt)}
+#pcls{margin-left:auto;width:27px;height:27px;border-radius:7px;border:1.5px solid var(--bdr);background:none;cursor:pointer;font-size:18px;color:var(--dim);display:flex;align-items:center;justify-content:center;transition:.1s}
+#pcls:hover{background:var(--nb);color:var(--nc);border-color:var(--nd)}
+#pst{display:flex;flex-wrap:wrap;gap:5px;padding:8px 16px;border-bottom:1.5px solid var(--bdr);min-height:36px;align-items:center;background:#fdfbff;flex-shrink:0}
+.stag{padding:2px 8px;border-radius:99px;background:var(--sur);border:1.5px solid var(--bdr);font-size:10px;font-weight:700;color:var(--dim)}
+#pscene{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+#pscene::-webkit-scrollbar{width:3px}
+#pscene::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+.bub{display:flex;gap:10px;animation:fu .25s ease}
+@keyframes fu{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.bava{font-size:26px;flex-shrink:0;align-self:flex-end}
+.brig{flex:1}
+.bnam{font-size:10px;font-weight:800;color:var(--ac);margin-bottom:3px}
+.btxt{background:var(--su2);border:1.5px solid var(--bdr);border-radius:13px 13px 13px 4px;padding:9px 12px;font-size:13px;line-height:1.6;color:var(--txt)}
+.pnar{text-align:center;color:var(--dim);font-size:11px;font-style:italic;animation:fu .25s ease}
+.efl{padding:9px 14px;border-radius:11px;background:var(--eb);border:1.5px solid var(--ed);font-size:12px;color:#065f46;font-weight:700;animation:fu .25s ease}
+#pcho{padding:0 16px 14px;display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.pcb{padding:10px 14px;border-radius:11px;border:2px solid var(--bdr);background:var(--sur);font-size:13px;font-family:inherit;font-weight:700;color:var(--txt);cursor:pointer;text-align:left;transition:.15s;display:flex;align-items:center;gap:9px}
+.pcb:hover{border-color:var(--ac);background:var(--gl);color:var(--ac)}
+.pcb.dis{opacity:.4;cursor:not-allowed;border-style:dashed}
+.pcn{width:21px;height:21px;border-radius:50%;background:var(--su2);border:1.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+#pnxt{margin:0 16px 14px;padding:11px;border-radius:11px;border:none;background:linear-gradient(120deg,var(--ac),#f43f5e);color:#fff;font-size:13px;font-family:inherit;font-weight:800;cursor:pointer;display:none;transition:.15s;flex-shrink:0}
+#pnxt:hover{opacity:.88;transform:translateY(-1px)}
+#pend{padding:22px 16px;text-align:center;display:none;flex-shrink:0}
+.pei{font-size:44px;margin-bottom:9px}.pet{font-size:17px;font-weight:900;color:var(--txt);margin-bottom:5px}.pes{font-size:12px;color:var(--dim);margin-bottom:16px}
+.per{padding:8px 22px;border-radius:99px;border:none;background:var(--ac);color:#fff;font-size:13px;font-family:inherit;font-weight:700;cursor:pointer;transition:.15s}
+.per:hover{background:var(--a2)}
+</style>
+</head>
+<body>
+<!-- BAR -->
+<div id="bar">
+  <span class="logo">✨ 劇本編輯器</span>
+  <div class="sp"></div>
+  <input id="ename" value="操場偶遇">
+  <div class="sp"></div>
+  <button class="btn" onclick="autoLayout()">🔧 自動排列</button>
+  <button class="btn" onclick="clearAll()">🗑 清空</button>
+  <div class="ml">
+    <button class="btn" onclick="exportJSON()">💾 匯出</button>
+    <button class="btn pri" onclick="openPlay()">▶ 測試遊玩</button>
+  </div>
+</div>
+<div id="app">
+  <!-- LEFT -->
+  <div id="lp">
+    <div class="pt">節點類型</div>
+    <div id="pal">
+      <div class="pi" draggable="true" ondragstart="pdStart(event,'dialogue')"><div class="pd" style="background:var(--dc)"></div>💬 對話</div>
+      <div class="pi" draggable="true" ondragstart="pdStart(event,'choice')"><div class="pd" style="background:var(--cc)"></div>🔀 選項</div>
+      <div class="pi" draggable="true" ondragstart="pdStart(event,'condition')"><div class="pd" style="background:var(--kc)"></div>❓ 條件</div>
+      <div class="pi" draggable="true" ondragstart="pdStart(event,'effect')"><div class="pd" style="background:var(--ec)"></div>⚡ 效果</div>
+      <div class="pi" draggable="true" ondragstart="pdStart(event,'end')"><div class="pd" style="background:var(--nc)"></div>🏁 結束</div>
+    </div>
+    <div class="ls"></div>
+    <div class="pt">角色</div>
+    <div id="chl">
+      <div class="cc"><span class="ca">🧒</span><div><div class="cn">林小明</div><div class="cr">主角</div></div></div>
+      <div class="cc"><span class="ca">👧</span><div><div class="cn">陳小美</div><div class="cr">同班同學</div></div></div>
+      <div class="cc"><span class="ca">👨‍🏫</span><div><div class="cn">王老師</div><div class="cr">班導師</div></div></div>
+      <div class="cc"><span class="ca">🧑</span><div><div class="cn">張小強</div><div class="cr">鄰班</div></div></div>
+    </div>
+  </div>
+  <!-- CANVAS — nodes go here directly -->
+  <div id="cv" ondragover="event.preventDefault()" ondrop="onDrop(event)">
+    <svg id="svg"></svg>
+    <div id="mm"><canvas id="mmc" width="106" height="66"></canvas></div>
+    <div id="zb">
+      <button class="zbt" onclick="dz(-0.1)">−</button>
+      <span id="zl">100%</span>
+      <button class="zbt" onclick="dz(0.1)">+</button>
+      <button class="zbt" onclick="resetView()" title="重置">⊡</button>
+    </div>
+  </div>
+  <!-- RIGHT -->
+  <div id="rp">
+    <div class="pt" style="padding-top:13px">觸發條件</div>
+    <div class="rs">
+      <div class="rr"><label class="rl">📍 地點</label>
+        <select class="rsl" id="tLoc"><option>操場</option><option>教室</option><option>走廊</option><option>圖書館</option><option>保健室</option></select>
+      </div>
+      <div class="rr"><label class="rl">🕐 時段</label>
+        <select class="rsl" id="tTime"><option value="morning">☀️ 早上</option><option value="noon">🌤 午間</option><option value="afternoon">🌙 放學後</option></select>
+      </div>
+      <div class="rr"><label class="rl">👥 必要角色</label>
+        <label class="ckr"><input type="checkbox" value="林小明"><span class="ckl">🧒 林小明</span></label>
+        <label class="ckr"><input type="checkbox" value="陳小美"><span class="ckl">👧 陳小美</span></label>
+        <label class="ckr"><input type="checkbox" value="王老師"><span class="ckl">👨‍🏫 王老師</span></label>
+        <label class="ckr"><input type="checkbox" value="張小強"><span class="ckl">🧑 張小強</span></label>
+      </div>
+      <div class="rr"><label class="rl">💖 最低好感度</label>
+        <input class="rin" type="number" id="tAff" value="0" min="0" max="100">
+      </div>
+    </div>
+    <div class="pt" style="padding-top:11px">📊 統計</div>
+    <div class="sg">
+      <div class="sr"><span class="sl">節點</span><span class="sv" id="sN">0</span></div>
+      <div class="sr"><span class="sl">連結</span><span class="sv" id="sC">0</span></div>
+      <div class="sr"><span class="sl">對話</span><span class="sv" id="sD">0</span></div>
+      <div class="sr"><span class="sl">選項</span><span class="sv" id="sO">0</span></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<!-- PLAY MODAL -->
+<div id="ov" onclick="bgClose(event)">
+  <div id="pbox">
+    <div id="ptop"><span>🎮</span><span id="ptitle">測試遊玩</span><button id="pcls" onclick="closePlay()">×</button></div>
+    <div id="pst"><span style="opacity:.4;font-size:11px">（遊戲狀態）</span></div>
+    <div id="pscene"></div>
+    <div id="pcho"></div>
+    <button id="pnxt" onclick="doNext()">繼續 →</button>
+    <div id="pend">
+      <div class="pei">🏁</div>
+      <div class="pet">事件結束</div>
+      <div class="pes" id="pesub"></div>
+      <button class="per" onclick="startPlay()">↺ 重新開始</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   DATA
+═══════════════════════════════════════ */
+const CHARS=[
+  {id:'char_001',name:'林小明',em:'🧒'},
+  {id:'char_002',name:'陳小美',em:'👧'},
+  {id:'char_003',name:'王老師',em:'👨‍🏫'},
+  {id:'char_004',name:'張小強',em:'🧑'},
+];
+const META={
+  dialogue:{lbl:'對話',ic:'💬',col:'var(--dc)',bg:'var(--db)',bd:'var(--dd)'},
+  choice:  {lbl:'選項',ic:'🔀',col:'var(--cc)',bg:'var(--cb)',bd:'var(--cd)'},
+  condition:{lbl:'條件',ic:'❓',col:'var(--kc)',bg:'var(--kb)',bd:'var(--kd)'},
+  effect:  {lbl:'效果',ic:'⚡',col:'var(--ec)',bg:'var(--eb)',bd:'var(--ed)'},
+  end:     {lbl:'結束',ic:'🏁',col:'var(--nc)',bg:'var(--nb)',bd:'var(--nd)'},
+};
+const CC=['#f59e0b','#3b82f6','#8b5cf6','#10b981','#f43f5e'];
+
+let nodes=[], conns=[], nid=0, sel=null;
+let pan={x:60,y:40}, sc=1;
+let pdType=null;
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  initCanvas();
+  loadDemo();
+  redraw();
+});
+
+function loadDemo(){
+  const a=mk('dialogue',50,80,{speaker:'char_001',text:'你也來操場打球啊？'});
+  const b=mk('choice',310,80,{choices:['對啊，你要一起嗎？','只是路過而已','我在等人']});
+  const c=mk('dialogue',580,0,{speaker:'char_001',text:'太好了！我們來分隊！'});
+  const d=mk('dialogue',580,175,{speaker:'char_001',text:'哦，好吧……'});
+  const e=mk('effect',580,-90,{effects:[{type:'affinity',char:'林小明',val:'+5'}]});
+  const f=mk('condition',850,0,{condChar:'林小明',condType:'好感度',condOp:'≥',condVal:'40'});
+  const g=mk('dialogue',1120,-60,{speaker:'char_002',text:'你好厲害喔！下次再一起！'});
+  const h=mk('end',1120,80,{});
+  const i=mk('end',580,320,{});
+  link(a,'out',b,'in'); link(b,'c0',c,'in'); link(b,'c1',d,'in'); link(b,'c2',i,'in');
+  link(c,'out',e,'in'); link(e,'out',f,'in');
+  link(f,'yes',g,'in'); link(f,'no',h,'in'); link(d,'out',i,'in');
+}
+
+/* ═══════════════════════════════════════
+   NODE FACTORY
+═══════════════════════════════════════ */
+function mk(type,x,y,data={}){
+  nid++;
+  const id='n'+nid;
+  nodes.push({id,type,x,y,data:JSON.parse(JSON.stringify(data))});
+  return {id};
+}
+function link(a,ap,b,bp){ conns.push({fi:a.id,fp:ap,ti:b.id,tp:bp}); }
+
+/* ═══════════════════════════════════════
+   REDRAW — remove all node divs, rebuild
+═══════════════════════════════════════ */
+function redraw(){
+  // remove old node elements
+  document.querySelectorAll('.node').forEach(e=>e.remove());
+  const cv=document.getElementById('cv');
+  nodes.forEach(n=>{
+    const el=buildNode(n);
+    cv.appendChild(el);
+  });
+  drawSVG();
+  drawMM();
+  updStats();
+}
+
+/* ═══════════════════════════════════════
+   BUILD NODE ELEMENT
+═══════════════════════════════════════ */
+function buildNode(node){
+  const m=META[node.type];
+  const div=document.createElement('div');
+  div.className='node';
+  div.id='nd'+node.id;
+  div.style.left=wx(node.x)+'px';
+  div.style.top =wy(node.y)+'px';
+  div.style.borderColor=m.bd;
+
+  // ── header (draggable) ──
+  const hd=document.createElement('div');
+  hd.className='nhd';
+  hd.style.cssText=`background:${m.bg};border-bottom-color:${m.bd}`;
+  hd.innerHTML=
+    `<span class="ni">${m.ic}</span>`+
+    `<span class="nl" style="color:${m.col}">${m.lbl}</span>`+
+    `<span class="nid">${node.id}</span>`+
+    `<button class="ndl" data-del="${node.id}" style="color:${m.col}">×</button>`;
+  hd.addEventListener('mousedown',e=>{
+    if(e.target.dataset.del){ e.stopPropagation(); delNode(e.target.dataset.del); return; }
+    dragNode(e,node);
+  });
+  div.appendChild(hd);
+
+  // ── body ──
+  const bd=document.createElement('div');
+  bd.className='nb';
+  bd.innerHTML=bodyHTML(node);
+  // inputs must not bubble mousedown to canvas pan
+  bd.addEventListener('mousedown',e=>e.stopPropagation());
+  div.appendChild(bd);
+
+  // ── ports ──
+  // IN
+  const pi=port(node.id,'in',true);
+  pi.style.top='50%'; pi.style.marginTop='-6px';
+  div.appendChild(pi);
+  // OUT(s)
+  if(node.type==='dialogue'||node.type==='effect'){
+    const po=port(node.id,'out',false);
+    po.style.top='50%'; po.style.marginTop='-6px';
+    div.appendChild(po);
+  }
+  if(node.type==='choice'){
+    const n=(node.data.choices||[]).length;
+    for(let i=0;i<n;i++){
+      const po=port(node.id,'c'+i,false);
+      // header ~40px, each row ~28px
+      po.style.top=(40+(i+0.5)*28)+'px'; po.style.marginTop='-6px';
+      div.appendChild(po);
+    }
+  }
+  if(node.type==='condition'){
+    const py=port(node.id,'yes',false); py.style.top='52%'; py.style.marginTop='-6px';
+    const pn=port(node.id,'no', false); pn.style.top='76%'; pn.style.marginTop='-6px';
+    div.appendChild(py); div.appendChild(pn);
+  }
+
+  // click on node = select
+  div.addEventListener('mousedown',e=>{ e.stopPropagation(); setsel(node); });
+
+  return div;
+}
+
+function port(nodeId,pid,isIn){
+  const p=document.createElement('div');
+  p.className='port '+(isIn?'pin':'pout');
+  p.dataset.nid=nodeId; p.dataset.pid=pid;
+  if(!isIn){
+    p.addEventListener('mousedown',e=>{ e.stopPropagation(); startConn(e,nodeId,pid); });
+  } else {
+    p.style.cursor='default';
+  }
+  return p;
+}
+
+function bodyHTML(node){
+  const d=node.data;
+  const eh=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const eid=node.id;
+  if(node.type==='dialogue'){
+    const opts=CHARS.map(c=>`<option value="${c.id}"${d.speaker===c.id?' selected':''}>${c.em} ${c.name}</option>`).join('');
+    const em=CHARS.find(c=>c.id===d.speaker)?.em||'🧒';
+    return `<div class="spr">
+      <span id="se${eid}" class="sem">${em}</span>
+      <select class="ns" style="border-color:var(--dd)"
+        onchange="upd('${eid}','speaker',this.value);document.getElementById('se${eid}').textContent={'char_001':'🧒','char_002':'👧','char_003':'👨‍🏫','char_004':'🧑'}[this.value]||'🧒'">${opts}</select>
+    </div>
+    <textarea class="nta" style="border-color:var(--dd)" placeholder="輸入對話內容…"
+      onchange="upd('${eid}','text',this.value)">${eh(d.text)}</textarea>`;
+  }
+  if(node.type==='choice'){
+    const rows=(d.choices||[]).map((c,i)=>`<div class="cr2">
+      <span class="cno" style="color:${CC[i%CC.length]}">${i+1}.</span>
+      <input class="ci" value="${eh(c)}" placeholder="選項文字…"
+        onchange="updC('${eid}',${i},this.value)">
+      <button class="crm2" onclick="rmC('${eid}',${i})">−</button>
+    </div>`).join('');
+    return `<div class="cl">${rows}</div><button class="cad" onclick="addC('${eid}')">＋ 新增選項</button>`;
+  }
+  if(node.type==='condition'){
+    const co=CHARS.map(c=>`<option${d.condChar===c.name?' selected':''}>${c.name}</option>`).join('');
+    return `<div class="cgr">
+      <select class="ns" style="border-color:var(--kd)" onchange="upd('${eid}','condChar',this.value)">${co}</select>
+      <select class="ns" style="border-color:var(--kd)" onchange="upd('${eid}','condOp',this.value)">${['≥','≤','＝'].map(o=>`<option${d.condOp===o?' selected':''}>${o}</option>`).join('')}</select>
+      <input class="ni2" style="border-color:var(--kd)" value="${eh(d.condVal)}" placeholder="值"
+        onchange="upd('${eid}','condVal',this.value)">
+    </div>
+    <div class="cbr"><span style="color:var(--ec)">✓ 是 →</span><span style="color:var(--nc)">✗ 否 →</span></div>`;
+  }
+  if(node.type==='effect'){
+    const rows=(d.effects||[]).map((ef,i)=>`<div class="er">
+      <select class="ns" style="width:54px;flex-shrink:0;border-color:var(--ed)"
+        onchange="updE('${eid}',${i},'type',this.value)">
+        ${['affinity','item','flag'].map(t=>`<option value="${t}"${ef.type===t?' selected':''}>${{affinity:'好感',item:'物品',flag:'旗標'}[t]}</option>`).join('')}
+      </select>
+      <input class="ni2" style="border-color:var(--ed)" value="${eh(ef.char)}" placeholder="${ef.type==='item'?'物品':'角色'}"
+        onchange="updE('${eid}',${i},'char',this.value)">
+      <input class="ni2" style="width:42px;flex-shrink:0;border-color:var(--ed)" value="${eh(ef.val)}" placeholder="+5"
+        onchange="updE('${eid}',${i},'val',this.value)">
+    </div>`).join('');
+    return `<div>${rows}</div>`;
+  }
+  if(node.type==='end') return `<div class="ec2"><div class="ei">🏁</div><div class="el">事件結束</div></div>`;
+  return '';
+}
+
+/* ═══════════════════════════════════════
+   WORLD ↔ SCREEN
+═══════════════════════════════════════ */
+function wx(x){ return Math.round(x*sc+pan.x); }
+function wy(y){ return Math.round(y*sc+pan.y); }
+function wx2(px){ return (px-pan.x)/sc; }
+function wy2(py){ return (py-pan.y)/sc; }
+
+function reposition(){
+  nodes.forEach(n=>{
+    const el=document.getElementById('nd'+n.id);
+    if(!el) return;
+    el.style.left=wx(n.x)+'px';
+    el.style.top =wy(n.y)+'px';
+  });
+  drawSVG();
+  drawMM();
+}
+
+/* ═══════════════════════════════════════
+   SVG CONNECTIONS
+═══════════════════════════════════════ */
+function portCenter(nodeId,pid){
+  const el=document.querySelector(`#nd${nodeId} [data-pid="${pid}"]`);
+  if(!el) return null;
+  const cvr=document.getElementById('cv').getBoundingClientRect();
+  const r=el.getBoundingClientRect();
+  return {x:r.left-cvr.left+r.width/2, y:r.top-cvr.top+r.height/2};
+}
+function bez(f,t){
+  const dx=Math.min(Math.abs(t.x-f.x)*.55+40,160);
+  return `M${f.x},${f.y}C${f.x+dx},${f.y} ${t.x-dx},${t.y} ${t.x},${t.y}`;
+}
+function pcol(fp){
+  if(fp==='yes') return 'var(--ec)';
+  if(fp==='no')  return 'var(--nc)';
+  if(fp.startsWith('c')) return CC[parseInt(fp.slice(1))%CC.length];
+  return 'var(--ac)';
+}
+function drawSVG(){
+  const svg=document.getElementById('svg');
+  svg.innerHTML='';
+  const NS='http://www.w3.org/2000/svg';
+  conns.forEach(c=>{
+    const f=portCenter(c.fi,c.fp), t=portCenter(c.ti,c.tp);
+    if(!f||!t) return;
+    const col=pcol(c.fp);
+    const path=document.createElementNS(NS,'path');
+    path.setAttribute('d',bez(f,t));
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke',col);
+    path.setAttribute('stroke-width','2.5');
+    path.setAttribute('opacity','0.6');
+    svg.appendChild(path);
+    // label
+    let lbl='';
+    if(c.fp==='yes') lbl='✓ 是';
+    else if(c.fp==='no') lbl='✗ 否';
+    else if(c.fp.startsWith('c')){
+      const nd=nodes.find(n=>n.id===c.fi);
+      const txt=nd?.data?.choices?.[parseInt(c.fp.slice(1))]||'';
+      lbl=txt.length>8?txt.slice(0,7)+'…':txt;
+    }
+    if(lbl){
+      const mx=(f.x+t.x)/2, my=(f.y+t.y)/2;
+      const tw=lbl.length*6+10;
+      const rect=document.createElementNS(NS,'rect');
+      rect.setAttribute('x',mx-tw/2); rect.setAttribute('y',my-12);
+      rect.setAttribute('width',tw); rect.setAttribute('height',14);
+      rect.setAttribute('rx',5); rect.setAttribute('fill','#fff');
+      rect.setAttribute('stroke',col); rect.setAttribute('stroke-width','1');
+      svg.appendChild(rect);
+      const tx=document.createElementNS(NS,'text');
+      tx.setAttribute('x',mx); tx.setAttribute('y',my-1);
+      tx.setAttribute('text-anchor','middle');
+      tx.setAttribute('fill',col); tx.setAttribute('font-weight','700');
+      tx.setAttribute('font-size','10');
+      tx.textContent=lbl;
+      svg.appendChild(tx);
+    }
+  });
+}
+
+/* ═══════════════════════════════════════
+   CONNECTING PORT → PORT
+═══════════════════════════════════════ */
+let tmpPath=null;
+function startConn(e,nid,pid){
+  e.preventDefault(); e.stopPropagation();
+  const svg=document.getElementById('svg');
+  const NS='http://www.w3.org/2000/svg';
+  const p=document.createElementNS(NS,'path');
+  p.setAttribute('fill','none');
+  p.setAttribute('stroke',pcol(pid));
+  p.setAttribute('stroke-width','2.5');
+  p.setAttribute('stroke-dasharray','6 4');
+  p.setAttribute('opacity','0.55');
+  svg.appendChild(p); tmpPath=p;
+
+  const cvr=document.getElementById('cv').getBoundingClientRect();
+  const mv=ev=>{
+    const f=portCenter(nid,pid); if(!f) return;
+    tmpPath?.setAttribute('d',bez(f,{x:ev.clientX-cvr.left,y:ev.clientY-cvr.top}));
+  };
+  const up=ev=>{
+    document.removeEventListener('mousemove',mv);
+    document.removeEventListener('mouseup',up);
+    tmpPath?.remove(); tmpPath=null;
+    const hits=document.elementsFromPoint(ev.clientX,ev.clientY);
+    const tgt=hits.find(el=>el.classList.contains('port')&&el.dataset.pid==='in'&&el.dataset.nid!==nid);
+    if(tgt){
+      conns=conns.filter(c=>!(c.fi===nid&&c.fp===pid));
+      conns.push({fi:nid,fp:pid,ti:tgt.dataset.nid,tp:'in'});
+      drawSVG(); updStats(); toast('🔗 連結成功！');
+    }
+  };
+  document.addEventListener('mousemove',mv);
+  document.addEventListener('mouseup',up);
+}
+
+/* ═══════════════════════════════════════
+   DRAG NODE
+═══════════════════════════════════════ */
+function dragNode(e,node){
+  e.preventDefault(); e.stopPropagation();
+  setsel(node);
+  const el=document.getElementById('nd'+node.id);
+  el.classList.add('drg');
+  const ox=e.clientX, oy=e.clientY;
+  const nx0=node.x, ny0=node.y;
+  const mv=ev=>{
+    node.x=nx0+(ev.clientX-ox)/sc;
+    node.y=ny0+(ev.clientY-oy)/sc;
+    el.style.left=wx(node.x)+'px';
+    el.style.top =wy(node.y)+'px';
+    drawSVG();
+  };
+  const up=()=>{
+    document.removeEventListener('mousemove',mv);
+    document.removeEventListener('mouseup',up);
+    el.classList.remove('drg');
+    drawMM();
+  };
+  document.addEventListener('mousemove',mv);
+  document.addEventListener('mouseup',up);
+}
+
+/* ═══════════════════════════════════════
+   CANVAS PAN & ZOOM
+═══════════════════════════════════════ */
+function initCanvas(){
+  const cv=document.getElementById('cv');
+  cv.addEventListener('mousedown',e=>{
+    // only pan if clicking on bare canvas (not node, not SVG content, not panel)
+    if(e.target!==cv && e.target.id!=='svg') return;
+    e.preventDefault();
+    cv.classList.add('pan');
+    const sx=e.clientX-pan.x, sy=e.clientY-pan.y;
+    const mv=ev=>{ pan.x=ev.clientX-sx; pan.y=ev.clientY-sy; reposition(); };
+    const up=()=>{ cv.classList.remove('pan'); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove',mv);
+    document.addEventListener('mouseup',up);
+  });
+  cv.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const r=cv.getBoundingClientRect();
+    dz(e.deltaY>0?-0.07:0.07, e.clientX-r.left, e.clientY-r.top);
+  },{passive:false});
+  cv.addEventListener('click',e=>{ if(e.target===cv||e.target.id==='svg') setsel(null); });
+}
+function dz(delta,mx,my){
+  const cv=document.getElementById('cv').getBoundingClientRect();
+  const cmx=mx??cv.width/2, cmy=my??cv.height/2;
+  const old=sc;
+  sc=Math.min(2.5,Math.max(0.2,sc+delta));
+  pan.x=cmx-(cmx-pan.x)*(sc/old);
+  pan.y=cmy-(cmy-pan.y)*(sc/old);
+  document.getElementById('zl').textContent=Math.round(sc*100)+'%';
+  reposition();
+}
+function resetView(){ sc=1; pan={x:60,y:40}; document.getElementById('zl').textContent='100%'; reposition(); }
+
+/* ═══════════════════════════════════════
+   SELECT / DELETE
+═══════════════════════════════════════ */
+function setsel(node){
+  document.querySelectorAll('.node').forEach(el=>el.classList.remove('sel'));
+  sel=node;
+  if(node) document.getElementById('nd'+node.id)?.classList.add('sel');
+}
+function delNode(id){
+  nodes=nodes.filter(n=>n.id!==id);
+  conns=conns.filter(c=>c.fi!==id&&c.ti!==id);
+  document.getElementById('nd'+id)?.remove();
+  drawSVG(); updStats(); drawMM(); toast('🗑 已刪除');
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Delete'&&sel&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){
+    delNode(sel.id); sel=null;
+  }
+});
+
+/* ═══════════════════════════════════════
+   DATA HELPERS
+═══════════════════════════════════════ */
+function upd(id,k,v){ const n=nodes.find(n=>n.id===id); if(n) n.data[k]=v; }
+function updC(id,i,v){ const n=nodes.find(n=>n.id===id); if(n){n.data.choices=n.data.choices||[];n.data.choices[i]=v;} drawSVG(); }
+function addC(id){ const n=nodes.find(n=>n.id===id); if(!n)return; n.data.choices=n.data.choices||[]; n.data.choices.push(''); reRender(n); }
+function rmC(id,i){ const n=nodes.find(n=>n.id===id); if(!n)return; n.data.choices.splice(i,1); conns=conns.filter(c=>!(c.fi===id&&c.fp==='c'+i)); reRender(n); }
+function updE(id,i,k,v){ const n=nodes.find(n=>n.id===id); if(!n)return; n.data.effects=n.data.effects||[]; n.data.effects[i]=n.data.effects[i]||{}; n.data.effects[i][k]=v; }
+
+function reRender(node){
+  const old=document.getElementById('nd'+node.id);
+  if(old) old.remove();
+  document.getElementById('cv').appendChild(buildNode(node));
+  drawSVG(); updStats();
+}
+
+/* ═══════════════════════════════════════
+   PALETTE DRAG & DROP
+═══════════════════════════════════════ */
+function pdStart(e,type){ pdType=type; e.dataTransfer.effectAllowed='copy'; }
+function onDrop(e){
+  if(!pdType) return;
+  const r=document.getElementById('cv').getBoundingClientRect();
+  const x=wx2(e.clientX-r.left)-113;
+  const y=wy2(e.clientY-r.top)-50;
+  const defs={
+    dialogue:{speaker:'char_001',text:''},
+    choice:{choices:['選項一','選項二']},
+    condition:{condChar:'林小明',condType:'好感度',condOp:'≥',condVal:'30'},
+    effect:{effects:[{type:'affinity',char:'',val:'+5'}]},
+    end:{},
+  };
+  const nd=mk(pdType,x,y,defs[pdType]);
+  document.getElementById('cv').appendChild(buildNode(nodes[nodes.length-1]));
+  pdType=null; updStats(); drawMM(); toast('✨ 新增節點');
+}
+
+/* ═══════════════════════════════════════
+   STATS & MINIMAP
+═══════════════════════════════════════ */
+function updStats(){
+  document.getElementById('sN').textContent=nodes.length;
+  document.getElementById('sC').textContent=conns.length;
+  document.getElementById('sD').textContent=nodes.filter(n=>n.type==='dialogue').length;
+  document.getElementById('sO').textContent=nodes.filter(n=>n.type==='choice').length;
+}
+function drawMM(){
+  const cv=document.getElementById('mmc');
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,106,66);
+  ctx.fillStyle='#f7f3ff'; ctx.fillRect(0,0,106,66);
+  if(!nodes.length) return;
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const mnX=Math.min(...xs)-20, mxX=Math.max(...xs)+240;
+  const mnY=Math.min(...ys)-20, mxY=Math.max(...ys)+100;
+  const s=Math.min(106/(mxX-mnX||1),66/(mxY-mnY||1))*0.9;
+  const MC={dialogue:'#3b82f6',choice:'#f59e0b',condition:'#8b5cf6',effect:'#10b981',end:'#f43f5e'};
+  nodes.forEach(n=>{
+    ctx.fillStyle=MC[n.type]+'99';
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect((n.x-mnX)*s+3,(n.y-mnY)*s+3,220*s,34*s,3);
+    else ctx.rect((n.x-mnX)*s+3,(n.y-mnY)*s+3,220*s,34*s);
+    ctx.fill();
+  });
+}
+
+/* ═══════════════════════════════════════
+   TOOLBAR
+═══════════════════════════════════════ */
+function autoLayout(){
+  const adj={},inD={};
+  nodes.forEach(n=>{adj[n.id]=[];inD[n.id]=0;});
+  conns.forEach(c=>{if(adj[c.fi])adj[c.fi].push(c.ti);if(inD[c.ti]!==undefined)inD[c.ti]++;});
+  const q=nodes.filter(n=>inD[n.id]===0).map(n=>n.id);
+  const lyr={},vis=new Set(); let l=0;
+  while(q.length){
+    const nx=[];
+    q.forEach(id=>{if(vis.has(id))return;vis.add(id);lyr[id]=l;(adj[id]||[]).forEach(x=>nx.push(x));});
+    q.length=0;q.push(...nx);l++;
+  }
+  const cnt={};
+  nodes.forEach(n=>{const lv=lyr[n.id]??0;cnt[lv]=cnt[lv]||0;n.x=60+lv*300;n.y=60+cnt[lv]*175;cnt[lv]++;});
+  sc=1;pan={x:60,y:40};
+  document.getElementById('zl').textContent='100%';
+  redraw(); toast('✨ 已自動排列');
+}
+function clearAll(){
+  if(!confirm('確定清空？'))return;
+  nodes=[];conns=[];nid=0;
+  document.querySelectorAll('.node').forEach(e=>e.remove());
+  document.getElementById('svg').innerHTML='';
+  updStats();drawMM();toast('🗑 已清空');
+}
+function exportJSON(){
+  const tc=[...document.querySelectorAll('.ckr input:checked')].map(c=>c.value);
+  const d={event:{name:document.getElementById('ename').value,trigger:{location:document.getElementById('tLoc').value,timeSlot:document.getElementById('tTime').value,characters:tc,minAffinity:parseInt(document.getElementById('tAff').value)||0},nodes:nodes.map(n=>({id:n.id,type:n.type,x:n.x,y:n.y,data:n.data})),connections:conns}};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));
+  a.download='event_'+Date.now()+'.json'; a.click();
+  toast('💾 已匯出！');
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200);
+}
+
+/* ═══════════════════════════════════════
+   PLAY ENGINE
+═══════════════════════════════════════ */
+let PS={}, curId=null, nextFn=null;
+
+function openPlay(){
+  if(!nodes.length){ toast('⚠️ 請先建立節點！'); return; }
+  document.getElementById('ov').classList.add('on');
+  startPlay();
+}
+function closePlay(){ document.getElementById('ov').classList.remove('on'); }
+function bgClose(e){ if(e.target===document.getElementById('ov')) closePlay(); }
+
+function startPlay(){
+  PS={aff:{林小明:0,陳小美:0,王老師:0,張小強:0},inv:[],flags:{}};
+  nextFn=null;
+  document.getElementById('pscene').innerHTML='';
+  document.getElementById('pcho').innerHTML='';
+  document.getElementById('pnxt').style.display='none';
+  document.getElementById('pend').style.display='none';
+  updPSt();
+
+  // find start: node with no incoming connection
+  const hasIn=new Set(conns.map(c=>c.ti));
+  const start=nodes.find(n=>!hasIn.has(n.id));
+  if(!start){ addNarr('⚠️ 找不到起始節點（請確認有節點沒有輸入連線）'); return; }
+  runNode(start.id);
+}
+
+function runNode(id){
+  const node=nodes.find(n=>n.id===id);
+  if(!node){ endPlay(); return; }
+  curId=id;
+
+  if(node.type==='dialogue'){
+    const ch=CHARS.find(c=>c.id===node.data.speaker);
+    addBub(ch?.em||'💬', ch?.name||'?', node.data.text||'（空對話）');
+    const nc=conns.find(c=>c.fi===id&&c.fp==='out');
+    if(nc) setNext(()=>runNode(nc.ti));
+    else endPlay();
+  }
+  else if(node.type==='choice'){
+    const opts=node.data.choices||[];
+    const cc=conns.filter(c=>c.fi===id&&c.fp.startsWith('c'));
+    showChoices(opts,cc);
+  }
+  else if(node.type==='condition'){
+    const val=PS.aff[node.data.condChar]||0;
+    const thr=parseInt(node.data.condVal)||0;
+    let pass=node.data.condOp==='≥'?val>=thr:node.data.condOp==='≤'?val<=thr:val===thr;
+    addNarr(`❓ ${node.data.condChar}好感度 ${val} ${node.data.condOp} ${thr} → ${pass?'✓ 通過':'✗ 未通過'}`);
+    const nc=conns.find(c=>c.fi===id&&c.fp===(pass?'yes':'no'));
+    if(nc) setTimeout(()=>runNode(nc.ti),350);
+    else endPlay();
+  }
+  else if(node.type==='effect'){
+    applyEff(node.data.effects||[]);
+    const nc=conns.find(c=>c.fi===id&&c.fp==='out');
+    if(nc) setTimeout(()=>runNode(nc.ti),500);
+    else endPlay();
+  }
+  else if(node.type==='end'){
+    endPlay();
+  }
+}
+
+function addBub(em,name,text){
+  const sc=document.getElementById('pscene');
+  const d=document.createElement('div');
+  d.className='bub';
+  d.innerHTML=`<div class="bava">${em}</div><div class="brig"><div class="bnam">${name}</div><div class="btxt">${text}</div></div>`;
+  sc.appendChild(d);
+  sc.scrollTop=sc.scrollHeight;
+}
+function addNarr(txt){
+  const sc=document.getElementById('pscene');
+  const d=document.createElement('div');
+  d.className='pnar'; d.textContent=txt;
+  sc.appendChild(d);
+  sc.scrollTop=sc.scrollHeight;
+}
+function addEffFlash(effs){
+  if(!effs.length) return;
+  const sc=document.getElementById('pscene');
+  const d=document.createElement('div');
+  d.className='efl';
+  d.textContent='⚡ '+effs.map(ef=>{
+    if(ef.type==='affinity') return `${ef.char}好感${ef.val}`;
+    if(ef.type==='item') return `獲得「${ef.char}」`;
+    return `旗標：${ef.char}`;
+  }).join('　');
+  sc.appendChild(d);
+  sc.scrollTop=sc.scrollHeight;
+}
+
+function setNext(fn){
+  nextFn=fn;
+  document.getElementById('pnxt').style.display='block';
+  document.getElementById('pcho').innerHTML='';
+}
+function doNext(){
+  document.getElementById('pnxt').style.display='none';
+  if(nextFn){ const f=nextFn; nextFn=null; f(); }
+}
+
+function showChoices(opts,cc){
+  document.getElementById('pnxt').style.display='none';
+  const cho=document.getElementById('pcho');
+  cho.innerHTML='';
+  opts.forEach((txt,i)=>{
+    const mc=cc.find(c=>c.fp==='c'+i);
+    const btn=document.createElement('button');
+    btn.className='pcb'+(mc?'':' dis');
+    btn.innerHTML=`<span class="pcn" style="background:${CC[i%CC.length]}22;border-color:${CC[i%CC.length]};color:${CC[i%CC.length]}">${i+1}</span>${txt||'（空白）'}`;
+    if(mc) btn.onclick=()=>{
+      addBub('🙋','你',txt);
+      cho.innerHTML='';
+      document.getElementById('pnxt').style.display='none';
+      runNode(mc.ti);
+    };
+    cho.appendChild(btn);
+  });
+}
+
+function applyEff(effs){
+  effs.forEach(ef=>{
+    if(ef.type==='affinity'){ const v=parseInt(ef.val)||0; PS.aff[ef.char]=(PS.aff[ef.char]||0)+v; }
+    if(ef.type==='item') PS.inv.push(ef.char);
+    if(ef.type==='flag') PS.flags[ef.char]=true;
+  });
+  addEffFlash(effs);
+  updPSt();
+}
+
+function updPSt(){
+  const el=document.getElementById('pst');
+  const parts=[];
+  Object.entries(PS.aff).forEach(([n,v])=>{ if(v!==0) parts.push(`<span class="stag">💖${n} ${v>0?'+':''}${v}</span>`); });
+  PS.inv.forEach(it=>parts.push(`<span class="stag">🎒${it}</span>`));
+  el.innerHTML=parts.length?parts.join(''):'<span style="opacity:.4;font-size:11px">（遊戲狀態）</span>';
+}
+
+function endPlay(){
+  document.getElementById('pnxt').style.display='none';
+  document.getElementById('pcho').innerHTML='';
+  const ed=document.getElementById('pend');
+  ed.style.display='block';
+  const affs=Object.entries(PS.aff).filter(([,v])=>v!==0).map(([n,v])=>`${n}好感${v>0?'+':''}${v}`);
+  const inv=PS.inv.length?`獲得：${PS.inv.join('、')}`:'';
+  document.getElementById('pesub').textContent=[...affs,inv].filter(Boolean).join('　')||'沒有任何狀態改變。';
+  document.getElementById('pscene').scrollTop=999999;
+}
+</script>
+</body>
+</html>
