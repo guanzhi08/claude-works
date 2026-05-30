@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>✨ 劇本節點編輯器 v2</title>
+<title>✨ 劇本節點編輯器 v3</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -37,7 +37,7 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;back
 #lp{width:182px;flex-shrink:0;background:var(--sur);border-right:2px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;z-index:200}
 .pt{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;padding:11px 12px 5px}
 #pal{padding:0 8px 8px;display:flex;flex-direction:column;gap:4px}
-.pi{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:11px;border:1.5px solid transparent;cursor:grab;font-size:12px;font-weight:700;color:var(--txt);transition:.15s;user-select:none}
+.pi{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:11px;border:1.5px solid transparent;cursor:grab;font-size:12px;font-weight:700;color:var(--txt);transition:.15s;user-select:none;touch-action:none}
 .pi:hover{background:var(--su2);border-color:var(--bd2);transform:translateY(-1px)}
 .pi:active{cursor:grabbing}
 .pd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
@@ -47,7 +47,7 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;back
 .ca{font-size:17px}.cn{font-size:11px;font-weight:700}.cr{font-size:10px;color:var(--mut)}
 
 /* ── CANVAS ── */
-#cv{flex:1;position:relative;overflow:hidden;background:var(--bg);background-image:radial-gradient(var(--bdr) 1.2px,transparent 1.2px);background-size:26px 26px}
+#cv{flex:1;position:relative;overflow:hidden;background:var(--bg);background-image:radial-gradient(var(--bdr) 1.2px,transparent 1.2px);background-size:26px 26px;touch-action:none}
 #cv.pan{cursor:grabbing}
 /* SVG sits on top, pointer-events none so nodes underneath get clicks */
 #svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5}
@@ -56,7 +56,7 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;back
 .node{position:absolute;width:226px;border-radius:14px;border:2px solid var(--bdr);background:var(--sur);box-shadow:0 3px 16px rgba(139,92,246,.09);z-index:10;cursor:default;user-select:none}
 .node.sel{border-color:var(--ac)!important;box-shadow:0 0 0 4px var(--gl),0 6px 22px rgba(139,92,246,.18)!important;z-index:20}
 .node.drg{box-shadow:0 14px 40px rgba(139,92,246,.26)!important;z-index:30;cursor:move}
-.nhd{display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:12px 12px 0 0;cursor:move;border-bottom:1.5px solid transparent}
+.nhd{display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:12px 12px 0 0;cursor:move;border-bottom:1.5px solid transparent;touch-action:none;user-select:none}
 .ni{font-size:14px;flex-shrink:0}.nl{font-size:11px;font-weight:800;letter-spacing:.05em}
 .nid{margin-left:auto;font-size:10px;opacity:.35;font-family:monospace}
 .ndl{width:19px;height:19px;border-radius:5px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:inherit;opacity:.35;transition:.1s;flex-shrink:0}
@@ -159,7 +159,7 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;back
 <!-- BAR -->
 <div id="bar">
   <span class="logo">✨ 劇本編輯器</span>
-  <span style="font-size:10px;color:var(--mut);font-family:monospace;margin-left:-4px">v2</span>
+  <span style="font-size:10px;color:var(--mut);font-family:monospace;margin-left:-4px">v3</span>
   <div class="sp"></div>
   <input id="ename" value="操場偶遇">
   <div class="sp"></div>
@@ -543,10 +543,9 @@ function startConn(portEl,e){
     const f=portCenter(nid,pid); if(!f) return;
     tmpPath?.setAttribute('d',bez(f,{x:ev.clientX-cvr.left,y:ev.clientY-cvr.top}));
   };
+  const cancel=()=>{ portEl.removeEventListener('pointermove',mv); portEl.removeEventListener('pointerup',up); portEl.removeEventListener('pointercancel',cancel); tmpPath?.remove(); tmpPath=null; };
   const up=ev=>{
-    portEl.removeEventListener('pointermove',mv);
-    portEl.removeEventListener('pointerup',up);
-    tmpPath?.remove(); tmpPath=null;
+    cancel();
     const hits=document.elementsFromPoint(ev.clientX,ev.clientY);
     const tgt=hits.find(el=>el.classList.contains('port')&&el.dataset.pid==='in'&&el.dataset.nid!==nid);
     if(tgt){
@@ -557,6 +556,7 @@ function startConn(portEl,e){
   };
   portEl.addEventListener('pointermove',mv);
   portEl.addEventListener('pointerup',up);
+  portEl.addEventListener('pointercancel',cancel);
 }
 
 /* ═══════════════════════════════════════
@@ -576,14 +576,10 @@ function dragNode(hdEl,node,e){
     el.style.top =wy(node.y)+'px';
     drawSVG();
   };
-  const up=()=>{
-    hdEl.removeEventListener('pointermove',mv);
-    hdEl.removeEventListener('pointerup',up);
-    el.classList.remove('drg');
-    drawMM();
-  };
+  const end=()=>{ hdEl.removeEventListener('pointermove',mv); hdEl.removeEventListener('pointerup',end); hdEl.removeEventListener('pointercancel',end); el.classList.remove('drg'); drawMM(); };
   hdEl.addEventListener('pointermove',mv);
-  hdEl.addEventListener('pointerup',up);
+  hdEl.addEventListener('pointerup',end);
+  hdEl.addEventListener('pointercancel',end);
 }
 
 /* ═══════════════════════════════════════
@@ -628,9 +624,10 @@ function initCanvas(){
       cv.setPointerCapture(e.pointerId);
       const sx=e.clientX-pan.x, sy=e.clientY-pan.y;
       const mv=ev=>{ pan.x=ev.clientX-sx; pan.y=ev.clientY-sy; reposition(); };
-      const up=()=>{ cv.classList.remove('pan'); cv.removeEventListener('pointermove',mv); cv.removeEventListener('pointerup',up); };
+      const up=()=>{ cv.classList.remove('pan'); cv.removeEventListener('pointermove',mv); cv.removeEventListener('pointerup',up); cv.removeEventListener('pointercancel',up); };
       cv.addEventListener('pointermove',mv);
       cv.addEventListener('pointerup',up);
+      cv.addEventListener('pointercancel',up);
     }
   });
 
@@ -713,22 +710,23 @@ function pdStart(e,type){
   const pi=e.currentTarget;
   pi.setPointerCapture(e.pointerId);
   const mv=ev=>{ pdGhost.style.left=(ev.clientX-113)+'px'; pdGhost.style.top=(ev.clientY-20)+'px'; };
+  const cleanup=()=>{ pi.removeEventListener('pointermove',mv); pi.removeEventListener('pointerup',up); pi.removeEventListener('pointercancel',cleanup); if(pdGhost){pdGhost.remove();pdGhost=null;} pdType=null; };
   const up=ev=>{
-    pi.removeEventListener('pointermove',mv);
-    pi.removeEventListener('pointerup',up);
-    pdGhost.remove(); pdGhost=null;
     const cvr=document.getElementById('cv').getBoundingClientRect();
-    if(ev.clientX>=cvr.left&&ev.clientX<=cvr.right&&ev.clientY>=cvr.top&&ev.clientY<=cvr.bottom){
+    const inCanvas=ev.clientX>=cvr.left&&ev.clientX<=cvr.right&&ev.clientY>=cvr.top&&ev.clientY<=cvr.bottom;
+    const type=pdType;
+    cleanup();
+    if(inCanvas){
       const x=wx2(ev.clientX-cvr.left)-113;
       const y=wy2(ev.clientY-cvr.top)-20;
-      mk(pdType,x,y,JSON.parse(JSON.stringify(PD_DEFS[pdType])));
+      mk(type,x,y,JSON.parse(JSON.stringify(PD_DEFS[type])));
       document.getElementById('cv').appendChild(buildNode(nodes[nodes.length-1]));
       updStats(); drawMM(); toast('✨ 新增節點');
     }
-    pdType=null;
   };
   pi.addEventListener('pointermove',mv);
   pi.addEventListener('pointerup',up);
+  pi.addEventListener('pointercancel',cleanup);
 }
 
 /* ═══════════════════════════════════════
