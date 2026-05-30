@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>✨ 劇本節點編輯器 v1</title>
+<title>✨ 劇本節點編輯器 v2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+TC:wght@400;500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -159,7 +159,7 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;back
 <!-- BAR -->
 <div id="bar">
   <span class="logo">✨ 劇本編輯器</span>
-  <span style="font-size:10px;color:var(--mut);font-family:monospace;margin-left:-4px">v1</span>
+  <span style="font-size:10px;color:var(--mut);font-family:monospace;margin-left:-4px">v2</span>
   <div class="sp"></div>
   <input id="ename" value="操場偶遇">
   <div class="sp"></div>
@@ -175,11 +175,11 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans TC',sans-serif;back
   <div id="lp">
     <div class="pt">節點類型</div>
     <div id="pal">
-      <div class="pi" onmousedown="pdStart(event,'dialogue')"><div class="pd" style="background:var(--dc)"></div>💬 對話</div>
-      <div class="pi" onmousedown="pdStart(event,'choice')"><div class="pd" style="background:var(--cc)"></div>🔀 選項</div>
-      <div class="pi" onmousedown="pdStart(event,'condition')"><div class="pd" style="background:var(--kc)"></div>❓ 條件</div>
-      <div class="pi" onmousedown="pdStart(event,'effect')"><div class="pd" style="background:var(--ec)"></div>⚡ 效果</div>
-      <div class="pi" onmousedown="pdStart(event,'end')"><div class="pd" style="background:var(--nc)"></div>🏁 結束</div>
+      <div class="pi" onpointerdown="pdStart(event,'dialogue')"><div class="pd" style="background:var(--dc)"></div>💬 對話</div>
+      <div class="pi" onpointerdown="pdStart(event,'choice')"><div class="pd" style="background:var(--cc)"></div>🔀 選項</div>
+      <div class="pi" onpointerdown="pdStart(event,'condition')"><div class="pd" style="background:var(--kc)"></div>❓ 條件</div>
+      <div class="pi" onpointerdown="pdStart(event,'effect')"><div class="pd" style="background:var(--ec)"></div>⚡ 效果</div>
+      <div class="pi" onpointerdown="pdStart(event,'end')"><div class="pd" style="background:var(--nc)"></div>🏁 結束</div>
     </div>
     <div class="ls"></div>
     <div class="pt">角色</div>
@@ -344,18 +344,12 @@ function buildNode(node){
     `<span class="nl" style="color:${m.col}">${m.lbl}</span>`+
     `<span class="nid">${node.id}</span>`+
     `<button class="ndl" data-del="${node.id}" style="color:${m.col}">×</button>`;
-  hd.addEventListener('mousedown',e=>{
-    if(e.target.closest('[data-del]')){ e.stopPropagation(); delNode(e.target.closest('[data-del]').dataset.del); return; }
-    e.stopPropagation();
-    dragNode(e,node);
-  });
   div.appendChild(hd);
 
   // ── body ──
   const bd=document.createElement('div');
   bd.className='nb';
   bd.innerHTML=bodyHTML(node);
-  bd.addEventListener('mousedown',e=>{ e.stopPropagation(); setsel(node); });
   div.appendChild(bd);
 
   // ── ports ──
@@ -391,11 +385,7 @@ function port(nodeId,pid,isIn){
   const p=document.createElement('div');
   p.className='port '+(isIn?'pin':'pout');
   p.dataset.nid=nodeId; p.dataset.pid=pid;
-  if(!isIn){
-    p.addEventListener('mousedown',e=>{ e.stopPropagation(); startConn(e,nodeId,pid); });
-  } else {
-    p.style.cursor='default';
-  }
+  if(isIn) p.style.cursor='default';
   return p;
 }
 
@@ -537,26 +527,25 @@ function drawSVG(){
    CONNECTING PORT → PORT
 ═══════════════════════════════════════ */
 let tmpPath=null;
-function startConn(e,nid,pid){
-  e.preventDefault(); e.stopPropagation();
+function startConn(portEl,e){
+  const nid=portEl.dataset.nid, pid=portEl.dataset.pid;
+  e.preventDefault();
   const svg=document.getElementById('svg');
   const NS='http://www.w3.org/2000/svg';
   const p=document.createElementNS(NS,'path');
-  p.setAttribute('fill','none');
-  p.setAttribute('stroke',pcol(pid));
-  p.setAttribute('stroke-width','2.5');
-  p.setAttribute('stroke-dasharray','6 4');
+  p.setAttribute('fill','none'); p.setAttribute('stroke',pcol(pid));
+  p.setAttribute('stroke-width','2.5'); p.setAttribute('stroke-dasharray','6 4');
   p.setAttribute('opacity','0.55');
   svg.appendChild(p); tmpPath=p;
-
+  portEl.setPointerCapture(e.pointerId);
   const cvr=document.getElementById('cv').getBoundingClientRect();
   const mv=ev=>{
     const f=portCenter(nid,pid); if(!f) return;
     tmpPath?.setAttribute('d',bez(f,{x:ev.clientX-cvr.left,y:ev.clientY-cvr.top}));
   };
   const up=ev=>{
-    document.removeEventListener('mousemove',mv);
-    document.removeEventListener('mouseup',up);
+    portEl.removeEventListener('pointermove',mv);
+    portEl.removeEventListener('pointerup',up);
     tmpPath?.remove(); tmpPath=null;
     const hits=document.elementsFromPoint(ev.clientX,ev.clientY);
     const tgt=hits.find(el=>el.classList.contains('port')&&el.dataset.pid==='in'&&el.dataset.nid!==nid);
@@ -566,20 +555,20 @@ function startConn(e,nid,pid){
       drawSVG(); updStats(); toast('🔗 連結成功！');
     }
   };
-  document.addEventListener('mousemove',mv);
-  document.addEventListener('mouseup',up);
+  portEl.addEventListener('pointermove',mv);
+  portEl.addEventListener('pointerup',up);
 }
 
 /* ═══════════════════════════════════════
    DRAG NODE
 ═══════════════════════════════════════ */
-function dragNode(e,node){
-  e.preventDefault(); e.stopPropagation();
+function dragNode(hdEl,node,e){
+  e.preventDefault();
   setsel(node);
   const el=document.getElementById('nd'+node.id);
   el.classList.add('drg');
-  const ox=e.clientX, oy=e.clientY;
-  const nx0=node.x, ny0=node.y;
+  hdEl.setPointerCapture(e.pointerId);
+  const ox=e.clientX, oy=e.clientY, nx0=node.x, ny0=node.y;
   const mv=ev=>{
     node.x=nx0+(ev.clientX-ox)/sc;
     node.y=ny0+(ev.clientY-oy)/sc;
@@ -588,36 +577,69 @@ function dragNode(e,node){
     drawSVG();
   };
   const up=()=>{
-    document.removeEventListener('mousemove',mv);
-    document.removeEventListener('mouseup',up);
+    hdEl.removeEventListener('pointermove',mv);
+    hdEl.removeEventListener('pointerup',up);
     el.classList.remove('drg');
     drawMM();
   };
-  document.addEventListener('mousemove',mv);
-  document.addEventListener('mouseup',up);
+  hdEl.addEventListener('pointermove',mv);
+  hdEl.addEventListener('pointerup',up);
 }
 
 /* ═══════════════════════════════════════
-   CANVAS PAN & ZOOM
+   CANVAS PAN & ZOOM  (event delegation)
 ═══════════════════════════════════════ */
 function initCanvas(){
   const cv=document.getElementById('cv');
-  cv.addEventListener('mousedown',e=>{
-    // only pan if clicking on bare canvas (not node, not SVG content, not panel)
-    if(e.target!==cv && e.target.id!=='svg') return;
-    e.preventDefault();
-    cv.classList.add('pan');
-    const sx=e.clientX-pan.x, sy=e.clientY-pan.y;
-    const mv=ev=>{ pan.x=ev.clientX-sx; pan.y=ev.clientY-sy; reposition(); };
-    const up=()=>{ cv.classList.remove('pan'); document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
-    document.addEventListener('mousemove',mv);
-    document.addEventListener('mouseup',up);
+
+  cv.addEventListener('pointerdown',e=>{
+    if(e.button!==0 && e.pointerType==='mouse') return;
+
+    // ── delete button ──
+    const delBtn=e.target.closest('[data-del]');
+    if(delBtn){ delNode(delBtn.dataset.del); return; }
+
+    // ── node header → drag ──
+    const nhd=e.target.closest('.nhd');
+    if(nhd){
+      const nodeEl=nhd.closest('.node');
+      const node=nodes.find(n=>'nd'+n.id===nodeEl.id);
+      if(node) dragNode(nhd,node,e);
+      return;
+    }
+
+    // ── node body → select ──
+    const nb=e.target.closest('.nb');
+    if(nb){
+      const nodeEl=nb.closest('.node');
+      const node=nodes.find(n=>'nd'+n.id===nodeEl.id);
+      if(node) setsel(node);
+      return;
+    }
+
+    // ── output port → connect ──
+    const pout=e.target.closest('.pout');
+    if(pout){ startConn(pout,e); return; }
+
+    // ── bare canvas → pan ──
+    if(e.target===cv||e.target.id==='svg'){
+      e.preventDefault();
+      cv.classList.add('pan');
+      cv.setPointerCapture(e.pointerId);
+      const sx=e.clientX-pan.x, sy=e.clientY-pan.y;
+      const mv=ev=>{ pan.x=ev.clientX-sx; pan.y=ev.clientY-sy; reposition(); };
+      const up=()=>{ cv.classList.remove('pan'); cv.removeEventListener('pointermove',mv); cv.removeEventListener('pointerup',up); };
+      cv.addEventListener('pointermove',mv);
+      cv.addEventListener('pointerup',up);
+    }
   });
+
   cv.addEventListener('wheel',e=>{
     e.preventDefault();
     const r=cv.getBoundingClientRect();
-    dz(e.deltaY>0?-0.07:0.07, e.clientX-r.left, e.clientY-r.top);
+    dz(e.deltaY>0?-0.07:0.07,e.clientX-r.left,e.clientY-r.top);
   },{passive:false});
+
   cv.addEventListener('click',e=>{ if(e.target===cv||e.target.id==='svg') setsel(null); });
 }
 function dz(delta,mx,my){
@@ -680,7 +702,7 @@ const PD_DEFS={
 };
 let pdGhost=null;
 function pdStart(e,type){
-  e.preventDefault(); e.stopPropagation();
+  e.preventDefault();
   pdType=type;
   const m=META[type];
   pdGhost=document.createElement('div');
@@ -688,13 +710,12 @@ function pdStart(e,type){
   pdGhost.style.cssText=`opacity:.65;pointer-events:none;position:fixed;left:${e.clientX-113}px;top:${e.clientY-20}px;border-color:${m.bd};z-index:9999`;
   pdGhost.innerHTML=`<div class="nhd" style="background:${m.bg};border-bottom-color:${m.bd}"><span class="ni">${m.ic}</span><span class="nl" style="color:${m.col}">${m.lbl}</span></div>`;
   document.body.appendChild(pdGhost);
-  const mv=ev=>{
-    pdGhost.style.left=(ev.clientX-113)+'px';
-    pdGhost.style.top =(ev.clientY-20)+'px';
-  };
+  const pi=e.currentTarget;
+  pi.setPointerCapture(e.pointerId);
+  const mv=ev=>{ pdGhost.style.left=(ev.clientX-113)+'px'; pdGhost.style.top=(ev.clientY-20)+'px'; };
   const up=ev=>{
-    document.removeEventListener('mousemove',mv);
-    document.removeEventListener('mouseup',up);
+    pi.removeEventListener('pointermove',mv);
+    pi.removeEventListener('pointerup',up);
     pdGhost.remove(); pdGhost=null;
     const cvr=document.getElementById('cv').getBoundingClientRect();
     if(ev.clientX>=cvr.left&&ev.clientX<=cvr.right&&ev.clientY>=cvr.top&&ev.clientY<=cvr.bottom){
@@ -706,8 +727,8 @@ function pdStart(e,type){
     }
     pdType=null;
   };
-  document.addEventListener('mousemove',mv);
-  document.addEventListener('mouseup',up);
+  pi.addEventListener('pointermove',mv);
+  pi.addEventListener('pointerup',up);
 }
 
 /* ═══════════════════════════════════════
