@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>AI Kwau 訪談</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#eef2f7;
+  --sur:#ffffff;
+  --pri:#0d1f3c;
+  --acc:#00b4d8;
+  --acc2:#009ab8;
+  --red:#e63946;
+  --txt:#0d1f3c;
+  --dim:#5a6a8a;
+  --bdr:#d0d8e8;
+  --su2:#f4f7fb;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC','Helvetica Neue',sans-serif}
+body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
+
+/* ── HEADER ── */
+.hdr{background:var(--pri);color:#fff;padding:14px 18px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hdr-title{font-size:17px;font-weight:800;letter-spacing:.03em;display:flex;align-items:center;gap:7px}
+.hdr-prog{font-size:13px;opacity:.75;font-family:monospace;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:20px}
+.hdr-id{display:flex;align-items:center;gap:8px}
+.hdr-id-lbl{font-size:12px;opacity:.65;white-space:nowrap;font-weight:600}
+.hdr-id-inp{flex:1;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:7px 12px;font-size:15px;color:#fff;outline:none;min-width:0}
+.hdr-id-inp::placeholder{color:rgba(255,255,255,.4)}
+.hdr-id-inp:focus{border-color:var(--acc)}
+
+/* ── SECTION BADGE ── */
+.sec-badge{margin:14px 16px 0;display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.04em}
+
+/* ── QUESTION CARD ── */
+.q-card{margin:10px 16px 0;background:var(--sur);border-radius:16px;padding:22px 20px;box-shadow:0 2px 14px rgba(13,31,60,.09)}
+.q-id{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.08em;margin-bottom:7px}
+.q-text{font-size:21px;font-weight:700;line-height:1.55;color:var(--pri)}
+
+/* ── FOLLOW-UP ── */
+.fu-wrap{margin:10px 16px 0}
+.fu-btn{width:100%;display:flex;align-items:center;gap:7px;background:var(--sur);border:1.5px solid var(--bdr);border-radius:11px;padding:10px 14px;font-size:14px;color:var(--dim);cursor:pointer;text-align:left;transition:.15s;touch-action:manipulation}
+.fu-btn:active{background:var(--su2)}
+.fu-arrow{font-size:10px;transition:transform .2s;display:inline-block}
+.fu-btn.open .fu-arrow{transform:rotate(90deg)}
+.fu-body{display:none;background:#e0f5fb;border:1.5px solid #9dd8ea;border-top:none;border-radius:0 0 11px 11px;padding:13px 15px;font-size:14px;color:#08485e;line-height:1.65}
+.fu-body.show{display:block}
+
+/* ── REC BLOCKS ── */
+.rec-blocks{margin:14px 16px 0;display:flex;flex-direction:column;gap:12px}
+.rec-block{background:var(--sur);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(13,31,60,.07);border:2.5px solid transparent;transition:border-color .18s}
+.rec-block.active{border-color:var(--red)}
+.block-label{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--dim);margin-bottom:11px;display:flex;align-items:center;gap:5px}
+.rec-row{display:flex;gap:11px;align-items:flex-start}
+.mic-btn{width:54px;height:54px;flex-shrink:0;border-radius:50%;background:var(--acc);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;touch-action:manipulation;box-shadow:0 3px 10px rgba(0,180,216,.3)}
+.mic-btn svg{width:24px;height:24px;fill:#fff;flex-shrink:0}
+.mic-btn.recording{background:var(--red);box-shadow:0 3px 10px rgba(230,57,70,.4);animation:rpulse 1.1s ease-in-out infinite}
+.mic-btn.off{background:#b8c4d4;box-shadow:none;cursor:not-allowed}
+@keyframes rpulse{0%,100%{box-shadow:0 0 0 0 rgba(230,57,70,.45)}60%{box-shadow:0 0 0 12px rgba(230,57,70,0)}}
+.ta-wrap{flex:1;position:relative}
+.rec-ta{width:100%;min-height:72px;border:1.5px solid var(--bdr);border-radius:10px;padding:10px 34px 10px 12px;font-size:15px;font-family:inherit;color:var(--txt);background:var(--su2);resize:vertical;outline:none;line-height:1.6;transition:border-color .15s}
+.rec-ta:focus{border-color:var(--acc);background:#fff}
+.ta-clear{position:absolute;top:8px;right:7px;width:22px;height:22px;border-radius:50%;border:none;background:var(--bdr);color:var(--dim);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:.12s;touch-action:manipulation}
+.ta-clear:active{background:#b4bfcf}
+.rec-status{min-height:18px;font-size:12px;font-weight:700;color:var(--red);margin-top:5px;padding-left:2px}
+
+/* ── NAV ── */
+.nav{display:flex;gap:10px;margin:16px 16px 10px}
+.nbtn{flex:1;padding:15px 10px;border-radius:13px;border:2px solid var(--bdr);background:var(--sur);font-size:15px;font-weight:700;color:var(--txt);cursor:pointer;transition:.15s;touch-action:manipulation}
+.nbtn:active{transform:scale(.97)}
+.nbtn:disabled{opacity:.3;cursor:not-allowed}
+.nbtn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+.nbtn.grn{background:#00875a;color:#fff;border-color:#00875a}
+
+/* ── EXPORT ── */
+.export-area{margin:6px 16px 0;display:flex;flex-direction:column;gap:9px}
+.ebtn{width:100%;padding:14px;border-radius:13px;border:none;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation;transition:.15s}
+.ebtn:active{transform:scale(.98)}
+.ebtn.json{background:var(--pri);color:#fff}
+.ebtn.clr{background:#fff;color:var(--red);border:2px solid var(--red)}
+
+/* ── NO SPEECH BANNER ── */
+.no-speech-banner{display:none;margin:12px 16px 0;background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px;padding:11px 14px;font-size:13px;color:#7a5a00;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-top">
+    <div class="hdr-title">🎙 AI Kwau 訪談</div>
+    <div class="hdr-prog" id="prog">1 / 13</div>
+  </div>
+  <div class="hdr-id">
+    <span class="hdr-id-lbl">受訪者 ID</span>
+    <input class="hdr-id-inp" id="iid" type="text" placeholder="輸入編號" autocomplete="off" spellcheck="false" inputmode="text">
+  </div>
+</header>
+
+<div class="no-speech-banner" id="no-speech">⚠️ 此裝置不支援語音辨識，請手動輸入文字。</div>
+
+<div id="sec-badge" class="sec-badge"></div>
+
+<!-- QUESTION -->
+<div class="q-card">
+  <div class="q-id" id="q-id"></div>
+  <div class="q-text" id="q-text"></div>
+</div>
+
+<!-- FOLLOW-UP -->
+<div class="fu-wrap" id="fu-wrap">
+  <button class="fu-btn" id="fu-btn" onclick="toggleFU()"><span class="fu-arrow">▶</span>追問提示</button>
+  <div class="fu-body" id="fu-body"></div>
+</div>
+
+<!-- RECORDING BLOCKS -->
+<div class="rec-blocks">
+  <div class="rec-block" id="block-a">
+    <div class="block-label">🎤 受訪者回答</div>
+    <div class="rec-row">
+      <button class="mic-btn" id="mic-a" onclick="toggleRec('a')" aria-label="受訪者錄音">
+        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm5 8a1 1 0 0 1 1 1 6 6 0 0 1-5 5.91V19h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.09A6 6 0 0 1 6 11a1 1 0 0 1 2 0 4 4 0 0 0 8 0 1 1 0 0 1 1-1z"/></svg>
+      </button>
+      <div class="ta-wrap">
+        <textarea class="rec-ta" id="ta-a" placeholder="錄音後文字顯示於此，或直接輸入…" oninput="autosave()"></textarea>
+        <button class="ta-clear" onclick="clearTA('a')">✕</button>
+      </div>
+    </div>
+    <div class="rec-status" id="st-a"></div>
+  </div>
+
+  <div class="rec-block" id="block-b">
+    <div class="block-label">📝 訪問者備註</div>
+    <div class="rec-row">
+      <button class="mic-btn" id="mic-b" onclick="toggleRec('b')" aria-label="訪問者備註錄音">
+        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm5 8a1 1 0 0 1 1 1 6 6 0 0 1-5 5.91V19h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.09A6 6 0 0 1 6 11a1 1 0 0 1 2 0 4 4 0 0 0 8 0 1 1 0 0 1 1-1z"/></svg>
+      </button>
+      <div class="ta-wrap">
+        <textarea class="rec-ta" id="ta-b" placeholder="訪問者補充或摘要…" oninput="autosave()"></textarea>
+        <button class="ta-clear" onclick="clearTA('b')">✕</button>
+      </div>
+    </div>
+    <div class="rec-status" id="st-b"></div>
+  </div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav">
+  <button class="nbtn" id="btn-prev" onclick="goTo(cur-1)">← 上一題</button>
+  <button class="nbtn pri" id="btn-next" onclick="goTo(cur+1)">下一題 →</button>
+</div>
+
+<!-- EXPORT -->
+<div class="export-area">
+  <button class="ebtn json" onclick="exportJSON()">💾 匯出 JSON</button>
+  <button class="ebtn clr" onclick="clearData()">🗑 清除本筆資料</button>
+</div>
+
+<script>
+/* ════════════ QUESTIONS ════════════ */
+const QS=[
+  {id:'Q1', sec:1,st:'視力狀況',
+   q:'請問您的眼睛診斷是什麼疾病？',
+   fu:'是青光眼、黃斑部病變、糖尿病視網膜病變、還是其他？'},
+  {id:'Q2', sec:1,st:'視力狀況',
+   q:'大約什麼時候確診的？',
+   fu:'到現在大概多久了？'},
+  {id:'Q3', sec:1,st:'視力狀況',
+   q:'目前視力狀況怎麼形容——看東西有哪些限制？',
+   fu:'比如說，是中間模糊、旁邊看不到、還是整體都比較暗？'},
+  {id:'Q4', sec:2,st:'PC 使用習慣',
+   q:'您現在主要用什麼設備上網或處理事情？',
+   fu:'桌機、筆電、手機、平板，還是都有用？為什麼選擇用電腦？'},
+  {id:'Q5', sec:2,st:'PC 使用習慣',
+   q:'螢幕大概多大？',
+   fu:'有接外接螢幕嗎？'},
+  {id:'Q6', sec:2,st:'PC 使用習慣',
+   q:'用電腦的時候，怎麼操作？',
+   fu:'是用一般的鍵盤滑鼠、還是有用大鍵盤、觸控、或語音輸入？'},
+  {id:'Q7', sec:2,st:'PC 使用習慣',
+   q:'大概多常用電腦、每次用多久？',
+   fu:'通常什麼時段用——白天還是晚上？在家還是外出？'},
+  {id:'Q8', sec:2,st:'PC 使用習慣',
+   q:'主要用電腦做什麼事？',
+   fu:'工作、看影片、通訊、購物⋯有沒有特別常用的程式或網站？'},
+  {id:'Q9', sec:2,st:'PC 使用習慣',
+   q:'您有沒有調整過電腦的文字大小，或是把畫面放大來看？',
+   fu:'調到什麼程度您覺得比較舒服？（如：系統字體調大、瀏覽器放大、Windows 顯示縮放）'},
+  {id:'Q10',sec:3,st:'困難與現有解法',
+   q:'上個禮拜用電腦，有沒有哪一次讓您覺得特別費力或不順？可以描述一下當時在做什麼嗎？',
+   fu:'那個時候最讓您困擾的是什麼？'},
+  {id:'Q11',sec:3,st:'困難與現有解法',
+   q:'在電腦上，有哪些事情您覺得很難做到、或是要花很多力氣？',
+   fu:''},
+  {id:'Q12',sec:3,st:'困難與現有解法',
+   q:'您現在用什麼方法來處理這些不方便？',
+   fu:'這些方法有讓您覺得改善的地方嗎？還是有哪些問題沒有解決到？'},
+  {id:'Q13',sec:3,st:'困難與現有解法',
+   q:'如果用 1 到 5 分來評，您現在用電腦的整體體驗大概幾分？為什麼？',
+   fu:'如果可以許一個願，您最希望電腦在哪一件事上變得更好用？'},
+];
+
+/* ════════════ STATE ════════════ */
+let cur = 0;
+let answers = QS.map(q=>({
+  q_id: q.id, section: q.sec, section_title: q.st, question: q.q,
+  response: '', interviewer_note: '', recorded_at: null
+}));
+let _startedAt = null;
+let activeRec = null; // 'a' | 'b' | null
+let srA = null, srB = null;
+
+/* ════════════ INIT ════════════ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+window.addEventListener('DOMContentLoaded', () => {
+  if (!SR) document.getElementById('no-speech').style.display = 'block';
+  document.getElementById('iid').addEventListener('input', autosave);
+  loadFromStorage();
+  render();
+});
+
+/* ════════════ RENDER ════════════ */
+function render() {
+  const q = QS[cur];
+  document.getElementById('prog').textContent = (cur+1) + ' / ' + QS.length;
+  document.getElementById('sec-badge').textContent = '第 ' + q.sec + ' 節　' + q.st;
+  document.getElementById('q-id').textContent = q.id;
+  document.getElementById('q-text').textContent = q.q;
+
+  // follow-up
+  const fuWrap = document.getElementById('fu-wrap');
+  const fuBtn  = document.getElementById('fu-btn');
+  const fuBody = document.getElementById('fu-body');
+  if (q.fu) {
+    fuWrap.style.display = 'block';
+    fuBody.textContent = q.fu;
+    fuBtn.classList.remove('open');
+    fuBody.classList.remove('show');
+  } else {
+    fuWrap.style.display = 'none';
+  }
+
+  // restore answers
+  document.getElementById('ta-a').value = answers[cur].response || '';
+  document.getElementById('ta-b').value = answers[cur].interviewer_note || '';
+
+  // nav buttons
+  document.getElementById('btn-prev').disabled = cur === 0;
+  const isLast = cur === QS.length - 1;
+  const nb = document.getElementById('btn-next');
+  nb.textContent = isLast ? '完成 ✓' : '下一題 →';
+  nb.className = 'nbtn ' + (isLast ? 'grn' : 'pri');
+  nb.disabled = false;
+
+  stopAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleFU() {
+  document.getElementById('fu-btn').classList.toggle('open');
+  document.getElementById('fu-body').classList.toggle('show');
+}
+
+/* ════════════ NAVIGATION ════════════ */
+function goTo(idx) {
+  if (idx < 0 || idx >= QS.length) return;
+  saveCurrentTextareas();
+  cur = idx;
+  render();
+}
+
+function saveCurrentTextareas() {
+  answers[cur].response = document.getElementById('ta-a').value;
+  answers[cur].interviewer_note = document.getElementById('ta-b').value;
+  if ((answers[cur].response || answers[cur].interviewer_note) && !answers[cur].recorded_at)
+    answers[cur].recorded_at = new Date().toISOString();
+}
+
+/* ════════════ RECORDING ════════════ */
+function toggleRec(ch) {
+  if (!SR) { setStatus(ch, '⚠️ 不支援語音辨識'); return; }
+  if (activeRec === ch) { stopAll(); return; }
+  stopAll();
+  startRec(ch);
+}
+
+function startRec(ch) {
+  const rec = new SR();
+  rec.lang = 'zh-TW';
+  rec.continuous = false;
+  rec.interimResults = true;
+  if (ch === 'a') srA = rec; else srB = rec;
+  activeRec = ch;
+
+  const other = ch === 'a' ? 'b' : 'a';
+  document.getElementById('mic-' + ch).classList.add('recording');
+  document.getElementById('mic-' + other).classList.add('off');
+  document.getElementById('block-' + ch).classList.add('active');
+  setStatus(ch, '🔴 錄音中…');
+
+  const ta = document.getElementById('ta-' + ch);
+
+  rec.onresult = e => {
+    let final = '', interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (final) {
+      const prev = ta.value.trim();
+      ta.value = prev ? prev + '\n' + final : final;
+      autosave();
+    }
+    setStatus(ch, interim ? '…' + interim : '🔴 錄音中…');
+  };
+  rec.onerror = e => { setStatus(ch, '⚠️ ' + (e.error === 'no-speech' ? '未偵測到聲音' : e.error)); stopAll(); };
+  rec.onend = () => stopAll();
+
+  try { rec.start(); }
+  catch(e) { setStatus(ch, '⚠️ 無法啟動麥克風'); stopAll(); }
+}
+
+function stopAll() {
+  [srA, srB].forEach(r => { if (r) try { r.stop(); } catch(e) {} });
+  srA = srB = null;
+  activeRec = null;
+  ['a','b'].forEach(ch => {
+    document.getElementById('mic-' + ch).classList.remove('recording','off');
+    document.getElementById('block-' + ch).classList.remove('active');
+    setStatus(ch, '');
+  });
+}
+
+function setStatus(ch, msg) { document.getElementById('st-' + ch).textContent = msg; }
+
+function clearTA(ch) {
+  document.getElementById('ta-' + ch).value = '';
+  autosave();
+}
+
+/* ════════════ STORAGE ════════════ */
+function storageKey() {
+  const iid = document.getElementById('iid').value.trim() || 'unknown';
+  return 'aikwau_interview_' + iid;
+}
+function autosave() {
+  saveCurrentTextareas();
+  if (!_startedAt) _startedAt = new Date().toISOString();
+  const iid = document.getElementById('iid').value.trim() || 'unknown';
+  const data = { meta: { interviewee_id: iid, started_at: _startedAt, saved_at: new Date().toISOString() }, answers };
+  localStorage.setItem(storageKey(), JSON.stringify(data));
+}
+function loadFromStorage() {
+  // find most recent aikwau key
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('aikwau_interview_'));
+  if (!keys.length) return;
+  const key = keys.sort().pop();
+  try {
+    const d = JSON.parse(localStorage.getItem(key) || '{}');
+    if (!d.answers) return;
+    if (d.meta?.interviewee_id && d.meta.interviewee_id !== 'unknown')
+      document.getElementById('iid').value = d.meta.interviewee_id;
+    if (d.meta?.started_at) _startedAt = d.meta.started_at;
+    answers = d.answers;
+  } catch(e) {}
+}
+
+/* ════════════ EXPORT ════════════ */
+function exportJSON() {
+  saveCurrentTextareas();
+  const iid = document.getElementById('iid').value.trim() || 'unknown';
+  const data = {
+    meta: { interviewee_id: iid, started_at: _startedAt || new Date().toISOString(), exported_at: new Date().toISOString() },
+    answers
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'aikwau_' + iid + '_' + date + '.json';
+  a.click();
+}
+
+function clearData() {
+  if (!confirm('確定清除本筆訪談資料？此操作無法復原。')) return;
+  localStorage.removeItem(storageKey());
+  answers = QS.map(q=>({ q_id:q.id,section:q.sec,section_title:q.st,question:q.q,response:'',interviewer_note:'',recorded_at:null }));
+  document.getElementById('iid').value = '';
+  _startedAt = null;
+  cur = 0;
+  render();
+}
+</script>
+</body>
+</html>
