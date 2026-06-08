@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>AI Kwau 訪談 v3</title>
+<title>AI Kwau 訪談 v4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -109,7 +109,7 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 <header class="hdr">
   <div class="hdr-top">
     <div class="hdr-title">🎙 AI Kwau 訪談</div>
-    <span class="hdr-ver">v3</span>
+    <span class="hdr-ver">v4</span>
   </div>
   <div class="hdr-id">
     <span class="hdr-id-lbl">受訪者 ID</span>
@@ -251,6 +251,7 @@ let answers = QS.map(q=>({
 let _startedAt = null;
 let activeRec = null; // 'a' | 'b' | null
 let srA = null, srB = null;
+let recBase = { a: '', b: '' }; // textarea content snapshot before each recording session
 
 /* ════════════ INIT ════════════ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -345,22 +346,28 @@ function startRec(ch) {
   document.getElementById('mic-' + ch).classList.add('recording');
   document.getElementById('mic-' + other).classList.add('off');
   document.getElementById('block-' + ch).classList.add('active');
-  setStatus(ch, '🔴 錄音中…');
+  setStatus(ch, '🔴 錄音中，開始說話…');
 
   const ta = document.getElementById('ta-' + ch);
+  recBase[ch] = ta.value; // snapshot committed text before session starts
 
   rec.onresult = e => {
-    let final = '', interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+    let finals = '', interim = '';
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finals += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    if (final) {
-      const prev = ta.value.trim();
-      ta.value = prev ? prev + '\n' + final : final;
+    // Live preview: show interim directly in textarea
+    const added = finals + interim;
+    const base = recBase[ch].trim();
+    ta.value = base ? base + '\n' + added : added;
+
+    if (finals && !interim) {
+      // All finalized — commit base and save
+      recBase[ch] = ta.value;
       autosave();
     }
-    setStatus(ch, interim ? '…' + interim : '🔴 錄音中…');
+    setStatus(ch, interim ? '🔴 辨識中…' : '');
   };
   rec.onerror = e => { setStatus(ch, '⚠️ ' + (e.error === 'no-speech' ? '未偵測到聲音' : e.error)); stopAll(); };
   rec.onend = () => stopAll();
