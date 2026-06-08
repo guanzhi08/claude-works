@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>AI Kwau 訪談 v5</title>
+<title>愛看有 AI.Kwau 訪談 v6</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -108,11 +108,11 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 <!-- HEADER -->
 <header class="hdr">
   <div class="hdr-top">
-    <div class="hdr-title">🎙 AI Kwau 訪談</div>
-    <span class="hdr-ver">v5</span>
+    <div class="hdr-title">🎙 愛看有 AI.Kwau 訪談</div>
+    <span class="hdr-ver">v6</span>
   </div>
   <div class="hdr-id">
-    <span class="hdr-id-lbl">受訪者 ID</span>
+    <span class="hdr-id-lbl">受訪者</span>
     <input class="hdr-id-inp" id="iid" type="text" placeholder="輸入編號" autocomplete="off" spellcheck="false" inputmode="text">
   </div>
 </header>
@@ -214,7 +214,7 @@ const QS=[
    q:'您現在主要用什麼設備上網或處理事情？',
    fu:'桌機、筆電、手機、平板，還是都有用？為什麼選擇用電腦？'},
   {id:'Q5', sec:2,st:'PC 使用習慣',
-   q:'螢幕大概多大？',
+   q:'電腦螢幕大概多大？有接外接螢幕嗎？',
    fu:'有接外接螢幕嗎？'},
   {id:'Q6', sec:2,st:'PC 使用習慣',
    q:'用電腦的時候，怎麼操作？',
@@ -223,23 +223,23 @@ const QS=[
    q:'大概多常用電腦、每次用多久？',
    fu:'通常什麼時段用——白天還是晚上？在家還是外出？'},
   {id:'Q8', sec:2,st:'PC 使用習慣',
-   q:'主要用電腦做什麼事？',
+   q:'主要用電腦做什麼事？為什麼選擇用電腦？',
    fu:'工作、看影片、通訊、購物⋯有沒有特別常用的程式或網站？'},
   {id:'Q9', sec:2,st:'PC 使用習慣',
    q:'您有沒有調整過電腦的文字大小，或是把畫面放大來看？',
    fu:'調到什麼程度您覺得比較舒服？（如：系統字體調大、瀏覽器放大、Windows 顯示縮放）'},
   {id:'Q10',sec:3,st:'困難與現有解法',
-   q:'上個禮拜用電腦，有沒有哪一次讓您覺得特別費力或不順？可以描述一下當時在做什麼嗎？',
+   q:'上次用電腦，有沒有哪邊讓您覺得特別費力或不順？可以描述一下當時在做什麼嗎？',
    fu:'那個時候最讓您困擾的是什麼？'},
   {id:'Q11',sec:3,st:'困難與現有解法',
-   q:'在電腦上，有哪些事情您覺得很難做到、或是要花很多力氣？',
-   fu:''},
-  {id:'Q12',sec:3,st:'困難與現有解法',
    q:'您現在用什麼方法來處理這些不方便？',
    fu:'這些方法有讓您覺得改善的地方嗎？還是有哪些問題沒有解決到？'},
-  {id:'Q13',sec:3,st:'困難與現有解法',
+  {id:'Q12',sec:3,st:'困難與現有解法',
    q:'如果用 1 到 5 分來評，您現在用電腦的整體體驗大概幾分？為什麼？',
    fu:'如果可以許一個願，您最希望電腦在哪一件事上變得更好用？'},
+  {id:'Q13',sec:3,st:'困難與現有解法',
+   q:'最後有什麼想要補充的嗎？',
+   fu:'謝謝您的分享'},
 ];
 
 /* ════════════ STATE ════════════ */
