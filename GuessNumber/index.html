@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v49</title>
+<title>猜數字對戰 v50</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v49</p>
+  <p style="font-size:.7rem;color:#94a3b8">v50</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -413,7 +413,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-step"><span class="help-step-n">1</span><span>雙方各自設定一組 <b>4 位不重複數字</b>（0–9）作為秘密答案</span></div>
         <div class="help-step"><span class="help-step-n">2</span><span>房主先手，雙方<b>輪流</b>猜測對方答案</span></div>
         <div class="help-step"><span class="help-step-n">3</span><span>每次猜測後，對方回報 <b>xA yB</b> 結果</span></div>
-        <div class="help-step"><span class="help-step-n">4</span><span>每 3 回合開始時，及猜中 <b>1A / 2A / 3A</b> 時，可從 2 張牌中選 1 張<b>道具牌</b>；回合開始時選的牌<b>下回合才能使用</b></span></div>
+        <div class="help-step"><span class="help-step-n">4</span><span>每 3 回合開始時，及猜中 <b>1A / 2A / 3A</b> 時，可從 2 張牌中選 1 張<b>道具牌</b>；取得後<b>當回合即可使用</b></span></div>
         <div class="help-step"><span class="help-step-n">5</span><span>先猜出對方完整答案（<b>4A0B</b>）者獲勝</span></div>
       </div>
 
@@ -436,8 +436,8 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 
       <div class="help-sec">
         <div class="help-sec-ttl">🃏 主動道具牌（回合中可使用）</div>
-        <div class="help-card-row"><span class="help-ci">🔍</span><div><div class="help-cn">審訊</div><div class="help-cd">宣告一個數字，對手選擇：<b>告知有無</b>，或<b>拒絕（跳過本回合猜測）</b></div></div></div>
-        <div class="help-card-row"><span class="help-ci">💰</span><div><div class="help-cn">勒索</div><div class="help-cd">指定一個位置（1–4），對手選擇：<b>告知確切數字</b>，或<b>拒絕（跳過本回合猜測）</b></div></div></div>
+        <div class="help-card-row"><span class="help-ci">🔍</span><div><div class="help-cn">審訊</div><div class="help-cd">宣告一個數字，對手<b>必須告知有無</b>（不可拒絕）</div></div></div>
+        <div class="help-card-row"><span class="help-ci">💰</span><div><div class="help-cn">勒索</div><div class="help-cd">指定一個位置（1–4），對手<b>必須告知確切數字</b>（不可拒絕）</div></div></div>
         <div class="help-card-row"><span class="help-ci">🌀</span><div><div class="help-cn">霧化</div><div class="help-cd">對手<b>下一次</b>猜測只看到模糊結果：「共 x 個數字出現」，無法得知 A/B 細節</div></div></div>
         <div class="help-card-row"><span class="help-ci">🎯</span><div><div class="help-cn">聚焦</div><div class="help-cd">你<b>下一次</b>猜測的結果，額外顯示每個位置的詳細狀態（A=位置對、B=有但位置錯、X=沒有）</div></div></div>
 
@@ -510,8 +510,8 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
 // CARD DEFINITIONS
 // ═══════════════════════════════════════════
 var CARDS = {
-  interrogation: { name:'審訊', icon:'🔍', desc:'宣告一個數字，對手選擇：告知有無，或跳過本回合猜測' },
-  extortion:     { name:'勒索', icon:'💰', desc:'指定一個位置，對手選擇：告知確切數字，或跳過本回合' },
+  interrogation: { name:'審訊', icon:'🔍', desc:'宣告一個數字，對手必須告知有無（不可拒絕）' },
+  extortion:     { name:'勒索', icon:'💰', desc:'指定一個位置，對手必須告知確切數字（不可拒絕）' },
   fog:           { name:'霧化', icon:'🌀', desc:'對手下一次猜測只看到模糊結果（共幾個數字出現）' },
   focus:         { name:'聚焦', icon:'🎯', desc:'你的下一次猜測結果，額外顯示每個位置的詳細狀態（A=位置對、B=有但位置錯、X=沒有）' },
   secret:        { name:'保密', icon:'🔐', desc:'你往後所有猜測紀錄對對手永久隱藏' },
