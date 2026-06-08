@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>AI Kwau 訪談 v2</title>
+<title>AI Kwau 訪談 v3</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -19,13 +19,13 @@
   --su2:#f4f7fb;
 }
 html,body{min-height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC','Helvetica Neue',sans-serif}
-body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
+body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 
 /* ── HEADER ── */
 .hdr{background:var(--pri);color:#fff;padding:14px 18px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
 .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .hdr-title{font-size:17px;font-weight:800;letter-spacing:.03em;display:flex;align-items:center;gap:7px}
-.hdr-prog{font-size:13px;opacity:.75;font-family:monospace;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:20px}
+.hdr-ver{font-size:11px;font-weight:700;opacity:.5;background:rgba(255,255,255,.12);padding:2px 9px;border-radius:12px;letter-spacing:.04em}
 .hdr-id{display:flex;align-items:center;gap:8px}
 .hdr-id-lbl{font-size:12px;opacity:.65;white-space:nowrap;font-weight:600}
 .hdr-id-inp{flex:1;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;padding:7px 12px;font-size:15px;color:#fff;outline:none;min-width:0}
@@ -70,20 +70,16 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 .ta-clear:active{background:#b4bfcf}
 .rec-status{min-height:18px;font-size:12px;font-weight:700;color:var(--red);margin-top:5px;padding-left:2px}
 
-/* ── NAV ── */
-.nav{display:flex;gap:10px;margin:16px 16px 10px}
-.nbtn{flex:1;padding:15px 10px;border-radius:13px;border:2px solid var(--bdr);background:var(--sur);font-size:15px;font-weight:700;color:var(--txt);cursor:pointer;transition:.15s;touch-action:manipulation}
-.nbtn:active{transform:scale(.97)}
-.nbtn:disabled{opacity:.3;cursor:not-allowed}
-.nbtn.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
-.nbtn.grn{background:#00875a;color:#fff;border-color:#00875a}
-
-/* ── EXPORT ── */
-.export-area{margin:6px 16px 0;display:flex;flex-direction:column;gap:9px}
-.ebtn{width:100%;padding:14px;border-radius:13px;border:none;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation;transition:.15s}
-.ebtn:active{transform:scale(.98)}
-.ebtn.json{background:var(--pri);color:#fff}
-.ebtn.clr{background:#fff;color:var(--red);border:2px solid var(--red)}
+/* ── BOTTOM TOOLBAR ── */
+.toolbar{position:fixed;bottom:0;left:0;right:0;background:var(--pri);display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom,0);z-index:200;box-shadow:0 -2px 16px rgba(0,0,0,.28)}
+.tb-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:10px 4px 11px;border:none;background:none;color:rgba(255,255,255,.65);cursor:pointer;touch-action:manipulation;transition:color .12s,background .12s;-webkit-tap-highlight-color:transparent}
+.tb-btn:active{background:rgba(255,255,255,.1);color:#fff}
+.tb-btn:disabled{color:rgba(255,255,255,.2);cursor:not-allowed}
+.tb-btn.tb-next{color:#fff}
+.tb-btn.tb-next.done{color:#4ade80}
+.tb-icon{font-size:19px;line-height:1}
+.tb-label{font-size:9px;font-weight:700;letter-spacing:.05em;line-height:1}
+.tb-prog{font-size:10px;font-weight:800;font-family:monospace;letter-spacing:.03em}
 
 /* ── NO SPEECH BANNER ── */
 .no-speech-banner{display:none;margin:0 0 0;background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px;padding:11px 14px;font-size:13px;color:#7a5a00;line-height:1.5}
@@ -113,7 +109,7 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 <header class="hdr">
   <div class="hdr-top">
     <div class="hdr-title">🎙 AI Kwau 訪談</div>
-    <button class="hdr-prog" id="prog" onclick="openJump()" style="border:none;cursor:pointer;font-family:monospace">1 / 13 ☰</button>
+    <span class="hdr-ver">v3</span>
   </div>
   <div class="hdr-id">
     <span class="hdr-id-lbl">受訪者 ID</span>
@@ -178,17 +174,29 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
   </div>
 </div>
 
-<!-- NAVIGATION -->
-<div class="nav">
-  <button class="nbtn" id="btn-prev" onclick="goTo(cur-1)">← 上一題</button>
-  <button class="nbtn pri" id="btn-next" onclick="goTo(cur+1)">下一題 →</button>
-</div>
-
-<!-- EXPORT -->
-<div class="export-area">
-  <button class="ebtn json" onclick="exportJSON()">💾 匯出 JSON</button>
-  <button class="ebtn clr" onclick="clearData()">🗑 清除本筆資料</button>
-</div>
+<!-- BOTTOM TOOLBAR -->
+<nav class="toolbar">
+  <button class="tb-btn" id="tb-prev" onclick="goTo(cur-1)" aria-label="上一題">
+    <span class="tb-icon">←</span>
+    <span class="tb-label">上一題</span>
+  </button>
+  <button class="tb-btn" id="tb-jump" onclick="openJump()" aria-label="跳題">
+    <span class="tb-icon">☰</span>
+    <span class="tb-prog" id="tb-prog">1 / 13</span>
+  </button>
+  <button class="tb-btn tb-next" id="tb-next" onclick="goTo(cur+1)" aria-label="下一題">
+    <span class="tb-icon" id="tb-next-icon">→</span>
+    <span class="tb-label" id="tb-next-lbl">下一題</span>
+  </button>
+  <button class="tb-btn" onclick="exportJSON()" aria-label="匯出 JSON">
+    <span class="tb-icon">💾</span>
+    <span class="tb-label">匯出</span>
+  </button>
+  <button class="tb-btn" onclick="clearData()" aria-label="清除資料" style="color:rgba(230,57,70,.7)">
+    <span class="tb-icon">🗑</span>
+    <span class="tb-label">清除</span>
+  </button>
+</nav>
 
 <script>
 /* ════════════ QUESTIONS ════════════ */
@@ -263,7 +271,6 @@ window.addEventListener('DOMContentLoaded', () => {
 /* ════════════ RENDER ════════════ */
 function render() {
   const q = QS[cur];
-  document.getElementById('prog').textContent = (cur+1) + ' / ' + QS.length + ' ☰';
   document.getElementById('sec-badge').textContent = '第 ' + q.sec + ' 節　' + q.st;
   document.getElementById('q-id').textContent = q.id;
   document.getElementById('q-text').textContent = q.q;
@@ -285,13 +292,14 @@ function render() {
   document.getElementById('ta-a').value = answers[cur].response || '';
   document.getElementById('ta-b').value = answers[cur].interviewer_note || '';
 
-  // nav buttons
-  document.getElementById('btn-prev').disabled = cur === 0;
+  // toolbar sync
   const isLast = cur === QS.length - 1;
-  const nb = document.getElementById('btn-next');
-  nb.textContent = isLast ? '完成 ✓' : '下一題 →';
-  nb.className = 'nbtn ' + (isLast ? 'grn' : 'pri');
-  nb.disabled = false;
+  document.getElementById('tb-prev').disabled = cur === 0;
+  document.getElementById('tb-prog').textContent = (cur+1) + ' / ' + QS.length;
+  document.getElementById('tb-next').disabled = false;
+  document.getElementById('tb-next').className = 'tb-btn tb-next' + (isLast ? ' done' : '');
+  document.getElementById('tb-next-icon').textContent = isLast ? '✓' : '→';
+  document.getElementById('tb-next-lbl').textContent = isLast ? '完成' : '下一題';
 
   stopAll();
   window.scrollTo({ top: 0, behavior: 'smooth' });
