@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>猜數字對戰 — 遊戲規則與程式邏輯</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--sur:#1a1e2e;--sur2:#232840;
+  --acc:#7c6ef7;--acc2:#5548d9;
+  --grn:#3dd68c;--red:#f06070;--yel:#f5c842;--blu:#4ea8f7;
+  --txt:#e8eaf0;--dim:#8891a8;--bdr:#2e3350;
+  --card-w:220px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC','Helvetica Neue',sans-serif;line-height:1.7;font-size:15px}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--bdr);padding:12px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.nav-title{font-size:15px;font-weight:800;color:var(--acc);white-space:nowrap}
+.nav-links{display:flex;gap:14px;flex-wrap:wrap}
+.nav-links a{font-size:12px;color:var(--dim);text-decoration:none;transition:color .15s}
+.nav-links a:hover{color:var(--txt)}
+
+/* HERO */
+.hero{padding:56px 24px 40px;text-align:center;border-bottom:1px solid var(--bdr)}
+.hero-title{font-size:2.2rem;font-weight:900;letter-spacing:-.5px;margin-bottom:8px}
+.hero-title span{color:var(--acc)}
+.hero-sub{font-size:.9rem;color:var(--dim);margin-bottom:20px}
+.hero-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.badge{font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em}
+.badge.grn{background:rgba(61,214,140,.15);color:var(--grn);border:1px solid rgba(61,214,140,.3)}
+.badge.blu{background:rgba(78,168,247,.12);color:var(--blu);border:1px solid rgba(78,168,247,.25)}
+.badge.yel{background:rgba(245,200,66,.12);color:var(--yel);border:1px solid rgba(245,200,66,.25)}
+
+/* LAYOUT */
+.container{max-width:900px;margin:0 auto;padding:0 24px 80px}
+
+/* SECTIONS */
+.section{padding:48px 0 0}
+.sec-hd{font-size:1.25rem;font-weight:800;color:var(--txt);margin-bottom:24px;padding-bottom:10px;border-bottom:2px solid var(--bdr);display:flex;align-items:center;gap:9px}
+.sec-icon{font-size:1.1rem}
+
+/* SUBSECTIONS */
+.sub-hd{font-size:1rem;font-weight:700;color:var(--acc);margin:28px 0 12px}
+
+/* TEXT */
+p{margin-bottom:12px;color:#c8ccd8}
+strong{color:var(--txt);font-weight:700}
+
+/* CALL OUT BOXES */
+.box{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:18px 20px;margin:16px 0}
+.box.grn{border-color:rgba(61,214,140,.3);background:rgba(61,214,140,.06)}
+.box.red{border-color:rgba(240,96,112,.3);background:rgba(240,96,112,.06)}
+.box.yel{border-color:rgba(245,200,66,.3);background:rgba(245,200,66,.06)}
+.box.blu{border-color:rgba(78,168,247,.25);background:rgba(78,168,247,.07)}
+.box-title{font-size:.78rem;font-weight:800;letter-spacing:.07em;margin-bottom:8px;text-transform:uppercase}
+.box.grn .box-title{color:var(--grn)}
+.box.red .box-title{color:var(--red)}
+.box.yel .box-title{color:var(--yel)}
+.box.blu .box-title{color:var(--blu)}
+
+/* AB EXAMPLE */
+.ab-demo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+.ab-row{display:flex;gap:5px}
+.ab-cell{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;background:var(--sur2);border:2px solid var(--bdr)}
+.ab-cell.hit{border-color:var(--grn);background:rgba(61,214,140,.15);color:var(--grn)}
+.ab-cell.pos{border-color:var(--yel);background:rgba(245,200,66,.12);color:var(--yel)}
+.ab-cell.mis{opacity:.4}
+.ab-arrow{color:var(--dim);font-size:1.1rem}
+.ab-result{font-size:1.3rem;font-weight:900;color:var(--txt)}
+
+/* FLOW */
+.flow{display:flex;gap:0;flex-direction:column;margin:16px 0}
+.flow-step{display:flex;gap:14px;align-items:flex-start;padding:14px 0}
+.flow-step:not(:last-child){border-bottom:1px solid var(--bdr)}
+.step-num{width:30px;height:30px;border-radius:50%;background:var(--acc2);color:#fff;font-size:.8rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-body{}
+.step-title{font-weight:700;color:var(--txt);margin-bottom:3px}
+.step-desc{font-size:.88rem;color:var(--dim)}
+
+/* SCREEN FLOW */
+.screens{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.screen-box{flex:1;min-width:130px;background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;text-align:center}
+.screen-name{font-size:.8rem;font-weight:800;color:var(--acc);margin-bottom:4px}
+.screen-desc{font-size:.72rem;color:var(--dim);line-height:1.4}
+.screen-arr{display:flex;align-items:center;color:var(--dim);font-size:1.2rem;padding-top:20px}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--sur2);border:1.5px solid var(--bdr);border-radius:12px;padding:16px 18px}
+.card.active{border-color:rgba(124,110,247,.4)}
+.card.passive{border-color:rgba(78,168,247,.35)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.card-icon{font-size:1.4rem;line-height:1}
+.card-name{font-weight:800;color:var(--txt);font-size:.95rem}
+.card-type{font-size:.67rem;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-left:auto}
+.active .card-type{background:rgba(124,110,247,.2);color:var(--acc)}
+.passive .card-type{background:rgba(78,168,247,.15);color:var(--blu)}
+.card-desc{font-size:.83rem;color:var(--dim);line-height:1.55}
+.card-counter{font-size:.75rem;color:var(--red);margin-top:7px;padding-top:7px;border-top:1px solid var(--bdr)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.85rem}
+th{background:var(--sur2);color:var(--dim);font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:9px 13px;text-align:left;border-bottom:2px solid var(--bdr)}
+td{padding:10px 13px;border-bottom:1px solid var(--bdr);vertical-align:top;color:#c8ccd8}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:monospace;font-size:.85em;background:var(--sur2);padding:1px 5px;border-radius:4px;color:var(--acc)}
+
+/* CODE BLOCK */
+pre{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:12px 0;font-size:.82rem;line-height:1.7}
+code{font-family:'JetBrains Mono','Fira Code',monospace;color:#a9b4d8}
+pre code{color:#c8d4f0}
+.hl-key{color:#7c6ef7}
+.hl-str{color:#3dd68c}
+.hl-com{color:#4a5270}
+.hl-num{color:#f5c842}
+
+/* CONN DIAGRAM */
+.conn-diag{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:18px;margin:14px 0;font-family:monospace;font-size:.8rem;line-height:2;color:#8891a8}
+.conn-diag .hi{color:var(--grn)}
+.conn-diag .wa{color:var(--yel)}
+.conn-diag .lo{color:var(--red)}
+
+/* FUNC LIST */
+.func-group{margin:14px 0}
+.func-item{padding:8px 0;border-bottom:1px solid var(--bdr);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.func-item:last-child{border-bottom:none}
+.func-name{font-family:monospace;font-size:.85rem;color:var(--acc);white-space:nowrap;min-width:220px}
+.func-desc{font-size:.83rem;color:var(--dim)}
+
+/* TAGS */
+.tag{display:inline-block;font-size:.67rem;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:5px;vertical-align:middle}
+.tag.solo{background:rgba(245,200,66,.15);color:var(--yel)}
+.tag.multi{background:rgba(61,214,140,.12);color:var(--grn)}
+.tag.both{background:rgba(124,110,247,.15);color:var(--acc)}
+
+/* RESP */
+@media(max-width:600px){
+  .hero-title{font-size:1.6rem}
+  .screens{flex-direction:column}
+  .screen-arr{display:none}
+  .cards-grid{grid-template-columns:1fr}
+  .func-name{min-width:unset;width:100%}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-title">🔢 猜數字對戰</span>
+  <div class="nav-links">
+    <a href="#rules">遊戲規則</a>
+    <a href="#flow">流程</a>
+    <a href="#cards">道具卡</a>
+    <a href="#conn">連線</a>
+    <a href="#state">狀態</a>
+    <a href="#funcs">函式</a>
+    <a href="#ui">介面</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-title">猜數字對戰 <span>GuessNumber</span></div>
+  <div class="hero-sub">遊戲規則、流程與程式邏輯文件 · v48</div>
+  <div class="hero-badges">
+    <span class="badge grn">雙人線上</span>
+    <span class="badge blu">WebRTC / WebSocket</span>
+    <span class="badge yel">單人練習模式</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ─── 遊戲規則 ─── -->
+<div class="section" id="rules">
+  <div class="sec-hd"><span class="sec-icon">📖</span>遊戲規則</div>
+
+  <p>兩位玩家各自設定一組 <strong>4 位不重複數字</strong>（0–9），輪流猜對方的答案。第一個猜中 <strong>4A0B</strong> 者獲勝。</p>
+
+  <div class="sub-hd">xAyB 判定系統</div>
+  <p><strong>A</strong> = 數字正確且位置正確　　<strong>B</strong> = 數字存在但位置錯誤</p>
+
+  <div class="ab-demo">
+    <div>
+      <div style="font-size:.75rem;color:var(--dim);margin-bottom:6px">答案：<strong style="color:var(--txt)">1234</strong></div>
+      <div class="ab-row">
+        <div class="ab-cell hit">1</div>
+        <div class="ab-cell mis">3</div>
+        <div class="ab-cell pos">2</div>
+        <div class="ab-cell mis">7</div>
+      </div>
+      <div style="font-size:.72rem;color:var(--dim);margin-top:5px">猜：1 3 2 7</div>
+    </div>
+    <div class="ab-arrow">→</div>
+    <div class="ab-result">1A1B</div>
+    <div style="font-size:.8rem;color:var(--dim)">1 位置對（1）<br>1 數字對位置錯（2）</div>
+  </div>
+
+  <div class="box grn">
+    <div class="box-title">勝利條件</div>
+    猜出對方完整答案 → 結果為 <strong>4A0B</strong>，該玩家獲勝，遊戲立即結束。
+  </div>
+
+  <div class="sub-hd">回合規則</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">房主先攻</div>
+        <div class="step-desc">建立房間的玩家（Host）永遠先手，雙方嚴格交替回合。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">每回合最多使用 1 張道具卡</div>
+        <div class="step-desc">道具可在猜數字前使用。使用後 <code>G.usedTool = true</code>，本回合不可再用。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">猜完才換人</div>
+        <div class="step-desc">送出猜測後切換回合，對方收到結果才能繼續。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">跳過回合</div>
+        <div class="step-desc">對方拒絕回答審訊／勒索 → 該玩家下一回合被跳過（<code>G.skipMe</code>）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-hd">里程碑獎勵（雙人模式）</div>
+  <p>首次達成以下成就時，可從 2 張隨機道具卡中選 1 張：</p>
+  <table>
+    <tr><th>里程碑</th><th>條件</th><th>旗標</th></tr>
+    <tr><td>⭐ 1A</td><td>我的猜測首次出現至少 1A</td><td><code>G.milestone[1]</code></td></tr>
+    <tr><td>⭐⭐ 2A</td><td>我的猜測首次出現至少 2A</td><td><code>G.milestone[2]</code></td></tr>
+    <tr><td>⭐⭐⭐ 3A</td><td>我的猜測首次出現至少 3A</td><td><code>G.milestone[3]</code></td></tr>
+  </table>
+  <p>另外每 3 回合（<code>G.myTurnCount % 3 === 0</code>）也提供一次選卡機會。</p>
+</div>
+
+
+<!-- ─── 遊戲流程 ─── -->
+<div class="section" id="flow">
+  <div class="sec-hd"><span class="sec-icon">🗺</span>遊戲流程</div>
+
+  <div class="sub-hd">畫面轉換</div>
+  <div class="screens">
+    <div class="screen-box">
+      <div class="screen-name">Lobby</div>
+      <div class="screen-desc">建立房間 / 加入 / 單人練習</div>
+    </div>
+    <div class="screen-arr">→</div>
+    <div class="screen-box">
+      <div class="screen-name">Waiting</div>
+      <div class="screen-desc">顯示 QR Code + 4 位房號，等待對方加入</div>
+    </div>
+    <div class="screen-arr">→</div>
+    <div class="screen-box">
+      <div class="screen-name">Set Answer</div>
+      <div class="screen-desc">雙方各自輸入 4 位秘密答案</div>
+    </div>
+    <div class="screen-arr">→</div>
+    <div class="screen-box">
+      <div class="screen-name">Game</div>
+      <div class="screen-desc">主遊戲畫面，輪流猜測直到有人勝出</div>
+    </div>
+  </div>
+
+  <div class="sub-hd">完整回合流程</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">①</div>
+      <div class="step-body">
+        <div class="step-title">回合開始 <code>onMyTurnStart()</code></div>
+        <div class="step-desc">檢查跳過標記、增加回合計數、檢查是否提供選卡（里程碑 / 每 3 回合）。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">②</div>
+      <div class="step-body">
+        <div class="step-title">（可選）使用道具卡</div>
+        <div class="step-desc">點擊手牌中的卡片 → 送出 <code>play_tool</code> → 對方 10 秒內可反制（Shield / Reflect / 接受）。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">③</div>
+      <div class="step-body">
+        <div class="step-title">輸入並送出猜測 <code>submitGuess()</code></div>
+        <div class="step-desc">送出 <code>guess</code> 訊息，禁用按鈕等待對方回應。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">④</div>
+      <div class="step-body">
+        <div class="step-title">對方計算結果 <code>evalGuess()</code></div>
+        <div class="step-desc">計算 xAyB，套用 Fog / Focus 效果後，送出 <code>result</code> 訊息。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">⑤</div>
+      <div class="step-body">
+        <div class="step-title">收到結果 → 切換回合 <code>advanceTurn()</code></div>
+        <div class="step-desc">寫入 log、檢查勝利條件、重置回合狀態、換對方行動。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-hd">連線建立流程</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Host 建立房間</div>
+        <div class="step-desc">產生 4 位房號 → 連接 WebSocket server，同時初始化 PeerJS（<code>gn-{code}-h</code>）。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Guest 加入</div>
+        <div class="step-desc">先嘗試 WebSocket（<code>wss://omni-note.onrender.com/ws</code>），5 秒未成功則降級 WebRTC。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">連線成功 → 進入 Set Answer</div>
+        <div class="step-desc"><code>afterWsConnect()</code> 設定訊息路由，雙方轉到設定答案畫面。</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">雙方 Ready → 開始遊戲</div>
+        <div class="step-desc">各自送出 <code>ready</code>，<code>checkBothReady()</code> 確認雙方都好後呼叫 <code>startGame()</code>。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── 道具卡 ─── -->
+<div class="section" id="cards">
+  <div class="sec-hd"><span class="sec-icon">🃏</span>道具卡系統</div>
+
+  <div class="sub-hd">主動卡（每回合最多用 1 張）</div>
+  <div class="cards-grid">
+    <div class="card active">
+      <div class="card-head">
+        <span class="card-icon">🔍</span>
+        <span class="card-name">審訊</span>
+        <span class="card-type">ACTIVE</span>
+      </div>
+      <div class="card-desc">向對方詢問：「某個數字<em>是否</em>在答案中？」對方必須如實回答，獲得情報輔助下次猜測。</div>
+      <div class="card-counter">🛡 對方可用 Shield 抵擋 / 🪞 Reflect 反彈<br>❌ 對方拒絕回答 → 對方下回合跳過</div>
+    </div>
+    <div class="card active">
+      <div class="card-head">
+        <span class="card-icon">💰</span>
+        <span class="card-name">勒索</span>
+        <span class="card-type">ACTIVE</span>
+      </div>
+      <div class="card-desc">向對方詢問：「第 N 位是什麼數字？」對方必須如實回答，直接得知一位數字。</div>
+      <div class="card-counter">🛡 對方可用 Shield 抵擋 / 🪞 Reflect 反彈<br>❌ 對方拒絕回答 → 對方下回合跳過</div>
+    </div>
+    <div class="card active">
+      <div class="card-head">
+        <span class="card-icon">🌀</span>
+        <span class="card-name">霧化</span>
+        <span class="card-type">ACTIVE</span>
+      </div>
+      <div class="card-desc">對方下次猜測的結果只顯示「約 X 個數字正確」，不顯示 A / B 細節（<code>G.fogOppNext</code>）。</div>
+      <div class="card-counter">🛡 Shield 抵擋 / 🪞 Reflect 反彈效果（霧化自己下次結果）</div>
+    </div>
+    <div class="card active">
+      <div class="card-head">
+        <span class="card-icon">🎯</span>
+        <span class="card-name">聚焦</span>
+        <span class="card-type">ACTIVE</span>
+      </div>
+      <div class="card-desc">我方下次猜測結果顯示每個數字的詳細狀態：A（位置對）、B（數字對）、X（不存在），逐位呈現（<code>G.focusOppNext</code>）。</div>
+      <div class="card-counter">🛡 Shield 抵擋 / 🪞 Reflect：聚焦效果施加到自己身上</div>
+    </div>
+    <div class="card active">
+      <div class="card-head">
+        <span class="card-icon">🔐</span>
+        <span class="card-name">保密</span>
+        <span class="card-type">ACTIVE</span>
+      </div>
+      <div class="card-desc">此後對方看不到我方的猜測紀錄，對方的猜測 log 顯示「隱藏中」（<code>G.secretActive</code>）。</div>
+      <div class="card-counter">🛡 Shield 抵擋 / 🪞 Reflect：反轉效果，隱藏對方紀錄改為隱藏我方</div>
+    </div>
+  </div>
+
+  <div class="sub-hd">被動卡（防禦，自動待機）</div>
+  <div class="cards-grid">
+    <div class="card passive">
+      <div class="card-head">
+        <span class="card-icon">🛡</span>
+        <span class="card-name">護盾</span>
+        <span class="card-type">PASSIVE</span>
+      </div>
+      <div class="card-desc">對方使用任何道具卡時，可在 10 秒內選擇「護盾」完全抵消效果。一局限用 1 次（<code>G.myShield</code>）。</div>
+    </div>
+    <div class="card passive">
+      <div class="card-head">
+        <span class="card-icon">🪞</span>
+        <span class="card-name">反射</span>
+        <span class="card-type">PASSIVE</span>
+      </div>
+      <div class="card-desc">對方使用任何道具卡時，可在 10 秒內選擇「反射」將效果反彈給對方承受。一局限用 1 次（<code>G.myReflect</code>）。</div>
+    </div>
+  </div>
+
+  <div class="box blu">
+    <div class="box-title">反制時間窗</div>
+    對方送出 <code>play_tool</code> 後，<strong>10 秒倒數</strong>視窗出現。玩家可選擇：
+    <strong>接受</strong>（效果生效）、<strong>護盾</strong>（消除）、<strong>反射</strong>（反彈）。
+    超時自動視為接受。
+  </div>
+
+  <div class="sub-hd">卡片可用時機</div>
+  <table>
+    <tr><th>模式</th><th>里程碑卡</th><th>每 3 回合卡</th><th>卡片準備時機</th></tr>
+    <tr><td>雙人</td><td>立即可用</td><td>下一回合才可用</td><td>取得回合 N → 第 N+1 回合可用</td></tr>
+    <tr><td>單人</td><td>— （無里程碑）</td><td>立即可用</td><td>取得即可用</td></tr>
+  </table>
+
+  <div class="sub-hd">單人模式可用卡</div>
+  <p>單人模式中電腦不會反制，可用卡限於：🔍 審訊、💰 勒索、🎯 聚焦（無霧化、保密、護盾、反射）。</p>
+</div>
+
+
+<!-- ─── 連線 ─── -->
+<div class="section" id="conn">
+  <div class="sec-hd"><span class="sec-icon">🌐</span>連線架構</div>
+
+  <div class="sub-hd">雙層連線策略</div>
+  <div class="conn-diag">
+<span class="hi">WebSocket（主要）</span>
+  wss://omni-note.onrender.com/ws
+  Host → ?room=gn-{code}&amp;user=host
+  Guest → ?room=gn-{code}&amp;user=guest
+  成功 → transport = 'ws'，銷毀 PeerJS
+
+<span class="wa">WebRTC / PeerJS（備援）</span>
+  Guest 5 秒內 WebSocket 失敗時啟動
+  Host PeerJS ID：gn-{code}-h
+  Guest PeerJS ID：gn-{code}-g
+  Guest 主動連線 → Host 接受
+  成功 → transport = 'webrtc'
+  </div>
+
+  <div class="sub-hd">訊息類型</div>
+  <table>
+    <tr><th>訊息</th><th>方向</th><th>說明</th></tr>
+    <tr><td><code>ready</code></td><td>雙向</td><td>答案設定完成，通知對方</td></tr>
+    <tr><td><code>guess</code></td><td>攻方 → 守方</td><td>送出猜測（4 位數字陣列）</td></tr>
+    <tr><td><code>result</code></td><td>守方 → 攻方</td><td>送回 A / B 計算結果</td></tr>
+    <tr><td><code>play_tool</code></td><td>攻方 → 守方</td><td>使用道具卡，啟動反制倒數</td></tr>
+    <tr><td><code>counter</code></td><td>守方 → 攻方</td><td>反制結果（pass / shield / reflect）</td></tr>
+    <tr><td><code>fx_*</code></td><td>雙向</td><td>道具效果通知（fog, focus, secret, 反彈）</td></tr>
+    <tr><td><code>interrogation_q/a</code></td><td>雙向</td><td>審訊問答流程</td></tr>
+    <tr><td><code>extortion_q/a</code></td><td>雙向</td><td>勒索問答流程</td></tr>
+    <tr><td><code>card_pick</code></td><td>雙向</td><td>通知對方取得道具卡</td></tr>
+    <tr><td><code>skip_ack</code></td><td>雙向</td><td>確認跳過回合</td></tr>
+    <tr><td><code>chat</code></td><td>雙向</td><td>聊天訊息</td></tr>
+  </table>
+</div>
+
+
+<!-- ─── 狀態物件 ─── -->
+<div class="section" id="state">
+  <div class="sec-hd"><span class="sec-icon">💾</span>全域狀態（G 物件）</div>
+
+  <p>所有遊戲狀態集中在全域物件 <code>G</code>，每次回合開始與結束時更新。</p>
+
+  <table>
+    <tr><th>欄位</th><th>型別</th><th>說明</th></tr>
+    <tr><td><code>myAnswer</code></td><td>number[]</td><td>我的秘密答案（4 位）</td></tr>
+    <tr><td><code>computerAnswer</code></td><td>number[]</td><td>電腦答案（單人模式）</td></tr>
+    <tr><td><code>myTurn</code></td><td>boolean</td><td>目前是否為我的回合</td></tr>
+    <tr><td><code>myCards</code></td><td>string[]</td><td>手中持有的道具卡 key 列表</td></tr>
+    <tr><td><code>cardReadyTurns</code></td><td>object</td><td>各卡片可用的回合號（雙人模式延遲）</td></tr>
+    <tr><td><code>myTurnCount</code></td><td>number</td><td>我已行動的回合總數</td></tr>
+    <tr><td><code>myLog / oppLog / sysLog</code></td><td>array</td><td>我的猜測 / 對方猜測 / 系統事件紀錄</td></tr>
+    <tr><td><code>input</code></td><td>number[]</td><td>目前正在輸入的猜測（0–4 位）</td></tr>
+    <tr><td><code>fogOppNext</code></td><td>boolean</td><td>霧化效果待生效（對方下次結果模糊）</td></tr>
+    <tr><td><code>focusOppNext</code></td><td>boolean</td><td>聚焦效果待生效（我方下次結果詳細）</td></tr>
+    <tr><td><code>secretActive</code></td><td>boolean</td><td>保密效果啟動中</td></tr>
+    <tr><td><code>skipMe / skipOpp</code></td><td>boolean</td><td>我方 / 對方下回合跳過</td></tr>
+    <tr><td><code>myShield / myReflect</code></td><td>boolean</td><td>護盾 / 反射卡是否尚可使用</td></tr>
+    <tr><td><code>usedTool</code></td><td>boolean</td><td>本回合已使用道具</td></tr>
+    <tr><td><code>guessedThisTurn</code></td><td>boolean</td><td>本回合已送出猜測</td></tr>
+    <tr><td><code>pendCard</code></td><td>string</td><td>等待反制中的道具卡名稱</td></tr>
+    <tr><td><code>gameOver</code></td><td>boolean</td><td>遊戲結束旗標</td></tr>
+    <tr><td><code>milestone</code></td><td>{1,2,3}</td><td>各里程碑是否已獎勵</td></tr>
+    <tr><td><code>acquiredCards</code></td><td>string[]</td><td>本局已取得過的卡片（避免重複提供）</td></tr>
+    <tr><td><code>isSolo</code></td><td>boolean</td><td>單人練習模式</td></tr>
+  </table>
+
+  <div class="sub-hd">Log 格式</div>
+  <pre><code><span class="hl-com">// 每筆紀錄結構</span>
+{ t: <span class="hl-str">"文字內容"</span>, c: <span class="hl-str">"class 名稱"</span> }
+
+<span class="hl-com">// class 對應</span>
+<span class="hl-str">'le'</span>  <span class="hl-com">// 猜測行（guess entry）</span>
+<span class="hl-str">'lr'</span>  <span class="hl-com">// 結果行（result）</span>
+<span class="hl-str">'lt'</span>  <span class="hl-com">// 道具/事件行（tool/event）</span>
+<span class="hl-str">'ls'</span>  <span class="hl-com">// 系統訊息（system）</span></code></pre>
+</div>
+
+
+<!-- ─── 函式 ─── -->
+<div class="section" id="funcs">
+  <div class="sec-hd"><span class="sec-icon">⚙️</span>主要函式列表</div>
+
+  <div class="sub-hd">連線 / 房間管理</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">genRoomCode()</span><span class="func-desc">產生 4 位不重複數字房號</span></div>
+    <div class="func-item"><span class="func-name">createRoom()</span><span class="func-desc">Host 建立房間，啟動 WebSocket + PeerJS 監聽</span></div>
+    <div class="func-item"><span class="func-name">joinRoom()</span><span class="func-desc">Guest 發起連線嘗試</span></div>
+    <div class="func-item"><span class="func-name">tryWsCreate() / tryWsJoin()</span><span class="func-desc">WebSocket 連線嘗試</span></div>
+    <div class="func-item"><span class="func-name">joinRoomWebRTC()</span><span class="func-desc">WebSocket 失敗時降級至 PeerJS</span></div>
+    <div class="func-item"><span class="func-name">setupConn(conn)</span><span class="func-desc">設定 WebRTC 資料通道的訊息處理</span></div>
+    <div class="func-item"><span class="func-name">afterWsConnect(myName)</span><span class="func-desc">連線成功後設定 handleMsg 路由</span></div>
+    <div class="func-item"><span class="func-name">send(msg)</span><span class="func-desc">依 transport 路由訊息至 WebSocket 或 WebRTC</span></div>
+  </div>
+
+  <div class="sub-hd">遊戲流程</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">startGame()</span><span class="func-desc">初始化 G 物件、顯示遊戲畫面、開始第一回合</span></div>
+    <div class="func-item"><span class="func-name">startSolo()</span><span class="func-desc">初始化單人模式，產生電腦答案</span></div>
+    <div class="func-item"><span class="func-name">goSetAnswer()</span><span class="func-desc">切換至答案設定畫面</span></div>
+    <div class="func-item"><span class="func-name">confirmAnswer()</span><span class="func-desc">鎖定答案，送出 ready 訊息</span></div>
+    <div class="func-item"><span class="func-name">checkBothReady()</span><span class="func-desc">確認雙方都 ready 後呼叫 startGame()</span></div>
+    <div class="func-item"><span class="func-name">onMyTurnStart()</span><span class="func-desc">回合開始：檢查跳過、計數、觸發選卡提示</span></div>
+    <div class="func-item"><span class="func-name">advanceTurn()</span><span class="func-desc">切換回合、重置狀態、處理跳過、重新渲染</span></div>
+  </div>
+
+  <div class="sub-hd">猜測</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">pressGuess(d)</span><span class="func-desc">將數字加入目前猜測（防重複）</span></div>
+    <div class="func-item"><span class="func-name">submitGuess()</span><span class="func-desc">送出 guess 訊息，禁用輸入等待回應</span></div>
+    <div class="func-item"><span class="func-name">evalGuess(guess, answer)</span><span class="func-desc">計算 xAyB 結果，回傳 {a, b}</span></div>
+    <div class="func-item"><span class="func-name">fmtResult(a, b, granularity, detail)</span><span class="func-desc">將結果格式化為顯示字串（支援霧化 / 聚焦模式）</span></div>
+  </div>
+
+  <div class="sub-hd">道具卡系統</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">makeOffer()</span><span class="func-desc">從可用 pool 隨機選 2 張卡提供選擇</span></div>
+    <div class="func-item"><span class="func-name">showTurnStartOffer()</span><span class="func-desc">每 3 回合觸發選卡提示</span></div>
+    <div class="func-item"><span class="func-name">checkMilestoneOffer(a, b, done)</span><span class="func-desc">檢查結果是否達到里程碑，是則觸發選卡</span></div>
+    <div class="func-item"><span class="func-name">onCardPicked(card, pending)</span><span class="func-desc">處理選卡（pending=true 代表下回合才可用）</span></div>
+    <div class="func-item"><span class="func-name">playTool(card)</span><span class="func-desc">執行道具卡：送出 play_tool，啟動審訊 / 勒索 / 持續效果</span></div>
+    <div class="func-item"><span class="func-name">showCounter(card, cb)</span><span class="func-desc">顯示反制 10 秒倒數覆蓋層</span></div>
+    <div class="func-item"><span class="func-name">doCounter(action)</span><span class="func-desc">執行反制（pass / shield / reflect），送出 counter 訊息</span></div>
+    <div class="func-item"><span class="func-name">resolveMyTool(card, action)</span><span class="func-desc">收到對方 counter 後，決定效果是否生效 / 反彈</span></div>
+    <div class="func-item"><span class="func-name">applyToolEffect(card, hitMe)</span><span class="func-desc">套用道具效果；hitMe=true 代表被反彈</span></div>
+    <div class="func-item"><span class="func-name">applyIncomingTool(card, reflected)</span><span class="func-desc">接收並處理對方道具效果</span></div>
+  </div>
+
+  <div class="sub-hd">審訊 / 勒索問答</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">openInterrogation()</span><span class="func-desc">開啟選擇數字介面（審訊方操作）</span></div>
+    <div class="func-item"><span class="func-name">sendInterrogation(d)</span><span class="func-desc">送出審訊問題（詢問數字 d 是否存在）</span></div>
+    <div class="func-item"><span class="func-name">replyInterrogation(reveal, digit, hasDigit)</span><span class="func-desc">被審訊方回答（reveal=false 代表拒絕回答）</span></div>
+    <div class="func-item"><span class="func-name">openExtortion()</span><span class="func-desc">開啟選擇位置介面（勒索方操作）</span></div>
+    <div class="func-item"><span class="func-name">sendExtortion(pos)</span><span class="func-desc">送出勒索問題（詢問第 pos 位數字）</span></div>
+    <div class="func-item"><span class="func-name">replyExtortion(reveal, pos, digit)</span><span class="func-desc">被勒索方回答</span></div>
+  </div>
+
+  <div class="sub-hd">渲染</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">renderGame()</span><span class="func-desc">主渲染函式：回合指示、log、道具列、效果、猜測區</span></div>
+    <div class="func-item"><span class="func-name">renderTools()</span><span class="func-desc">渲染手牌（可用 / 不可用 / 已用）</span></div>
+    <div class="func-item"><span class="func-name">renderEffects()</span><span class="func-desc">渲染效果標籤列（霧化、聚焦、保密、跳過）</span></div>
+    <div class="func-item"><span class="func-name">renderLog(id, log, hidden)</span><span class="func-desc">渲染單一 log 列；hidden=true 顯示「隱藏中」</span></div>
+    <div class="func-item"><span class="func-name">renderGuessSlots()</span><span class="func-desc">更新 4 個猜測格（輸入動畫）</span></div>
+    <div class="func-item"><span class="func-name">makeCard(cardId, passive, spent)</span><span class="func-desc">建立道具卡 DOM 元素</span></div>
+  </div>
+
+  <div class="sub-hd">工具函式</div>
+  <div class="func-group">
+    <div class="func-item"><span class="func-name">$(id)</span><span class="func-desc">document.getElementById 縮寫</span></div>
+    <div class="func-item"><span class="func-name">showScreen(id)</span><span class="func-desc">切換顯示的畫面（lobby / waiting / set / game）</span></div>
+    <div class="func-item"><span class="func-name">showModal(title, body, btnText, action)</span><span class="func-desc">通用模態對話框</span></div>
+    <div class="func-item"><span class="func-name">showOffer(cards, subtitle, onPick)</span><span class="func-desc">顯示選卡覆蓋層</span></div>
+    <div class="func-item"><span class="func-name">shuffled(arr)</span><span class="func-desc">Fisher-Yates 洗牌，回傳新陣列</span></div>
+    <div class="func-item"><span class="func-name">addLog(side, text, cls)</span><span class="func-desc">寫入 my / opp / sys log 並觸發渲染</span></div>
+  </div>
+</div>
+
+
+<!-- ─── 介面 ─── -->
+<div class="section" id="ui">
+  <div class="sec-hd"><span class="sec-icon">🖥</span>介面元件</div>
+
+  <div class="sub-hd">主要畫面</div>
+  <table>
+    <tr><th>ID</th><th>名稱</th><th>說明</th></tr>
+    <tr><td><code>lobby-screen</code></td><td>大廳</td><td>建立房間 / 加入 / 單人，含規則按鈕</td></tr>
+    <tr><td><code>waiting-screen</code></td><td>等待</td><td>QR Code + 4 位房號 + 複製連結</td></tr>
+    <tr><td><code>set-screen</code></td><td>設定答案</td><td>數字鍵盤輸入 + 隨機按鈕 + 確認</td></tr>
+    <tr><td><code>game-screen</code></td><td>遊戲主畫面</td><td>包含以下所有子元件</td></tr>
+  </table>
+
+  <div class="sub-hd">遊戲畫面子元件</div>
+  <table>
+    <tr><th>元件</th><th>說明</th></tr>
+    <tr><td>回合指示（turn-pill）</td><td>動畫色塊：綠色 = 我的回合，紅色 = 對方回合</td></tr>
+    <tr><td>答案切換（my-ans）</td><td>點擊在 •••• 與明文之間切換</td></tr>
+    <tr><td>效果列（efrow）</td><td>顯示霧化 / 聚焦 / 保密 / 跳過等效果徽章</td></tr>
+    <tr><td>系統 Log / 猜測 Log</td><td>左欄：系統訊息；右欄：我的猜測 | 對方猜測</td></tr>
+    <tr><td>道具列（tools-row）</td><td>水平捲動手牌，可用時發光，已用時變灰</td></tr>
+    <tr><td>猜測格（gs0–gs3）</td><td>4 個輸入格，輸入時彈出動畫</td></tr>
+    <tr><td>猜測鍵盤（guess-np）</td><td>0–9 + 刪除 + 送出</td></tr>
+    <tr><td>筆記鍵（note-btn）</td><td>隨時可用的全螢幕畫布，支援筆 / 橡皮擦 / 上下復原</td></tr>
+    <tr><td>聊天（chat-ov）</td><td>預設快速回覆 + 手動輸入 + 語音輸入（zh-TW）</td></tr>
+  </table>
+
+  <div class="sub-hd">覆蓋層（Overlays）</div>
+  <table>
+    <tr><th>ID</th><th>觸發時機</th></tr>
+    <tr><td><code>ctr-ov</code></td><td>對方使用道具卡 → 10 秒反制倒數</td></tr>
+    <tr><td><code>query-ov</code></td><td>審訊 / 勒索問答介面</td></tr>
+    <tr><td><code>offer-ov</code></td><td>每 3 回合 / 里程碑選卡</td></tr>
+    <tr><td><code>help-ov</code></td><td>規則說明（大廳 / 遊戲中均可開啟）</td></tr>
+    <tr><td><code>note-ov</code></td><td>繪圖筆記全螢幕畫布</td></tr>
+    <tr><td><code>chat-ov</code></td><td>聊天面板（由下滑入）</td></tr>
+    <tr><td><code>modal</code></td><td>勝負結果、確認對話框</td></tr>
+    <tr><td><code>opp-chat-bubble</code></td><td>對方傳來訊息的浮動氣泡（4.2 秒後自動消失）</td></tr>
+  </table>
+
+  <div class="sub-hd">特殊模式</div>
+  <div class="box yel">
+    <div class="box-title">測試模式</div>
+    URL 加上 <code>?test=1</code> → 遊戲開始時立即獲得所有道具卡 + 護盾 + 反射，方便開發測試。
+  </div>
+  <div class="box">
+    <div class="box-title">單人模式差異</div>
+    <ul style="padding-left:18px;color:#c8ccd8;font-size:.88rem;line-height:2">
+      <li>電腦答案隨機產生，不進行反制</li>
+      <li>無聊天、無對方 log、無里程碑獎勵</li>
+      <li>可用卡：審訊、勒索、聚焦（無霧化、保密）</li>
+      <li>每 3 回合選卡，卡片立即可用</li>
+      <li>顯示回合計數器代替「我的回合 / 對方回合」</li>
+    </ul>
+  </div>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>
