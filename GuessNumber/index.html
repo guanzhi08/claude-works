@@ -413,7 +413,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
         <div class="help-step"><span class="help-step-n">1</span><span>雙方各自設定一組 <b>4 位不重複數字</b>（0–9）作為秘密答案</span></div>
         <div class="help-step"><span class="help-step-n">2</span><span>房主先手，雙方<b>輪流</b>猜測對方答案</span></div>
         <div class="help-step"><span class="help-step-n">3</span><span>每次猜測後，對方回報 <b>xA yB</b> 結果</span></div>
-        <div class="help-step"><span class="help-step-n">4</span><span>每 3 回合開始時，及猜中 <b>1A / 2A / 3A</b> 時，可從 2 張牌中選 1 張<b>道具牌</b>；取得後<b>當回合即可使用</b></span></div>
+        <div class="help-step"><span class="help-step-n">4</span><span>每 3 回合，或首次猜中 <b>1A / 2A / 3A</b> 後，<b>下一回合開始時</b>可從 2 張牌中選 1 張<b>道具牌</b>；取得後<b>當回合即可使用</b></span></div>
         <div class="help-step"><span class="help-step-n">5</span><span>先猜出對方完整答案（<b>4A0B</b>）者獲勝</span></div>
       </div>
 
@@ -560,8 +560,9 @@ function resetG(myTurn){
     guessedThisTurn: false,
     pendCard:        null,
     gameOver:        false,
-    milestone:       { 1:false, 2:false, 3:false },
-    acquiredCards:   [],
+    milestone:            { 1:false, 2:false, 3:false },
+    pendingMilestoneOffer: false,
+    acquiredCards:        [],
     isSolo:          false,
   };
 }
@@ -1000,7 +1001,9 @@ function shuffled(arr){
 
 function onMyTurnStart(){
   G.myTurnCount++;
-  if(G.myTurnCount % 3 === 0) showTurnStartOffer();
+  var isMilestone = G.pendingMilestoneOffer;
+  G.pendingMilestoneOffer = false;
+  if(G.myTurnCount % 3 === 0 || isMilestone) showTurnStartOffer(isMilestone);
 }
 
 function makeOffer(){
@@ -1031,10 +1034,17 @@ function onCardPicked(card, pending){
   renderTools();
 }
 
-function showTurnStartOffer(){
+function showTurnStartOffer(isMilestone){
   var offer = makeOffer();
   if(offer.length === 0) return; // all cards acquired
-  var ttl = G.isSolo ? '第 '+G.myTurnCount+' 回合，選一張道具牌！' : '第 '+G.myTurnCount+' 回合里程碑！';
+  var ttl;
+  if(G.isSolo){
+    ttl = '第 '+G.myTurnCount+' 回合，選一張道具牌！';
+  } else if(isMilestone){
+    ttl = '里程碑達成！選一張道具牌！';
+  } else {
+    ttl = '第 '+G.myTurnCount+' 回合里程碑！';
+  }
   showOffer(offer, ttl, function(picked){
     onCardPicked(picked, false); // always immediate
   });
@@ -1047,11 +1057,9 @@ function checkMilestoneOffer(a, b, done){
   G.milestone[a] = true;
   var offer = makeOffer();
   if(offer.length === 0){ done(); return; } // all cards acquired, skip offer
-  addLog('my','🎴 第一次 '+a+'A！可以選一張道具牌','lt');
-  showOffer(offer, a+'A'+b+'B 首次里程碑！', function(picked){
-    onCardPicked(picked, false);
-    done();
-  });
+  addLog('my','🎴 第一次 '+a+'A！下回合開始時可選一張道具牌','lt');
+  G.pendingMilestoneOffer = true; // show at next turn start
+  done();
 }
 
 // ═══════════════════════════════════════════
