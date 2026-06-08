@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>猜數字對戰 v48</title>
+<title>猜數字對戰 v49</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
@@ -266,7 +266,7 @@ p.sub{font-size:.9rem;color:#64748b;text-align:center}
     <div class="logo-title">猜數字<span class="logo-title-vs">對戰</span></div>
   </div>
   <p class="sub">雙人即時對戰・道具策略</p>
-  <p style="font-size:.7rem;color:#94a3b8">v48</p>
+  <p style="font-size:.7rem;color:#94a3b8">v49</p>
   <button class="btn bp" id="create-btn">建立房間</button>
   <button class="btn bs" id="solo-btn">🎮 單人練習</button>
   <div style="display:flex;align-items:center;gap:10px;width:100%">
@@ -554,8 +554,6 @@ function resetG(myTurn){
     fogOppNext:      false,
     focusOppNext:    false,
     secretActive:    false,
-    skipMe:          false,
-    skipOpp:         false,
     myShield:        false,
     myReflect:       false,
     usedTool:        false,
@@ -1038,7 +1036,7 @@ function showTurnStartOffer(){
   if(offer.length === 0) return; // all cards acquired
   var ttl = G.isSolo ? '第 '+G.myTurnCount+' 回合，選一張道具牌！' : '第 '+G.myTurnCount+' 回合里程碑！';
   showOffer(offer, ttl, function(picked){
-    onCardPicked(picked, !G.isSolo); // solo: immediate; multi: usable from next turn
+    onCardPicked(picked, false); // always immediate
   });
 }
 
@@ -1174,8 +1172,6 @@ function renderEffects(){
   if(G.fogOppNext)   badge('霧化（下次）');
   if(G.focusOppNext) badge('聚焦（下次）');
   if(G.secretActive) badge('保密');
-  if(G.skipMe)       badge('我將跳過','#450a0a','#fca5a5');
-  if(G.skipOpp)      badge('對手將跳過','#052e16','#6ee7b7');
 }
 
 // ═══════════════════════════════════════════
@@ -1447,13 +1443,6 @@ function advanceTurn(){
   G.usedTool = false;
   G.guessedThisTurn = false;
   G.input = [];
-  if(!G.isSolo && G.myTurn && G.skipMe){
-    G.skipMe = false;
-    addLog('my','你的回合被跳過','ls');
-    send({type:'skip_ack'});
-    advanceTurn();
-    return;
-  }
   if(G.myTurn) onMyTurnStart();
   renderGame();
 }
@@ -1584,14 +1573,13 @@ function handleMsg(msg){
       appendEl(box,'div','ottl','審訊');
       appendEl(box,'div','odesc','對手問：你的答案中有沒有數字 '+d+' ？');
       var b1=appendEl(box,'button','btn bp','回答（'+(hasIt?'有':'沒有')+'）');
-      b1.addEventListener('click',function(){ replyInterrogation(true,d,hasIt); });
+      b1.addEventListener('click',function(){ replyInterrogation(d,hasIt); });
       $('query-ov').classList.add('show');
       break;
     }
     case 'interrogation_a': {
       $('query-ov').classList.remove('show'); hideModal();
-      if(msg.reveal){ addLog('my','審訊：數字 '+msg.digit+' '+(msg.hasDigit?'在':'不在')+'對手答案中','lt'); }
-      else { addLog('my','對手拒絕，下回合跳過','lt'); G.skipOpp=true; renderEffects(); }
+      addLog('my','審訊：數字 '+msg.digit+' '+(msg.hasDigit?'在':'不在')+'對手答案中','lt');
       break;
     }
 
@@ -1601,14 +1589,13 @@ function handleMsg(msg){
       appendEl(box,'div','ottl','勒索');
       appendEl(box,'div','odesc','對手問：你答案的第 '+pos+' 位是什麼？');
       var b1=appendEl(box,'button','btn bp','回答（'+dig+'）');
-      b1.addEventListener('click',function(){ replyExtortion(true,pos,dig); });
+      b1.addEventListener('click',function(){ replyExtortion(pos,dig); });
       $('query-ov').classList.add('show');
       break;
     }
     case 'extortion_a': {
       $('query-ov').classList.remove('show'); hideModal();
-      if(msg.reveal){ addLog('my','勒索：對手第 '+msg.position+' 位是 '+msg.digit,'lt'); }
-      else { addLog('my','對手拒絕，下回合跳過','lt'); G.skipOpp=true; renderEffects(); }
+      addLog('my','勒索：對手第 '+msg.position+' 位是 '+msg.digit,'lt');
       break;
     }
 
@@ -1616,8 +1603,6 @@ function handleMsg(msg){
       addLog('my','對手取得了一張道具','lt');
       break;
 
-    case 'skip_ack':
-      G.skipOpp=false; renderEffects(); break;
 
     case 'game_over': break; // handled by 'guess' handler on loser's side
 
@@ -1635,15 +1620,13 @@ function applyIncomingTool(card, reflected){
   renderEffects();
 }
 
-function replyInterrogation(reveal, digit, hasDigit){
+function replyInterrogation(digit, hasDigit){
   $('query-ov').classList.remove('show');
-  send({type:'interrogation_a', reveal:reveal, digit:digit, hasDigit:reveal?hasDigit:undefined});
-  if(!reveal){ G.skipMe=true; addLog('my','你拒絕了審訊，本回合跳過','ls'); renderEffects(); advanceTurn(); }
+  send({type:'interrogation_a', reveal:true, digit:digit, hasDigit:hasDigit});
 }
-function replyExtortion(reveal, pos, digit){
+function replyExtortion(pos, digit){
   $('query-ov').classList.remove('show');
-  send({type:'extortion_a', reveal:reveal, position:pos, digit:reveal?digit:undefined});
-  if(!reveal){ G.skipMe=true; addLog('my','你拒絕了勒索，本回合跳過','ls'); renderEffects(); advanceTurn(); }
+  send({type:'extortion_a', reveal:true, position:pos, digit:digit});
 }
 
 function appendEl(parent, tag, cls, text){
