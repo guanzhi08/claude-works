@@ -7,17 +7,17 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f1117;--sur:#1a1e2e;--sur2:#232840;
-  --acc:#7c6ef7;--acc2:#5548d9;
-  --grn:#3dd68c;--red:#f06070;--yel:#f5c842;--blu:#4ea8f7;
-  --txt:#e8eaf0;--dim:#8891a8;--bdr:#2e3350;
+  --bg:#f5f7fb;--sur:#ffffff;--sur2:#eef1f8;
+  --acc:#4f46e5;--acc2:#4338ca;
+  --grn:#16a34a;--red:#dc2626;--yel:#b45309;--blu:#2563eb;
+  --txt:#1a1d2e;--dim:#6b7280;--bdr:#d8dde8;
   --card-w:220px;
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC','Helvetica Neue',sans-serif;line-height:1.7;font-size:15px}
 
 /* NAV */
-.nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--bdr);padding:12px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.nav{position:sticky;top:0;z-index:100;background:rgba(245,247,251,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--bdr);padding:12px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .nav-title{font-size:15px;font-weight:800;color:var(--acc);white-space:nowrap}
 .nav-links{display:flex;gap:14px;flex-wrap:wrap}
 .nav-links a{font-size:12px;color:var(--dim);text-decoration:none;transition:color .15s}
@@ -46,7 +46,7 @@ body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSys
 .sub-hd{font-size:1rem;font-weight:700;color:var(--acc);margin:28px 0 12px}
 
 /* TEXT */
-p{margin-bottom:12px;color:#c8ccd8}
+p{margin-bottom:12px;color:#374151}
 strong{color:var(--txt);font-weight:700}
 
 /* CALL OUT BOXES */
@@ -104,21 +104,21 @@ strong{color:var(--txt);font-weight:700}
 /* TABLE */
 table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.85rem}
 th{background:var(--sur2);color:var(--dim);font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:9px 13px;text-align:left;border-bottom:2px solid var(--bdr)}
-td{padding:10px 13px;border-bottom:1px solid var(--bdr);vertical-align:top;color:#c8ccd8}
+td{padding:10px 13px;border-bottom:1px solid var(--bdr);vertical-align:top;color:#374151}
 tr:last-child td{border-bottom:none}
 td code,th code{font-family:monospace;font-size:.85em;background:var(--sur2);padding:1px 5px;border-radius:4px;color:var(--acc)}
 
 /* CODE BLOCK */
 pre{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:12px 0;font-size:.82rem;line-height:1.7}
-code{font-family:'JetBrains Mono','Fira Code',monospace;color:#a9b4d8}
-pre code{color:#c8d4f0}
-.hl-key{color:#7c6ef7}
-.hl-str{color:#3dd68c}
-.hl-com{color:#4a5270}
-.hl-num{color:#f5c842}
+code{font-family:'JetBrains Mono','Fira Code',monospace;color:#4f46e5}
+pre code{color:#1e293b}
+.hl-key{color:#4f46e5}
+.hl-str{color:#16a34a}
+.hl-com{color:#9ca3af}
+.hl-num{color:#b45309}
 
 /* CONN DIAGRAM */
-.conn-diag{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:18px;margin:14px 0;font-family:monospace;font-size:.8rem;line-height:2;color:#8891a8}
+.conn-diag{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:18px;margin:14px 0;font-family:monospace;font-size:.8rem;line-height:2;color:#6b7280}
 .conn-diag .hi{color:var(--grn)}
 .conn-diag .wa{color:var(--yel)}
 .conn-diag .lo{color:var(--red)}
@@ -128,7 +128,7 @@ pre code{color:#c8d4f0}
 .func-item{padding:8px 0;border-bottom:1px solid var(--bdr);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
 .func-item:last-child{border-bottom:none}
 .func-name{font-family:monospace;font-size:.85rem;color:var(--acc);white-space:nowrap;min-width:220px}
-.func-desc{font-size:.83rem;color:var(--dim)}
+.func-desc{font-size:.83rem;color:#4b5563}
 
 /* TAGS */
 .tag{display:inline-block;font-size:.67rem;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:5px;vertical-align:middle}
@@ -224,13 +224,6 @@ pre code{color:#c8d4f0}
       <div class="step-body">
         <div class="step-title">猜完才換人</div>
         <div class="step-desc">送出猜測後切換回合，對方收到結果才能繼續。</div>
-      </div>
-    </div>
-    <div class="flow-step">
-      <div class="step-num">4</div>
-      <div class="step-body">
-        <div class="step-title">跳過回合</div>
-        <div class="step-desc">對方拒絕回答審訊／勒索 → 該玩家下一回合被跳過（<code>G.skipMe</code>）。</div>
       </div>
     </div>
   </div>
@@ -360,7 +353,7 @@ pre code{color:#c8d4f0}
         <span class="card-type">ACTIVE</span>
       </div>
       <div class="card-desc">向對方詢問：「某個數字<em>是否</em>在答案中？」對方必須如實回答，獲得情報輔助下次猜測。</div>
-      <div class="card-counter">🛡 對方可用 Shield 抵擋 / 🪞 Reflect 反彈<br>❌ 對方拒絕回答 → 對方下回合跳過</div>
+      <div class="card-counter">🛡 對方可用 Shield 抵擋 / 🪞 Reflect 反彈</div>
     </div>
     <div class="card active">
       <div class="card-head">
@@ -369,7 +362,7 @@ pre code{color:#c8d4f0}
         <span class="card-type">ACTIVE</span>
       </div>
       <div class="card-desc">向對方詢問：「第 N 位是什麼數字？」對方必須如實回答，直接得知一位數字。</div>
-      <div class="card-counter">🛡 對方可用 Shield 抵擋 / 🪞 Reflect 反彈<br>❌ 對方拒絕回答 → 對方下回合跳過</div>
+      <div class="card-counter">🛡 對方可用 Shield 抵擋 / 🪞 Reflect 反彈</div>
     </div>
     <div class="card active">
       <div class="card-head">
@@ -430,8 +423,8 @@ pre code{color:#c8d4f0}
   <div class="sub-hd">卡片可用時機</div>
   <table>
     <tr><th>模式</th><th>里程碑卡</th><th>每 3 回合卡</th><th>卡片準備時機</th></tr>
-    <tr><td>雙人</td><td>立即可用</td><td>下一回合才可用</td><td>取得回合 N → 第 N+1 回合可用</td></tr>
-    <tr><td>單人</td><td>— （無里程碑）</td><td>立即可用</td><td>取得即可用</td></tr>
+    <tr><td>雙人</td><td>立即可用</td><td>立即可用</td><td>取得後當回合即可使用</td></tr>
+    <tr><td>單人</td><td>— （無里程碑）</td><td>立即可用</td><td>取得後當回合即可使用</td></tr>
   </table>
 
   <div class="sub-hd">單人模式可用卡</div>
@@ -489,14 +482,14 @@ pre code{color:#c8d4f0}
     <tr><td><code>computerAnswer</code></td><td>number[]</td><td>電腦答案（單人模式）</td></tr>
     <tr><td><code>myTurn</code></td><td>boolean</td><td>目前是否為我的回合</td></tr>
     <tr><td><code>myCards</code></td><td>string[]</td><td>手中持有的道具卡 key 列表</td></tr>
-    <tr><td><code>cardReadyTurns</code></td><td>object</td><td>各卡片可用的回合號（雙人模式延遲）</td></tr>
+    <tr><td><code>cardReadyTurns</code></td><td>object</td><td>各卡片可用的回合號（取得即可用，值等於取得時回合號）</td></tr>
     <tr><td><code>myTurnCount</code></td><td>number</td><td>我已行動的回合總數</td></tr>
     <tr><td><code>myLog / oppLog / sysLog</code></td><td>array</td><td>我的猜測 / 對方猜測 / 系統事件紀錄</td></tr>
     <tr><td><code>input</code></td><td>number[]</td><td>目前正在輸入的猜測（0–4 位）</td></tr>
     <tr><td><code>fogOppNext</code></td><td>boolean</td><td>霧化效果待生效（對方下次結果模糊）</td></tr>
     <tr><td><code>focusOppNext</code></td><td>boolean</td><td>聚焦效果待生效（我方下次結果詳細）</td></tr>
     <tr><td><code>secretActive</code></td><td>boolean</td><td>保密效果啟動中</td></tr>
-    <tr><td><code>skipMe / skipOpp</code></td><td>boolean</td><td>我方 / 對方下回合跳過</td></tr>
+    <tr><td><code>skipMe / skipOpp</code></td><td>boolean</td><td>我方 / 對方下回合跳過（目前不啟用）</td></tr>
     <tr><td><code>myShield / myReflect</code></td><td>boolean</td><td>護盾 / 反射卡是否尚可使用</td></tr>
     <tr><td><code>usedTool</code></td><td>boolean</td><td>本回合已使用道具</td></tr>
     <tr><td><code>guessedThisTurn</code></td><td>boolean</td><td>本回合已送出猜測</td></tr>
@@ -572,10 +565,10 @@ pre code{color:#c8d4f0}
   <div class="func-group">
     <div class="func-item"><span class="func-name">openInterrogation()</span><span class="func-desc">開啟選擇數字介面（審訊方操作）</span></div>
     <div class="func-item"><span class="func-name">sendInterrogation(d)</span><span class="func-desc">送出審訊問題（詢問數字 d 是否存在）</span></div>
-    <div class="func-item"><span class="func-name">replyInterrogation(reveal, digit, hasDigit)</span><span class="func-desc">被審訊方回答（reveal=false 代表拒絕回答）</span></div>
+    <div class="func-item"><span class="func-name">replyInterrogation(reveal, digit, hasDigit)</span><span class="func-desc">被審訊方如實回答</span></div>
     <div class="func-item"><span class="func-name">openExtortion()</span><span class="func-desc">開啟選擇位置介面（勒索方操作）</span></div>
     <div class="func-item"><span class="func-name">sendExtortion(pos)</span><span class="func-desc">送出勒索問題（詢問第 pos 位數字）</span></div>
-    <div class="func-item"><span class="func-name">replyExtortion(reveal, pos, digit)</span><span class="func-desc">被勒索方回答</span></div>
+    <div class="func-item"><span class="func-name">replyExtortion(reveal, pos, digit)</span><span class="func-desc">被勒索方如實回答</span></div>
   </div>
 
   <div class="sub-hd">渲染</div>
@@ -647,7 +640,7 @@ pre code{color:#c8d4f0}
   </div>
   <div class="box">
     <div class="box-title">單人模式差異</div>
-    <ul style="padding-left:18px;color:#c8ccd8;font-size:.88rem;line-height:2">
+    <ul style="padding-left:18px;color:#374151;font-size:.88rem;line-height:2">
       <li>電腦答案隨機產生，不進行反制</li>
       <li>無聊天、無對方 log、無里程碑獎勵</li>
       <li>可用卡：審訊、勒索、聚焦（無霧化、保密）</li>
