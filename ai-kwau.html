@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>AI Kwau 訪談</title>
+<title>AI Kwau 訪談 v2</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -33,12 +33,15 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 .hdr-id-inp:focus{border-color:var(--acc)}
 
 /* ── SECTION BADGE ── */
-.sec-badge{margin:14px 16px 0;display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.04em}
+.sec-badge{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.04em}
+
+/* ── STICKY QUESTION AREA ── */
+.sticky-q{position:sticky;top:var(--hdr-h,64px);z-index:50;background:var(--bg);padding:10px 16px 0}
 
 /* ── QUESTION CARD ── */
-.q-card{margin:10px 16px 0;background:var(--sur);border-radius:16px;padding:22px 20px;box-shadow:0 2px 14px rgba(13,31,60,.09)}
-.q-id{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.08em;margin-bottom:7px}
-.q-text{font-size:21px;font-weight:700;line-height:1.55;color:var(--pri)}
+.q-card{background:var(--sur);border-radius:16px;padding:16px 18px;box-shadow:0 2px 14px rgba(13,31,60,.10)}
+.q-id{font-size:12px;font-weight:800;color:var(--acc);letter-spacing:.08em;margin-bottom:5px}
+.q-text{font-size:19px;font-weight:700;line-height:1.5;color:var(--pri)}
 
 /* ── FOLLOW-UP ── */
 .fu-wrap{margin:10px 16px 0}
@@ -83,7 +86,25 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 .ebtn.clr{background:#fff;color:var(--red);border:2px solid var(--red)}
 
 /* ── NO SPEECH BANNER ── */
-.no-speech-banner{display:none;margin:12px 16px 0;background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px;padding:11px 14px;font-size:13px;color:#7a5a00;line-height:1.5}
+.no-speech-banner{display:none;margin:0 0 0;background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px;padding:11px 14px;font-size:13px;color:#7a5a00;line-height:1.5}
+
+/* ── JUMP SHEET ── */
+.jump-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-end}
+.jump-ov.on{display:flex}
+.jump-sheet{width:100%;background:var(--sur);border-radius:20px 20px 0 0;padding:0 0 calc(12px + env(safe-area-inset-bottom,0));max-height:78vh;display:flex;flex-direction:column}
+.jump-top{flex-shrink:0;padding:14px 18px 8px;border-bottom:1px solid var(--bdr)}
+.jump-handle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 12px}
+.jump-title{font-size:14px;font-weight:800;color:var(--pri)}
+.jump-list{overflow-y:auto;flex:1}
+.jump-sec-hd{font-size:11px;font-weight:800;color:var(--acc);letter-spacing:.07em;padding:10px 18px 3px}
+.jump-item{width:100%;display:flex;align-items:center;gap:10px;padding:11px 18px;border:none;background:none;text-align:left;cursor:pointer;touch-action:manipulation;transition:background .1s}
+.jump-item:active,.jump-item:hover{background:var(--su2)}
+.jump-item.cur{background:#e0f5fb}
+.jump-num{font-size:12px;font-weight:800;font-family:monospace;color:var(--dim);width:30px;flex-shrink:0}
+.jump-item.cur .jump-num{color:var(--acc)}
+.jump-q{font-size:14px;color:var(--txt);line-height:1.4;flex:1;text-align:left}
+.jump-dot{width:8px;height:8px;border-radius:50%;background:var(--bdr);flex-shrink:0;transition:background .15s}
+.jump-item.done .jump-dot{background:var(--acc)}
 </style>
 </head>
 <body>
@@ -92,7 +113,7 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 <header class="hdr">
   <div class="hdr-top">
     <div class="hdr-title">🎙 AI Kwau 訪談</div>
-    <div class="hdr-prog" id="prog">1 / 13</div>
+    <button class="hdr-prog" id="prog" onclick="openJump()" style="border:none;cursor:pointer;font-family:monospace">1 / 13 ☰</button>
   </div>
   <div class="hdr-id">
     <span class="hdr-id-lbl">受訪者 ID</span>
@@ -100,20 +121,30 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
   </div>
 </header>
 
-<div class="no-speech-banner" id="no-speech">⚠️ 此裝置不支援語音辨識，請手動輸入文字。</div>
-
-<div id="sec-badge" class="sec-badge"></div>
-
-<!-- QUESTION -->
-<div class="q-card">
-  <div class="q-id" id="q-id"></div>
-  <div class="q-text" id="q-text"></div>
+<div class="sticky-q">
+  <div class="no-speech-banner" id="no-speech">⚠️ 此裝置不支援語音辨識，請手動輸入文字。</div>
+  <div style="margin-bottom:8px"><span id="sec-badge" class="sec-badge"></span></div>
+  <!-- QUESTION -->
+  <div class="q-card">
+    <div class="q-id" id="q-id"></div>
+    <div class="q-text" id="q-text"></div>
+  </div>
+  <!-- FOLLOW-UP -->
+  <div class="fu-wrap" id="fu-wrap" style="margin:8px 0 0">
+    <button class="fu-btn" id="fu-btn" onclick="toggleFU()"><span class="fu-arrow">▶</span>追問提示</button>
+    <div class="fu-body" id="fu-body"></div>
+  </div>
 </div>
 
-<!-- FOLLOW-UP -->
-<div class="fu-wrap" id="fu-wrap">
-  <button class="fu-btn" id="fu-btn" onclick="toggleFU()"><span class="fu-arrow">▶</span>追問提示</button>
-  <div class="fu-body" id="fu-body"></div>
+<!-- JUMP SHEET -->
+<div class="jump-ov" id="jump-ov" onclick="bgCloseJump(event)">
+  <div class="jump-sheet">
+    <div class="jump-top">
+      <div class="jump-handle"></div>
+      <div class="jump-title">快速跳題</div>
+    </div>
+    <div class="jump-list" id="jump-list"></div>
+  </div>
 </div>
 
 <!-- RECORDING BLOCKS -->
@@ -215,17 +246,24 @@ let srA = null, srB = null;
 
 /* ════════════ INIT ════════════ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function syncHdrHeight() {
+  const h = document.querySelector('.hdr').offsetHeight;
+  document.documentElement.style.setProperty('--hdr-h', h + 'px');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   if (!SR) document.getElementById('no-speech').style.display = 'block';
   document.getElementById('iid').addEventListener('input', autosave);
   loadFromStorage();
   render();
+  syncHdrHeight();
+  window.addEventListener('resize', syncHdrHeight);
 });
 
 /* ════════════ RENDER ════════════ */
 function render() {
   const q = QS[cur];
-  document.getElementById('prog').textContent = (cur+1) + ' / ' + QS.length;
+  document.getElementById('prog').textContent = (cur+1) + ' / ' + QS.length + ' ☰';
   document.getElementById('sec-badge').textContent = '第 ' + q.sec + ' 節　' + q.st;
   document.getElementById('q-id').textContent = q.id;
   document.getElementById('q-text').textContent = q.q;
@@ -382,6 +420,37 @@ function exportJSON() {
   a.href = URL.createObjectURL(blob);
   a.download = 'aikwau_' + iid + '_' + date + '.json';
   a.click();
+}
+
+/* ════════════ JUMP SHEET ════════════ */
+function openJump() {
+  const list = document.getElementById('jump-list');
+  let lastSec = 0;
+  list.innerHTML = '';
+  QS.forEach((q, i) => {
+    if (q.sec !== lastSec) {
+      lastSec = q.sec;
+      const s = document.createElement('div');
+      s.className = 'jump-sec-hd';
+      s.textContent = '第 ' + q.sec + ' 節　' + q.st;
+      list.appendChild(s);
+    }
+    const btn = document.createElement('button');
+    const hasDone = answers[i].response || answers[i].interviewer_note;
+    btn.className = 'jump-item' + (i === cur ? ' cur' : '') + (hasDone ? ' done' : '');
+    btn.innerHTML = '<span class="jump-num">' + q.id + '</span><span class="jump-q">' + q.q + '</span><span class="jump-dot"></span>';
+    btn.onclick = () => {
+      document.getElementById('jump-ov').classList.remove('on');
+      goTo(i);
+    };
+    list.appendChild(btn);
+  });
+  document.getElementById('jump-ov').classList.add('on');
+}
+
+function bgCloseJump(e) {
+  if (e.target === document.getElementById('jump-ov'))
+    document.getElementById('jump-ov').classList.remove('on');
 }
 
 function clearData() {
