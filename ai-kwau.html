@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>AI Kwau 訪談 v4</title>
+<title>AI Kwau 訪談 v5</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -109,7 +109,7 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 <header class="hdr">
   <div class="hdr-top">
     <div class="hdr-title">🎙 AI Kwau 訪談</div>
-    <span class="hdr-ver">v4</span>
+    <span class="hdr-ver">v5</span>
   </div>
   <div class="hdr-id">
     <span class="hdr-id-lbl">受訪者 ID</span>
@@ -251,7 +251,8 @@ let answers = QS.map(q=>({
 let _startedAt = null;
 let activeRec = null; // 'a' | 'b' | null
 let srA = null, srB = null;
-let recBase = { a: '', b: '' }; // textarea content snapshot before each recording session
+let recSnap   = { a: '', b: '' }; // textarea snapshot before each session (never changes during session)
+let recFinals = { a: '', b: '' }; // accumulated final results within current session
 
 /* ════════════ INIT ════════════ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -349,23 +350,24 @@ function startRec(ch) {
   setStatus(ch, '🔴 錄音中，開始說話…');
 
   const ta = document.getElementById('ta-' + ch);
-  recBase[ch] = ta.value; // snapshot committed text before session starts
+  recSnap[ch]   = ta.value.trim(); // snapshot before session — never overwritten during session
+  recFinals[ch] = '';               // reset accumulated finals for this session
 
   rec.onresult = e => {
-    let finals = '', interim = '';
+    let newFinals = '', interim = '';
     for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finals += e.results[i][0].transcript;
+      if (e.results[i].isFinal) newFinals += e.results[i][0].transcript;
       else interim += e.results[i][0].transcript;
     }
-    // Live preview: show interim directly in textarea
-    const added = finals + interim;
-    const base = recBase[ch].trim();
-    ta.value = base ? base + '\n' + added : added;
-
-    if (finals && !interim) {
-      // All finalized — commit base and save
-      recBase[ch] = ta.value;
+    if (newFinals) {
+      recFinals[ch] = newFinals; // commit finals (one utterance per continuous:false session)
       autosave();
+    }
+    // Build display: confirmed finals + live interim preview
+    const display = recFinals[ch] + interim;
+    // Guard: only write to textarea if there's something to show (prevents blank-overwrite bug)
+    if (display) {
+      ta.value = recSnap[ch] ? recSnap[ch] + '\n' + display : display;
     }
     setStatus(ch, interim ? '🔴 辨識中…' : '');
   };
