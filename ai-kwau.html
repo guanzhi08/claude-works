@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>愛看有 AI.Kwau 訪談 v6</title>
+<title>愛看有 AI.Kwau 訪談 v7</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -109,7 +109,7 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 <header class="hdr">
   <div class="hdr-top">
     <div class="hdr-title">🎙 愛看有 AI.Kwau 訪談</div>
-    <span class="hdr-ver">v6</span>
+    <span class="hdr-ver">v7</span>
   </div>
   <div class="hdr-id">
     <span class="hdr-id-lbl">受訪者</span>
@@ -188,9 +188,9 @@ body{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
     <span class="tb-icon" id="tb-next-icon">→</span>
     <span class="tb-label" id="tb-next-lbl">下一題</span>
   </button>
-  <button class="tb-btn" onclick="exportJSON()" aria-label="匯出 JSON">
-    <span class="tb-icon">💾</span>
-    <span class="tb-label">匯出</span>
+  <button class="tb-btn" id="tb-upload" onclick="uploadToSheets()" aria-label="上傳至試算表">
+    <span class="tb-icon">☁️</span>
+    <span class="tb-label">上傳</span>
   </button>
   <button class="tb-btn" onclick="clearData()" aria-label="清除資料" style="color:rgba(230,57,70,.7)">
     <span class="tb-icon">🗑</span>
@@ -423,20 +423,42 @@ function loadFromStorage() {
   } catch(e) {}
 }
 
-/* ════════════ EXPORT ════════════ */
-function exportJSON() {
+/* ════════════ UPLOAD ════════════ */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0PJ98ZK42BvuBtQwF9qS7z9np_W-6VcQul7C1viwfUa1eVNZscWIrMUXRpE4u6i-h/exec';
+
+async function uploadToSheets() {
   saveCurrentTextareas();
   const iid = document.getElementById('iid').value.trim() || 'unknown';
   const data = {
-    meta: { interviewee_id: iid, started_at: _startedAt || new Date().toISOString(), exported_at: new Date().toISOString() },
+    meta: {
+      interviewee_id: iid,
+      started_at: _startedAt || new Date().toISOString(),
+      exported_at: new Date().toISOString()
+    },
     answers
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'aikwau_' + iid + '_' + date + '.json';
-  a.click();
+
+  const btn  = document.getElementById('tb-upload');
+  const icon = btn.querySelector('.tb-icon');
+  const lbl  = btn.querySelector('.tb-label');
+
+  icon.textContent = '⏳'; lbl.textContent = '上傳中'; btn.disabled = true;
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Apps Script CORS 限制，no-cors 仍可送出
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    icon.textContent = '✅'; lbl.textContent = '已上傳';
+  } catch (err) {
+    icon.textContent = '❌'; lbl.textContent = '失敗';
+  } finally {
+    setTimeout(() => {
+      icon.textContent = '☁️'; lbl.textContent = '上傳'; btn.disabled = false;
+    }, 2500);
+  }
 }
 
 /* ════════════ JUMP SHEET ════════════ */
