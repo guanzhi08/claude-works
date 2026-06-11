@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本旅遊行程 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+:root{
+  --bg:#F7F8FA;--surface:#fff;--surface2:#F0F2F5;--border:#E4E8EF;
+  --text-primary:#1A1D23;--text-secondary:#6B7280;--text-muted:#9CA3AF;
+  --tokyo:#6B9FD4;--tokyo-light:#EBF2FA;
+  --hakodate:#6BAE9F;--hakodate-light:#E8F5F2;
+  --niseko:#9B7FD4;--niseko-light:#F0EBFA;
+  --sapporo:#D4856B;--sapporo-light:#FAF0EB;
+  --airport:#7DA86B;--airport-light:#EDF5EA;
+  --transit:#C4A35A;--transit-light:#FAF5E8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text-primary);line-height:1.6;font-size:14px}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:32px 24px 24px;text-align:center}
+.header-flag{font-size:32px;margin-bottom:8px}
+.header h1{font-size:24px;font-weight:700;letter-spacing:.04em}
+.header-sub{font-size:13px;color:var(--text-secondary);margin-top:4px}
+.flight-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.flight-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary)}
+.flight-pill .fn{font-weight:600;color:var(--text-primary)}
+.overview{display:flex;flex-wrap:wrap;gap:8px;padding:16px 24px;justify-content:center}
+.area-chip{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;border:1.5px solid transparent}
+.area-chip.tokyo   {background:var(--tokyo-light);  color:var(--tokyo);  border-color:#C2D9F0}
+.area-chip.hakodate{background:var(--hakodate-light);color:var(--hakodate);border-color:#BDE0DA}
+.area-chip.niseko  {background:var(--niseko-light); color:var(--niseko); border-color:#CFBFF0}
+.area-chip.sapporo {background:var(--sapporo-light);color:var(--sapporo);border-color:#F0CEBE}
+.area-chip.airport {background:var(--airport-light);color:var(--airport);border-color:#C2DFBA}
+.chip-days{background:rgba(0,0,0,.08);border-radius:4px;padding:1px 6px;font-size:11px}
+.main{max-width:800px;margin:0 auto;padding:14px 14px 48px}
+/* Day card */
+.day-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.day-header{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.day-header:hover{background:var(--surface2)}
+.day-badge{min-width:50px;height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.day-badge .day-num{font-size:19px;font-weight:700;line-height:1.1}
+.day-badge.tokyo   {background:var(--tokyo-light);  color:var(--tokyo)}
+.day-badge.hakodate{background:var(--hakodate-light);color:var(--hakodate)}
+.day-badge.niseko  {background:var(--niseko-light); color:var(--niseko)}
+.day-badge.sapporo {background:var(--sapporo-light);color:var(--sapporo)}
+.day-badge.airport {background:var(--airport-light);color:var(--airport)}
+.day-badge.transit {background:var(--transit-light);color:var(--transit)}
+.day-title-block{flex:1}
+.day-title-block h2{font-size:15px;font-weight:600}
+.day-title-block .day-meta{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.day-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tag{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--text-secondary);border:1px solid var(--border)}
+.chevron{color:var(--text-muted);font-size:16px;transition:transform .2s;flex-shrink:0}
+.day-card.open .chevron{transform:rotate(90deg)}
+.day-body{display:none}
+.day-card.open .day-body{display:block}
+/* Map */
+.map-section{border-bottom:1px solid var(--border);background:var(--surface2)}
+.map-toggle{display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;user-select:none;font-size:13px;font-weight:500;color:var(--text-secondary)}
+.map-toggle:hover{background:var(--border)}
+.map-chevron{margin-left:auto;color:var(--text-muted);font-size:14px;transition:transform .2s}
+.map-toggle.open .map-chevron{transform:rotate(90deg)}
+.map-wrap{display:none;padding:0 16px 14px}
+.map-wrap.visible{display:block}
+.map-container{position:relative;width:100%;background:#e8f0e8;border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:grab}
+.map-container:active{cursor:grabbing}
+.map-container svg{display:block;width:100%;height:auto}
+/* Tooltip */
+.map-tooltip{position:absolute;background:#1A1D23;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;max-width:200px;line-height:1.5}
+.map-tooltip .tt-title{font-weight:700;font-size:13px;margin-bottom:3px}
+.map-tooltip .tt-badge{font-size:10px;padding:1px 6px;border-radius:8px;display:inline-block;margin-bottom:3px}
+/* Pin list */
+.map-pins{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.spot-pin{display:flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:3px 9px;font-size:12px;color:var(--text-primary);cursor:pointer;text-decoration:none;transition:all .15s}
+.spot-pin:hover{border-color:#9CA3AF;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.pin-num{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+/* Legend */
+.map-legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2px 8px}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* Zoom controls */
+.zoom-controls{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:3px;z-index:10}
+.zoom-btn{width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;font-weight:700;color:var(--text-secondary);user-select:none}
+.zoom-btn:hover{background:var(--surface2)}
+/* Layer toggles */
+.layer-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;margin-bottom:2px;align-items:center}
+.layer-bar-label{font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.05em;margin-right:2px}
+.layer-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;font-size:12px;font-weight:500;cursor:pointer;user-select:none;border:1.5px solid;transition:all .15s}
+.layer-btn.active{color:#fff !important}
+.layer-btn:not(.active){background:var(--surface) !important;color:var(--text-secondary) !important}
+/* Timeline */
+.day-content{padding:16px}
+.timeline{position:relative;padding-left:26px}
+.timeline::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:var(--border);border-radius:1px}
+.tl-item{position:relative;margin-bottom:16px}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot{position:absolute;left:-22px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--border);border:2px solid var(--surface);box-shadow:0 0 0 2px var(--border)}
+.tl-dot.flight{background:#6B9FD4;box-shadow:0 0 0 2px #C2D9F0}
+.tl-dot.food  {background:#E8916A;box-shadow:0 0 0 2px #F5D0BE}
+.tl-dot.sight {background:#6BAE9F;box-shadow:0 0 0 2px #BDE0DA}
+.tl-dot.shop  {background:#9B7FD4;box-shadow:0 0 0 2px #CFBFF0}
+.tl-dot.hotel {background:#7DA86B;box-shadow:0 0 0 2px #C2DFBA}
+.tl-dot.car   {background:#C4A35A;box-shadow:0 0 0 2px #E8D9B0}
+.tl-time{font-size:11px;color:var(--text-muted);font-weight:500;margin-bottom:2px}
+.tl-title{font-size:14px;font-weight:600;margin-bottom:2px}
+.tl-desc{font-size:13px;color:var(--text-secondary);line-height:1.5}
+.tl-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.section-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.food-card{background:#FEF8F4;border:1px solid #F5D0BE;border-radius:8px;padding:9px 11px}
+.food-card .fc-name{font-size:13px;font-weight:600;color:#C4614A}
+.food-card .fc-desc{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.shop-card{background:var(--niseko-light);border:1px solid #CFBFF0;border-radius:8px;padding:9px 11px}
+.shop-card .sh-name{font-size:13px;font-weight:600;color:var(--niseko)}
+.shop-card .sh-desc{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.tips-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-top:14px}
+.tips-box-title{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+.tips-list{list-style:none}
+.tips-list li{font-size:12.5px;color:var(--text-secondary);padding:2px 0;display:flex;gap:6px}
+.tips-list li::before{content:'→';color:var(--text-muted);flex-shrink:0}
+.footer{text-align:center;font-size:12px;color:var(--text-muted);padding:24px;border-top:1px solid var(--border);background:var(--surface);margin-top:32px}
+@media(max-width:520px){.header h1{font-size:20px}.food-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-flag">✈️ 🇯🇵</div>
+  <h1>北海道・東京 旅遊行程</h1>
+  <div class="header-sub">2026年6月29日 — 7月8日 ｜ 10天9夜</div>
+</div>
+<div class="flight-bar">
+  <div class="flight-pill"><span class="fn">NH852</span><span>松山→羽田</span><span>6/29 13:30</span></div>
+  <div class="flight-pill"><span class="fn">NH555</span><span>羽田→函館</span><span>7/1 13:15</span></div>
+  <div class="flight-pill"><span class="fn">🚗自駕</span><span>函館→新千歲</span><span>7/3-7/7</span></div>
+  <div class="flight-pill"><span class="fn">NH56</span><span>新千歲→羽田</span><span>7/8 10:30</span></div>
+  <div class="flight-pill"><span class="fn">NH853</span><span>羽田→松山</span><span>7/8 13:20</span></div>
+</div>
+<div class="overview">
+  <div class="area-chip tokyo">🗼 東京 <span class="chip-days">2夜</span></div>
+  <div class="area-chip hakodate">⛰️ 函館 <span class="chip-days">2夜</span></div>
+  <div class="area-chip niseko">🌿 二世谷 <span class="chip-days">2夜</span></div>
+  <div class="area-chip sapporo">🍺 札幌 <span class="chip-days">2夜</span></div>
+  <div class="area-chip airport">🛫 新千歲 <span class="chip-days">1夜</span></div>
+</div>
+<div class="main" id="mainContent"></div>
+<div class="footer">北海道・東京 旅遊行程 2026年6月29日—7月8日 ｜ 10天9夜 ｜ 祝旅途愉快 🎌</div>
+
+<script>
+// ── Type config ──
+const TYPES = {
+  sight:       { emoji:'🟢', label:'景點',  bg:'#E8F5F2', color:'#6BAE9F', fill:'#6BAE9F' },
+  food:        { emoji:'🟠', label:'美食',  bg:'#FEF0E8', color:'#D4714A', fill:'#E8916A' },
+  shop:        { emoji:'🟣', label:'購物',  bg:'#F0EBFA', color:'#9B7FD4', fill:'#9B7FD4' },
+  hotel:       { emoji:'🏨', label:'飯店',  bg:'#EDF5EA', color:'#7DA86B', fill:'#7DA86B' },
+  car:         { emoji:'🚗', label:'租車',  bg:'#FAF5E8', color:'#C4A35A', fill:'#C4A35A' },
+  flight:      { emoji:'✈️', label:'交通',  bg:'#EBF2FA', color:'#6B9FD4', fill:'#6B9FD4' },
+  toy:         { emoji:'🪀', label:'玩具店',bg:'#FDF0FF', color:'#C026D3', fill:'#E040FB' },
+  supermarket: { emoji:'🛒', label:'超市',  bg:'#FFFBEA', color:'#D97706', fill:'#F59E0B' },
+  mall:        { emoji:'🏬', label:'商場/百貨',bg:'#FFF1F2', color:'#E11D48', fill:'#FB7185' },
+  lifestyle:   { emoji:'🛍️', label:'生活雜貨',bg:'#FEF9C3', color:'#A16207', fill:'#EAB308' },
+  electronics: { emoji:'📷', label:'電器行',bg:'#EFF6FF', color:'#2563EB', fill:'#3B82F6' },
+  secondhand:  { emoji:'♻️', label:'二手店',bg:'#F0FDF4', color:'#16A34A', fill:'#22C55E' },
+  drugstore:   { emoji:'💊', label:'藥妝店',bg:'#FFF7ED', color:'#EA580C', fill:'#F97316' }
+};
+
+// 額外圖層：各區域連鎖店（依切換按鈕顯示）
+const EXTRA_SPOTS = {
+  tokyo: [
+    // 商場/百貨
+    {lat:35.6295,lng:139.7394,label:'アトレ品川',cat:'mall',desc:'品川駅直結商場，餐飲雜貨服飾，抵達當晚逛街首選'},
+    // 生活雜貨
+    {lat:35.6871,lng:139.7022,label:'Tokyu Hands 新宿店',cat:'lifestyle',desc:'新宿タイムズスクエア2-8F，7層樓文具DIY旅行用品，退稅可'},
+    {lat:35.6609,lng:139.6997,label:'Loft 渋谷店',cat:'lifestyle',desc:'渋谷宇田川町，B1-6F，文具美妝雜貨，退稅可'},
+    {lat:35.6909,lng:139.7041,label:'Loft 新宿店',cat:'lifestyle',desc:'マルイ本館内，文具雜貨，退稅可'},
+    {lat:35.6913,lng:139.7006,label:'MUJI 新宿通り店',cat:'lifestyle',desc:'新宿通り3F，衣物食品生活用品，退稅可'},
+    {lat:35.6613,lng:139.6999,label:'MUJI 渋谷西武',cat:'lifestyle',desc:'渋谷西武B1-5F，大型店，含食品區，退稅可'},
+    // 平價超市
+    {lat:35.7049,lng:139.7294,label:'業務スーパー 新宿榎木店',cat:'mall',desc:'平價批發超市，大包裝食材零食進口食品，現金優先'},
+    {lat:35.6771,lng:139.7067,label:'OKスーパー 千駄ヶ谷店',cat:'mall',desc:'平價超市，渋谷/原宿徒步圈，鮮食蔬果肉類CP值高'},
+    // 電器行
+    {lat:35.6887,lng:139.6980,label:'ヤマダ電機 LABI新宿西口',cat:'electronics',desc:'電器+玩具樓層，新宿西口'},
+    {lat:35.6598,lng:139.6981,label:'ヤマダ電機 LABI渋谷',cat:'electronics',desc:'道玄坂，電器玩具模型'},
+    {lat:35.6599,lng:139.7021,label:'ビックカメラ 渋谷東口',cat:'electronics',desc:'1-5F，玩具藥妝電器，退稅+Visa 5%折扣'},
+    // 二手店
+    {lat:35.6896,lng:139.6984,label:'BOOKOFF 新宿西口',cat:'secondhand',desc:'3-6F大型二手店，遊戲玩具卡牌，可退稅'},
+    {lat:35.6917,lng:139.7119,label:'BOOKOFF 新宿靖国通り',cat:'secondhand',desc:'遊戲漫畫DVD玩具，價格便宜'},
+    {lat:35.7006,lng:139.7705,label:'駿河屋 秋葉原本館',cat:'secondhand',desc:'二手玩具卡牌大本營（秋葉原，可考慮加行程）'},
+    {lat:35.6977,lng:139.7721,label:'駿河屋 秋葉原駅前店',cat:'secondhand',desc:'秋葉原駅旁，動漫周邊二手'},
+    // 藥妝
+    {lat:35.6916,lng:139.7019,label:'マツモトキヨシ 新宿東口',cat:'drugstore',desc:'新宿東口大型店，退稅可，品項超齊'},
+    {lat:35.6905,lng:139.6972,label:'ツルハドラッグ 新宿西口',cat:'drugstore',desc:'新宿西口，24h，藥妝日用品'},
+    {lat:35.6612,lng:139.6993,label:'マツモトキヨシ 渋谷',cat:'drugstore',desc:'渋谷駅旁，保養品藥妝，退稅可'},
+    {lat:35.6678,lng:139.7045,label:'ウェルシア 原宿表参道',cat:'drugstore',desc:'原宿表参道旁，藥妝零食'}
+  ],
+  hakodate: [
+    // 商場
+    {lat:41.7777,lng:140.7941,label:'AEON 湯の川店',cat:'mall',desc:'函館最大AEON！超市+Daiso+服飾+遊戲區，機場附近'},
+    // 生活雜貨
+    {lat:41.7896,lng:140.7520,label:'MUJI シエスタハコダテ',cat:'lifestyle',desc:'4層樓大型MUJI！含食品超市，衣物雜貨，函館本町，退稅可'},
+    // 平價超市
+    {lat:41.8002,lng:140.7430,label:'業務スーパー 函館多賀町店',cat:'mall',desc:'平價批發超市，凍食大包裝進口零食，自駕路過方便'},
+    {lat:41.7983,lng:140.7758,label:'業務スーパー 函館本通店',cat:'mall',desc:'大型業務超市，品項豐富，函館市西側'},
+    // 二手店
+    {lat:41.8199,lng:140.7431,label:'BOOKOFF 函館昭和店',cat:'secondhand',desc:'二手書遊戲玩具，函館規模最大'},
+    {lat:41.8192,lng:140.7344,label:'GEO 函館昭和店',cat:'secondhand',desc:'二手遊戲主機軟體，2F，1F是Second Street'},
+    {lat:41.8044,lng:140.7721,label:'GEO 函館鍛治店',cat:'secondhand',desc:'二手遊戲書籍DVD'},
+    // 藥妝
+    {lat:41.7740,lng:140.7298,label:'マツモトキヨシ 函館駅前',cat:'drugstore',desc:'函館駅徒步2分，藥妝保養品，退稅可'},
+    {lat:41.7733,lng:140.7280,label:'ツルハドラッグ 函館駅前',cat:'drugstore',desc:'函館駅前，北海道本土連鎖藥妝，價格實惠'},
+    {lat:41.7778,lng:140.7941,label:'ツルハドラッグ 湯の川店',cat:'drugstore',desc:'AEON湯の川旁，北海道藥妝連鎖'}
+  ],
+  sapporo: [
+    // 商場
+    {lat:43.0712,lng:141.3703,label:'Ario 札幌',cat:'mall',desc:'⭐大型商場！Toys R Us・Loft・超市・餐廳・兒童遊樂區，含札幌啤酒博物館旁'},
+    {lat:43.0799,lng:141.4035,label:'AEON MALL 札幌苗穂',cat:'mall',desc:'超大型購物中心！全品牌+超市，開車10分'},
+    {lat:43.0681,lng:141.3518,label:'札幌ステラプレイス',cat:'mall',desc:'札幌駅直結！Tokyu Hands・餐廳・服飾，7層樓旗艦商場'},
+    // 生活雜貨
+    {lat:43.0665,lng:141.3531,label:'Tokyu Hands 札幌店',cat:'lifestyle',desc:'ステラプレイス8F，文具DIY旅行用品，退稅可'},
+    {lat:43.0576,lng:141.3532,label:'Loft モユク札幌店',cat:'lifestyle',desc:'モユク札幌3F，文具雜貨美妝'},
+    {lat:43.0712,lng:141.3709,label:'Loft Ario札幌店',cat:'lifestyle',desc:'Ario札幌1F，雜貨文具，退稅限制請確認'},
+    {lat:43.0915,lng:141.3364,label:'MUJI 新宿通り（札幌琴似）',cat:'lifestyle',desc:'西區獨立MUJI大店，生活雜貨食品衣物，退稅可'},
+    // 平價超市
+    {lat:43.0579,lng:141.3551,label:'業務スーパー 狸小路店',cat:'mall',desc:'⭐狸小路內！平價批發超市，零食大包裝，旅遊採購超方便'},
+    // 電器行
+    {lat:43.0683,lng:141.3477,label:'ヨドバシカメラ 札幌',cat:'electronics',desc:'札幌駅旁，玩具樓層Beyblade齊全'},
+    {lat:43.0665,lng:141.3528,label:'ビックカメラ 札幌店',cat:'electronics',desc:'東急百貨5-6F，電器玩具'},
+    {lat:43.0614,lng:141.3440,label:'ヤマダ電機 TechLand札幌',cat:'electronics',desc:'大型電器行，玩具遊戲區'},
+    // 二手店
+    {lat:43.0586,lng:141.3560,label:'BOOKOFF 札幌南2条',cat:'secondhand',desc:'⭐4層樓！1F玩偶figure遊戲、4F卡牌，狸小路旁'},
+    {lat:43.0562,lng:141.3509,label:'駿河屋 札幌ノルベサ店',cat:'secondhand',desc:'⭐Norbesa 1F+3F，二手玩具figure卡牌，退稅可'},
+    {lat:43.0579,lng:141.3556,label:'GEO 札幌狸小路2丁目',cat:'secondhand',desc:'二手遊戲主機電子產品，狸小路B1F'},
+    // 藥妝
+    {lat:43.0610,lng:141.3555,label:'マツモトキヨシ 狸小路2丁目',cat:'drugstore',desc:'狸小路中段，藥妝保養零食，退稅可'},
+    {lat:43.0578,lng:141.3520,label:'ツルハドラッグ 狸小路1丁目',cat:'drugstore',desc:'北海道本土連鎖，薬価實惠，狸小路入口'},
+    {lat:43.0688,lng:141.3506,label:'コクミン薬局 札幌駅前',cat:'drugstore',desc:'札幌駅前，大型藥妝，品項最齊'},
+    {lat:43.0671,lng:141.3487,label:'サツドラ（サッポロドラッグ）',cat:'drugstore',desc:'北海道限定連鎖！本土最大，價格常低於本州連鎖'}
+  ]
+};
+
+// 每天對應的區域
+const DAY_REGION = { 1:'tokyo', 2:'tokyo', 3:'hakodate', 4:'hakodate', 5:null, 6:null, 7:'sapporo', 8:'sapporo', 9:null };
+
+// 圖層開關狀態（每張地圖獨立）
+const _layerState = {};
+
+// ── Day data ──
+const DAYS = [
+  {
+    id:1, date:'6/29', dow:'一', theme:'tokyo', icon:'🗼',
+    title:'出發 → 抵達東京',
+    meta:'松山出發 ｜ 品川プリンスホテル Nタワー',
+    tags:['✈️ NH852','🛍️ 品川','🍜 東京美食'],
+    map:{ cx:139.740, cy:35.630, zoom:1.8,
+      spots:[
+        {lat:35.6285,lng:139.7363,label:'品川プリンスホテル',type:'hotel',desc:'入住飯店，品川站步行5分'},
+        {lat:35.5494,lng:139.7798,label:'羽田空港 T2',type:'flight',desc:'NH852抵達17:45，往品川'}
+      ]
+    },
+    timeline:[
+      {dot:'flight',time:'13:30—17:45',title:'NH852 台北松山 → 東京羽田',desc:'抵達羽田第2航廈，搭京急前往品川',sub:'品川站步行5分鐘可達飯店'},
+      {dot:'hotel',time:'19:00',title:'入住 品川プリンスホテル Nタワー',desc:'品川站直結，交通非常便利'},
+      {dot:'food',time:'19:30',title:'晚餐：品川周邊',desc:'アトレ品川或エキュート品川內多種選擇'}
+    ],
+    tips:['羽田機場購買 Suica/PASMO 交通卡，全程使用方便','羽田入境後可在機場換日幣','品川check-in後先放行李，輕裝外出逛街']
+  },
+  {
+    id:2, date:'6/30', dow:'二', theme:'tokyo', icon:'🛍️',
+    title:'東京 採購日',
+    meta:'品川 → 渋谷 → 原宿 → 新宿',
+    tags:['🎮 任天堂','🪀 陀螺','💊 藥妝','📎 文具'],
+    map:{ cx:139.703, cy:35.678, zoom:2.2,
+      spots:[
+        {lat:35.6621,lng:139.6986,label:'Nintendo Tokyo',type:'shop',desc:'渋谷PARCO 6F，任天堂旗艦店'},
+        {lat:35.6608,lng:139.6983,label:'MEGA Don Quijote 渋谷',type:'supermarket',desc:'24h，零食藥妝玩具陀螺都有'},
+        {lat:35.6615,lng:139.6977,label:'Mandarake 渋谷',type:'toy',desc:'二手動漫玩具，戰鬥陀螺稀有款'},
+        {lat:35.6677,lng:139.7065,label:'KIDDY LAND 原宿',type:'toy',desc:'玩具雜貨聖地，Bandai商品'},
+        {lat:35.6668,lng:139.7046,label:'3Coins 旗艦（原宿）',type:'shop',desc:'原宿旗艦，全場均一'},
+        {lat:35.6900,lng:139.7064,label:'世界堂 新宿本店',type:'shop',desc:'6層文具藝術材料大店'},
+        {lat:35.6897,lng:139.6974,label:'ヨドバシ新宿 玩具館',type:'toy',desc:'⭐5層玩具樓！Beyblade X專區'},
+        {lat:35.6913,lng:139.7030,label:'ビックカメラ 新宿',type:'toy',desc:'玩具模型Beyblade區，退稅方便'},
+        {lat:35.6901,lng:139.7020,label:'ドン・キホーテ 新宿',type:'supermarket',desc:'24h，玩具零食藥妝'},
+        {lat:35.6917,lng:139.7034,label:'マツモトキヨシ 新宿',type:'shop',desc:'藥妝退稅友善'},
+        {lat:35.6941,lng:139.7037,label:'思い出横丁',type:'food',desc:'晚餐，懷舊居酒屋街'}
+      ]
+    },
+    timeline:[
+      {dot:'sight',time:'10:00',title:'Nintendo Tokyo（渋谷PARCO 6F）',desc:'任天堂旗艦店，Switch 2 周邊限定商品最齊',sub:'開店前建議稍早排隊'},
+      {dot:'shop',time:'11:30',title:'Mandarake 渋谷 B2F',desc:'二手動漫玩具，戰鬥陀螺稀有款在這裡挖寶！'},
+      {dot:'food',time:'12:30',title:'午餐：渋谷周邊',desc:'渋谷スクランブルスクエア餐廳樓層'},
+      {dot:'shop',time:'14:00',title:'KIDDY LAND 原宿 / 3Coins 旗艦',desc:'玩具雜貨聖地，Bandai商品，全場均一百元雜貨'},
+      {dot:'shop',time:'15:30',title:'⭐ 新宿玩具採購重點',desc:'ヨドバシ新宿玩具館（5層！），戰鬥陀螺 Beyblade X 最齊全',sub:'ヨドバシ：新宿西口步行3分，玩具館5層'},
+      {dot:'shop',time:'17:30',title:'世界堂 新宿本店 / 藥妝掃貨',desc:'マツモトキヨシ / ドン・キホーテ，退稅消費滿5,000円'},
+      {dot:'food',time:'19:00',title:'晚餐：思い出横丁',desc:'懷舊居酒屋橫丁，串燒搭生啤'}
+    ],
+    tips:['⭐ 戰鬥陀螺首選：ヨドバシ新宿玩具館（5層）+ ビックカメラ，Beyblade X 最新款在這最齊','Nintendo Tokyo 限量商品建議開店前到場','退稅：持台灣護照，滿5,000円即可免稅'],
+    shopCards:[
+      {name:'⭐ ヨドバシ玩具館',desc:'5層玩具樓，Beyblade X專區'},
+      {name:'🎮 Nintendo Tokyo',desc:'渋谷PARCO 6F，限定商品'},
+      {name:'🧸 Mandarake 渋谷',desc:'二手玩具，稀有陀螺'},
+      {name:'🪀 KIDDY LAND',desc:'原宿玩具雜貨'},
+      {name:'✏️ 世界堂',desc:'文具材料6層樓'}
+    ]
+  },
+  {
+    id:3, date:'7/1', dow:'三', theme:'transit', icon:'✈️',
+    title:'東京 → 函館',
+    meta:'上午逛街 → 飛函館 → 取車 → 夜景',
+    tags:['✈️ NH555','🚗 Times取車','🌃 函館山夜景'],
+    map:{ cx:140.730, cy:41.785, zoom:1.4,
+      spots:[
+        {lat:41.7699,lng:140.8221,label:'函館空港（取車）',type:'flight',desc:'NH555抵達14:35，Times Rental取車'},
+        {lat:41.7969,lng:140.7561,label:'五稜郭公園',type:'sight',desc:'西洋式星形城郭，登展望台'},
+        {lat:41.7745,lng:140.7262,label:'ラジェントステイ函館駅前',type:'hotel',desc:'入住飯店'},
+        {lat:41.7741,lng:140.7305,label:'MaxValu 若松店',type:'supermarket',desc:'飯店旁超市，生鮮零食乳製品'},
+        {lat:41.8247,lng:140.7375,label:'Toys R Us 函館',type:'toy',desc:'函館最大玩具店，Beyblade X'},
+        {lat:41.8307,lng:140.7357,label:'TSUTAYA 函館（最大店）',type:'toy',desc:'全日本最大TSUTAYA，玩具卡牌'},
+        {lat:41.7609,lng:140.7143,label:'函館山ロープウェイ',type:'sight',desc:'世界三大夜景！日落後最美'},
+        {lat:41.7729,lng:140.7240,label:'大門横丁',type:'food',desc:'晚餐，屋台橫丁'}
+      ]
+    },
+    timeline:[
+      {dot:'flight',time:'13:15—14:35',title:'NH555 羽田 → 函館',desc:'抵達後前往函館機場 Times Rental 取車'},
+      {dot:'car',time:'14:35',title:'函館機場 Times Rental 取車',desc:'租約至7/7 14:00，確認油量里程拍照存證'},
+      {dot:'shop',time:'15:30',title:'玩具採購：Toys R Us 函館 / TSUTAYA',desc:'Toys R Us（Centre Maruyama）、全日本最大TSUTAYA，Beyblade X補貨',sub:'距函館駅開車約10分鐘'},
+      {dot:'sight',time:'17:00',title:'五稜郭公園',desc:'日本罕見西洋式星形城郭，登展望台俯瞰全景'},
+      {dot:'hotel',time:'18:30',title:'入住 ラジェントステイ函館駅前',desc:'函館駅徒步圈，旁邊就是朝市'},
+      {dot:'sight',time:'19:30',title:'函館山夜景（纜車）',desc:'世界三大夜景！日落後30分鐘最美，夏季約20:00最佳'},
+      {dot:'food',time:'21:00',title:'晚餐：大門横丁',desc:'函館著名屋台橫丁，串燒海鮮拉麵'}
+    ],
+    tips:['Toys R Us + TSUTAYA 函館是北海道玩具補貨好地點','MaxValu 若松店在飯店旁，方便買零食乳製品']
+  },
+  {
+    id:4, date:'7/2', dow:'四', theme:'hakodate', icon:'🦑',
+    title:'函館 一日遊',
+    meta:'朝市 → 元町 → 金森倉庫 → 大沼',
+    tags:['🦀 海鮮朝市','🏛️ 元町洋館','🌊 大沼湖'],
+    map:{ cx:140.720, cy:41.880, zoom:0.9,
+      spots:[
+        {lat:41.7725,lng:140.7257,label:'函館朝市',type:'food',desc:'早餐，海膽鮭卵蓋飯'},
+        {lat:41.7654,lng:140.7095,label:'元町公園・洋館街',type:'sight',desc:'舊公会堂、東正教堂、八幡坂'},
+        {lat:41.7671,lng:140.7166,label:'金森赤れんが倉庫',type:'sight',desc:'海灣複合商場，伴手禮'},
+        {lat:41.8222,lng:140.7409,label:'Book Market 函館（二手玩具）',type:'toy',desc:'二手卡牌玩具，舊款陀螺可能在這'},
+        {lat:41.8247,lng:140.7375,label:'Toys R Us 函館',type:'toy',desc:'Beyblade X補貨'},
+        {lat:41.7741,lng:140.7305,label:'MaxValu 若松店',type:'supermarket',desc:'超市採買'},
+        {lat:41.9987,lng:140.6904,label:'大沼国定公園',type:'sight',desc:'駒ヶ岳倒影湖景，划船散步'},
+        {lat:41.9981,lng:140.6915,label:'沼の家（大沼だんご）',type:'food',desc:'百年老店，無竹籤糰子'}
+      ]
+    },
+    timeline:[
+      {dot:'food',time:'07:00',title:'函館朝市',desc:'新鮮海膽螃蟹鮭魚卵蓋飯，日本最著名早市',sub:'海膽丼約¥1,500–3,000'},
+      {dot:'sight',time:'09:30',title:'元町歴史街區',desc:'舊函館区公会堂、東正教堂、八幡坂',sub:'八幡坂往海方向拍最美'},
+      {dot:'sight',time:'11:30',title:'金森赤れんが倉庫（ベイエリア）',desc:'舊倉庫改建複合商場，海灣景致優美'},
+      {dot:'food',time:'12:30',title:'午餐：函館塩ラーメン',desc:'函館拉麵以清爽鹽味著稱'},
+      {dot:'shop',time:'14:00',title:'Book Market / Toys R Us 玩具補貨',desc:'Book Market二手玩具挖寶，Toys R Us補充陀螺'},
+      {dot:'sight',time:'15:00',title:'大沼国定公園',desc:'駒ヶ岳火山倒影湖景，划船散步，夏天蓮花盛開',sub:'函館開車約40分'},
+      {dot:'food',time:'17:00',title:'大沼だんご（沼の家）',desc:'百年老店無竹籤糰子，必買伴手禮'},
+      {dot:'food',time:'19:00',title:'晚餐：函館海鮮居酒屋',desc:'毛蟹牡蠣ほっけ，配生ビール最對味'}
+    ],
+    tips:['Book Market 函館三原：二手玩具卡牌，Beyblade舊款可能在這找到','大沼公園夏季蓮花盛開，下午光線最美']
+  },
+  {
+    id:5, date:'7/3', dow:'五', theme:'niseko', icon:'🌿',
+    title:'函館 → 二世谷',
+    meta:'自駕北上 ｜ 途停洞爺湖 → 抵達 Ki Niseko',
+    tags:['🚗 自駕約3hr','🌋 洞爺湖','♨️ 溫泉'],
+    map:{ cx:140.730, cy:42.460, zoom:0.55,
+      spots:[
+        {lat:41.7699,lng:140.8221,label:'函館空港（出發）',type:'flight',desc:'自駕出發9:00'},
+        {lat:42.5662,lng:140.8199,label:'洞爺湖展望台',type:'sight',desc:'火山島倒映湖面，中途停靠'},
+        {lat:42.5408,lng:140.8583,label:'昭和新山',type:'sight',desc:'活火山熔岩丘，可選'},
+        {lat:42.8466,lng:140.6436,label:'Ki Niseko',type:'hotel',desc:'入住，羊蹄山腳下度假村'}
+      ]
+    },
+    timeline:[
+      {dot:'car',time:'09:00',title:'自駕出發 函館→二世谷（約190km）',desc:'走道央自動車道，約2.5-3小時'},
+      {dot:'sight',time:'中途停靠',title:'洞爺湖展望台 / 昭和新山',desc:'火山島倒映湖面，昭和新山活火山丘可順道',sub:'道の駅あぷた可停車休息'},
+      {dot:'food',time:'12:00',title:'午餐：倶知安町周邊',desc:'男爵いも馬鈴薯料理或豚丼'},
+      {dot:'hotel',time:'14:00',title:'入住 Ki Niseko',desc:'羊蹄山腳下精品度假村，設有溫泉浴池'},
+      {dot:'food',time:'19:00',title:'晚餐：Ki Niseko 餐廳',desc:'北海道在地食材，品質保證'}
+    ],
+    tips:['函館→二世谷走道央道，洞爺湖短暫停留30分鐘','二世谷夏季無雪，但早晚溫差大，帶薄外套']
+  },
+  {
+    id:6, date:'7/4', dow:'六', theme:'niseko', icon:'🏔️',
+    title:'二世谷 自由日',
+    meta:'羊蹄山・高橋牧場・溫泉',
+    tags:['🥾 健行','🍦 高橋牧場','♨️ 溫泉'],
+    map:{ cx:140.668, cy:42.840, zoom:1.3,
+      spots:[
+        {lat:42.8466,lng:140.6436,label:'Ki Niseko',type:'hotel',desc:'出發地，含溫泉設施'},
+        {lat:42.7878,lng:140.7882,label:'真狩村 羊蹄山湧水',type:'sight',desc:'清冽名水，山嶺倒影'},
+        {lat:42.8368,lng:140.6754,label:'高橋牧場 MILK KOBO',type:'food',desc:'霜淇淋起司塔奶油泡芙'},
+        {lat:42.8424,lng:140.6877,label:'ニセコ駅 農産直販所',type:'shop',desc:'當地農産，伴手禮採購'}
+      ]
+    },
+    timeline:[
+      {dot:'sight',time:'09:00',title:'真狩村 羊蹄山麓湧水',desc:'清冽名水名所，山嶺倒影水中，極為療癒',sub:'Ki Niseko 開車約15分'},
+      {dot:'food',time:'11:00',title:'高橋牧場 MILK KOBO',desc:'北海道生乳霜淇淋、起司塔、奶油泡芙，羊蹄山景觀',sub:'奶油泡芙常下午售完，建議早點到'},
+      {dot:'shop',time:'15:00',title:'ニセコ駅 農産直販所',desc:'當地馬鈴薯蔬菜奶油，價格實惠'},
+      {dot:'sight',time:'17:00',title:'飯店溫泉 / 泡湯時光',desc:'Ki Niseko 溫泉浴池，北海道溫泉水質一流'},
+      {dot:'food',time:'19:00',title:'晚餐：ニセコ村周邊餐廳',desc:'法式義式日式多種選擇'}
+    ],
+    tips:['高橋牧場MILK KOBO：奶油泡芙常售完，早點到','二世谷周邊牧場直販所農産比超市便宜很多']
+  },
+  {
+    id:7, date:'7/5', dow:'日', theme:'sapporo', icon:'🍺',
+    title:'二世谷 → 札幌',
+    meta:'途停小樽 → 大通公園 → 薄野',
+    tags:['🚗 自駕約2hr','🛶 小樽運河','🌸 大通公園'],
+    map:{ cx:141.180, cy:43.120, zoom:0.75,
+      spots:[
+        {lat:43.1990,lng:141.0021,label:'小樽運河',type:'sight',desc:'運河散步、玻璃工藝、LeTAO'},
+        {lat:43.1897,lng:141.0022,label:'小樽 寿司屋通',type:'food',desc:'午餐，北海道頂級鮮魚'},
+        {lat:43.0608,lng:141.3544,label:'大通公園',type:'sight',desc:'7月 ビアガーデン 啤酒花園！'},
+        {lat:43.0683,lng:141.3477,label:'ヨドバシカメラ 札幌',type:'toy',desc:'Beyblade X、Bandai商品'},
+        {lat:43.0572,lng:141.3527,label:'狸小路商店街',type:'shop',desc:'900m商店街，藥妝土産'},
+        {lat:43.0695,lng:141.3330,label:'イオン 札幌桑園',type:'supermarket',desc:'大型超市，食品日用品'},
+        {lat:43.0542,lng:141.3493,label:'Vessel Hotel Campana',type:'hotel',desc:'入住，薄野中心'},
+        {lat:43.0552,lng:141.3546,label:'すすきの（薄野）',type:'food',desc:'晚餐，成吉思汗或味噌拉麵'}
+      ]
+    },
+    timeline:[
+      {dot:'car',time:'09:30',title:'自駕 二世谷→小樽（約70km）',desc:'走道央道約1小時'},
+      {dot:'sight',time:'10:30',title:'小樽運河 散步',desc:'運河玻璃工藝、六花亭本店、LeTAO起司蛋糕總店',sub:'LeTAO起司蛋糕現場吃比外帶還好吃'},
+      {dot:'food',time:'12:00',title:'午餐：小樽 寿司屋通',desc:'北海道頂級鮮魚，價格比東京親民'},
+      {dot:'hotel',time:'14:00',title:'入住 Vessel Hotel Campana Susukino',desc:'薄野中心，夜晚消費非常便利'},
+      {dot:'shop',time:'15:00',title:'ヨドバシカメラ 札幌（玩具補貨）',desc:'Beyblade X、Bandai商品，退稅方便'},
+      {dot:'sight',time:'16:00',title:'大通公園 ビアガーデン🍺',desc:'7月啤酒花園期間，在大草坪喝札幌生啤！'},
+      {dot:'shop',time:'17:30',title:'狸小路商店街',desc:'900m有頂拱廊，藥妝零食土産'},
+      {dot:'food',time:'19:00',title:'晚餐：すすきの（薄野）',desc:'成吉思汗羊肉燒烤或味噌拉麵或毛蟹居酒屋'}
+    ],
+    tips:['7月啤酒花園是大通公園期間限定，超值體驗','ヨドバシカメラ札幌：玩具樓層Beyblade X補貨好機會']
+  },
+  {
+    id:8, date:'7/6', dow:'一', theme:'sapporo', icon:'🗺️',
+    title:'札幌 探索日',
+    meta:'北大 → 円山 → 薄野採購',
+    tags:['🌿 北海道大学','⛩️ 北海道神宮','🎁 伴手禮'],
+    map:{ cx:141.340, cy:43.065, zoom:1.5,
+      spots:[
+        {lat:43.0780,lng:141.3400,label:'北海道大学',type:'sight',desc:'百年楡樹林蔭大道，免費入場'},
+        {lat:43.0557,lng:141.3126,label:'円山公園・北海道神宮',type:'sight',desc:'森林公園，莊嚴神宮'},
+        {lat:43.0707,lng:141.3706,label:'Toys R Us 札幌（アリオ）',type:'toy',desc:'⭐札幌最大玩具店！Beyblade X最完整'},
+        {lat:43.0683,lng:141.3477,label:'ヨドバシカメラ 札幌',type:'toy',desc:'玩具樓層，Beyblade X模型'},
+        {lat:43.0608,lng:141.3544,label:'大丸 地下伴手禮',type:'shop',desc:'白い恋人、ロイズ、六花亭'},
+        {lat:43.0695,lng:141.3330,label:'イオン 札幌桑園',type:'supermarket',desc:'大型超市，北海道食材採購'},
+        {lat:43.0572,lng:141.3527,label:'狸小路商店街',type:'shop',desc:'最後藥妝補貨'},
+        {lat:43.0609,lng:141.3531,label:'二条市場',type:'food',desc:'晚餐，海鮮蓋飯'}
+      ]
+    },
+    timeline:[
+      {dot:'sight',time:'09:00',title:'北海道大学 キャンパス散步',desc:'百年楡樹林蔭大道，夏季綠意最美，免費入場',sub:'札幌駅步行10分'},
+      {dot:'sight',time:'10:00',title:'円山公園 & 北海道神宮',desc:'都心內森林公園，莊嚴神宮，周邊是最時尚咖啡館街'},
+      {dot:'food',time:'12:30',title:'午餐：スープカレー',desc:'咖哩湯是札幌靈魂食物！GARAKU或lavi都是名店'},
+      {dot:'shop',time:'14:00',title:'⭐ Toys R Us 札幌（アリオ）',desc:'札幌最大玩具店！Beyblade X最完整、Tomica、Lego，陀螺採購最後機會！',sub:'アリオ札幌2F，地下鉄東豊線・バスセンター前 徒步'},
+      {dot:'shop',time:'15:30',title:'大丸 地下 / 狸小路 伴手禮掃貨',desc:'白い恋人、ロイズポテチョコ、六花亭奶油夾心'},
+      {dot:'food',time:'19:00',title:'最後晚餐：二条市場 or 薄野海鮮',desc:'為北海道旅程畫下句點'}
+    ],
+    tips:['⭐ Toys R Us 札幌アリオ：戰鬥陀螺最後補貨！選擇最完整','白い恋人、ロイズポテトチップチョコ，在大丸地下買最齊','ロイズ薯片巧克力需低溫保存，最後一天買']
+  },
+  {
+    id:9, date:'7/7', dow:'二', theme:'airport', icon:'🛫',
+    title:'札幌 → 新千歲機場',
+    meta:'還車 → 機場飯店 → 機場採購',
+    tags:['🚗 還車14:00','🏨 Air Terminal','🍫 機場採購'],
+    map:{ cx:141.686, cy:42.779, zoom:2.0,
+      spots:[
+        {lat:42.7791,lng:141.6866,label:'新千歲空港',type:'flight',desc:'還車入住採購晚餐溫泉'},
+        {lat:42.7745,lng:141.6893,label:'Times Rental 還車',type:'car',desc:'14:00還車，確認里程油量'},
+        {lat:42.7800,lng:141.6870,label:'Air Terminal Hotel',type:'hotel',desc:'機場直結，明早出發方便'},
+        {lat:42.7793,lng:141.6872,label:'機場玩具・土産店',type:'toy',desc:'Bandai玩具區、Beyblade、Pokemon，最後補貨！'},
+        {lat:42.7788,lng:141.6868,label:'機場超市・食品區',type:'supermarket',desc:'白い恋人、ロイズ，一次買齊'}
+      ]
+    },
+    timeline:[
+      {dot:'food',time:'11:30',title:'午餐：出發前最後一碗味噌拉麵',desc:'すみれ / けやき 補吃來不及的名店'},
+      {dot:'car',time:'13:00',title:'Times Rental 新千歲機場 還車',desc:'確認里程、油量、車身，拍照確認無損傷',sub:'還車前加滿油，機場附近有加油站'},
+      {dot:'hotel',time:'15:00',title:'入住 Air Terminal Hotel',desc:'機場航廈直結，明早搭早班機最方便'},
+      {dot:'shop',time:'16:00',title:'新千歲機場 大採購！',desc:'全日本最好逛機場，哆啦A夢空中樂園、Bandai玩具區，最後買陀螺！'},
+      {dot:'food',time:'18:30',title:'晚餐：機場拉麵道場 / 壽司道場',desc:'機場3F集北海道名店'},
+      {dot:'sight',time:'20:00',title:'機場溫泉「大空の湯」（可選）',desc:'最後泡一次北海道溫泉，舒緩旅途疲勞'}
+    ],
+    tips:['NH56 新千歲10:30起飛，建議08:30完成報到','機場玩具區有Bandai商品，戰鬥陀螺最後補貨機會','超重行李可在機場7-11宅配到羽田']
+  },
+  {
+    id:10, date:'7/8', dow:'三', theme:'transit', icon:'✈️',
+    title:'返台 平安回家',
+    meta:'新千歲 → 羽田 → 松山',
+    tags:['✈️ NH56 10:30','🔁 羽田轉機','✈️ NH853 13:20'],
+    map:null,
+    timeline:[
+      {dot:'flight',time:'08:00',title:'新千歲機場 辦理登機手續',desc:'NH56 出發10:30，建議08:00到達完成報到托運'},
+      {dot:'flight',time:'10:30—12:10',title:'NH56 新千歲 → 東京羽田',desc:'抵達羽田T2，12:10'},
+      {dot:'flight',time:'12:10—13:20',title:'羽田機場 轉機',desc:'轉機約70分鐘，國內線→國際線換航廈（T2→T3）',sub:'⚠️ 時間不寬裕，抵達後立刻確認登機口'},
+      {dot:'flight',time:'13:20—15:50',title:'NH853 東京羽田 → 台北松山',desc:'抵達松山機場15:50，平安回家！🎌'}
+    ],
+    tips:['羽田轉機時間僅約70分鐘，抵達後立刻確認登機口','冷凍食品若有托運，確認行李直掛台北','在新千歲出發前完成退稅']
+  }
+];
+
+// ── Tile-based map renderer (OSM tiles loaded by browser) ──
+const MAP_W = 700, MAP_H = 340;
+
+// Web Mercator helpers
+function lng2tile(lng, z) { return (lng + 180) / 360 * Math.pow(2, z); }
+function lat2tile(lat, z) {
+  const r = lat * Math.PI / 180;
+  return (1 - Math.log(Math.tan(r) + 1/Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z);
+}
+function tile2lng(x, z) { return x / Math.pow(2, z) * 360 - 180; }
+function tile2lat(y, z) {
+  const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
+  return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+// degree-zoom → OSM zoom level
+function getOsmZ(degZoom) {
+  // degZoom 0.5–2.5 → osmZ 9–15
+  if (degZoom >= 2.0) return 12;
+  if (degZoom >= 1.3) return 13;
+  if (degZoom >= 0.8) return 13;
+  if (degZoom >= 0.5) return 11;
+  return 10;
+}
+
+const _mapState = {}; // containerId -> {cx,cy,osmZ,txOrig,tyOrig,pxOrig,pyOrig}
+
+function buildMap(dayData, containerId) {
+  const data = dayData.map;
+  if (!data) return;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const { cx, cy } = data;
+  const osmZ = _mapState[containerId] ? _mapState[containerId].osmZ : getOsmZ(data.zoom);
+
+  // Center tile (fractional)
+  const tcx = lng2tile(cx, osmZ);
+  const tcy = lat2tile(cy, osmZ);
+
+  // Tile size in px
+  const TS = 256;
+
+  // How many tiles we need
+  const tilesX = Math.ceil(MAP_W / TS) + 2;
+  const tilesY = Math.ceil(MAP_H / TS) + 2;
+
+  // Top-left tile index
+  const tx0 = Math.floor(tcx) - Math.floor(tilesX / 2);
+  const ty0 = Math.floor(tcy) - Math.floor(tilesY / 2);
+
+  // Pixel offset of center
+  const pxCenter = (tcx - tx0) * TS;
+  const pyCenter = (tcy - ty0) * TS;
+  const ox = MAP_W / 2 - pxCenter;
+  const oy = MAP_H / 2 - pyCenter;
+
+  // Store state for zoom
+  _mapState[containerId] = { cx, cy, osmZ, tx0, ty0, ox, oy, TS };
+
+  // Build tile images
+  let tilesHTML = '';
+  const maxTile = Math.pow(2, osmZ);
+  for (let dy = 0; dy < tilesY; dy++) {
+    for (let dx = 0; dx < tilesX; dx++) {
+      const tx = ((tx0 + dx) % maxTile + maxTile) % maxTile;
+      const ty = ty0 + dy;
+      if (ty < 0 || ty >= maxTile) continue;
+      const px = ox + dx * TS;
+      const py = oy + dy * TS;
+      const url = `https://tile.openstreetmap.org/${osmZ}/${tx}/${ty}.png`;
+      tilesHTML += `<image href="${url}" x="${px.toFixed(1)}" y="${py.toFixed(1)}" width="${TS}" height="${TS}" crossorigin="anonymous"/>`;
+    }
+  }
+
+  // Convert lat/lng to pixel on this map
+  function spotToXY(lat, lng) {
+    const tx = lng2tile(lng, osmZ);
+    const ty = lat2tile(lat, osmZ);
+    const px = ox + (tx - tx0) * TS;
+    const py = oy + (ty - ty0) * TS;
+    return { x: px, y: py };
+  }
+
+  // ── Helper: build marker SVG for a spot ──
+  function makeMarkerSVG(s, num, extraClass) {
+    const tc = TYPES[s.type] || TYPES[s.cat] || { fill:'#999', bg:'#eee', color:'#666', emoji:'', label:'' };
+    const { x, y } = spotToXY(s.lat, s.lng);
+    // Extra spots use diamond shape to distinguish
+    const shape = extraClass
+      ? `<path d="M0-18 L8-8 L0,6 L-8-8 Z" fill="${tc.fill}" stroke="white" stroke-width="2"/>`
+      : `<path d="M0-22C-6-22-11-17-11-11c0,7,11,22,11,22s11-15,11-22C11-17,6-22,0-22z" fill="${tc.fill}" stroke="white" stroke-width="2"/><circle r="6" cy="-11" fill="white"/>`;
+    const labelY = extraClass ? '-5' : '-7.5';
+    return `<g class="map-marker ${extraClass||''}" data-label="${s.label.replace(/"/g,'&quot;')}" data-desc="${(s.desc||'').replace(/"/g,'&quot;')}" data-type="${s.type||s.cat||''}" data-lat="${s.lat}" data-lng="${s.lng}" style="cursor:pointer" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+      ${shape}
+      <text y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="7" font-weight="700" fill="${extraClass?tc.fill:'#fff'}">${num}</text>
+    </g>`;
+  }
+
+  // ── Main spots ──
+  let markersSVG = '';
+  let pinsHTML = '';
+  const usedTypes = [];
+
+  data.spots.forEach((s, i) => {
+    const tc = TYPES[s.type] || { fill:'#999', bg:'#eee', color:'#666', emoji:'', label:'' };
+    if (!usedTypes.includes(s.type)) usedTypes.push(s.type);
+    markersSVG += makeMarkerSVG(s, i+1, '');
+    pinsHTML += `<span class="spot-pin" data-map="${containerId}" data-idx="${i}">
+      <span class="pin-num" style="background:${tc.fill}">${i+1}</span>${s.label}
+    </span>`;
+  });
+
+  // ── Extra layer spots ──
+  const region = DAY_REGION[dayData.id];
+  const extraSpots = region ? (EXTRA_SPOTS[region] || []) : [];
+  const CAT_GROUPS = [
+    { cats:['mall'],        label:'🏬 大型商場', fill:'#FB7185', borderColor:'#FB7185' },
+    { cats:['electronics'], label:'📷 電器行',   fill:'#3B82F6', borderColor:'#3B82F6' },
+    { cats:['secondhand'],  label:'♻️ 二手店',  fill:'#22C55E', borderColor:'#22C55E' },
+    { cats:['drugstore'],   label:'💊 藥妝店',  fill:'#F97316', borderColor:'#F97316' }
+  ];
+
+  // init layer state
+  if (!_layerState[containerId]) {
+    _layerState[containerId] = { mall:false, lifestyle:false, electronics:false, secondhand:false, drugstore:false };
+  }
+
+  let extraLayersSVG = '';
+  CAT_GROUPS.forEach(g => {
+    const groupSpots = extraSpots.filter(s => g.cats.includes(s.cat));
+    let groupSVG = '';
+    groupSpots.forEach((s, i) => { groupSVG += makeMarkerSVG(s, i+1, 'extra-marker'); });
+    const isOn = _layerState[containerId][g.cats[0]];
+    extraLayersSVG += `<g class="extra-layer" id="${containerId}-layer-${g.cats[0]}" style="display:${isOn?'block':'none'}">${groupSVG}</g>`;
+  });
+
+  // ── Compass ──
+  const compass = `<g transform="translate(${MAP_W-30},30)">
+    <circle r="16" fill="white" stroke="#ccc" stroke-width="1" opacity="0.9"/>
+    <text text-anchor="middle" y="-3" font-size="9" font-weight="700" fill="#E63950">N</text>
+    <polygon points="0,-12 2.5,0 -2.5,0" fill="#E63950"/>
+    <polygon points="0,12 2.5,0 -2.5,0" fill="#999"/>
+  </g>`;
+
+  // ── Attribution ──
+  const attr = `<rect x="0" y="${MAP_H-18}" width="${MAP_W}" height="18" fill="white" opacity="0.75"/>
+    <text x="6" y="${MAP_H-5}" font-size="9.5" fill="#555">© OpenStreetMap contributors</text>`;
+
+  // ── Legend ──
+  let legendHTML = '<div class="map-legend">';
+  usedTypes.forEach(t => {
+    const tc = TYPES[t];
+    if (tc) legendHTML += `<span class="legend-item"><span class="legend-dot" style="background:${tc.fill}"></span>${tc.emoji} ${tc.label}</span>`;
+  });
+  legendHTML += '</div>';
+
+  // ── Layer toggle buttons ──
+  let layerBarHTML = '';
+  if (extraSpots.length > 0) {
+    layerBarHTML = `<div class="layer-bar"><span class="layer-bar-label">圖層顯示：</span>`;
+    CAT_GROUPS.forEach(g => {
+      const count = extraSpots.filter(s => g.cats.includes(s.cat)).length;
+      if (count === 0) return;
+      const isOn = _layerState[containerId][g.cats[0]];
+      const bg = isOn ? g.fill : 'var(--surface)';
+      const col = isOn ? '#fff' : 'var(--text-secondary)';
+      layerBarHTML += `<button class="layer-btn${isOn?' active':''}"
+        style="border-color:${g.fill};background:${bg};color:${col}"
+        onclick="toggleLayer('${containerId}','${g.cats[0]}','${g.fill}',this)">
+        ${g.label} <span style="opacity:.7">(${count})</span>
+      </button>`;
+    });
+    layerBarHTML += '</div>';
+  }
+
+  container.innerHTML = `
+    ${layerBarHTML}
+    <div class="map-container" id="${containerId}-mc" style="position:relative;overflow:hidden;border-radius:10px;border:1px solid var(--border)">
+      <svg id="${containerId}-svg" viewBox="0 0 ${MAP_W} ${MAP_H}" style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <rect width="${MAP_W}" height="${MAP_H}" fill="#e8f0e8"/>
+        <g id="${containerId}-vp">
+          <g id="${containerId}-tiles">${tilesHTML}</g>
+          <g id="${containerId}-markers">${markersSVG}</g>
+          ${extraLayersSVG}
+        </g>
+        ${compass}
+        ${attr}
+      </svg>
+      <div class="map-tooltip" id="${containerId}-tip" style="position:absolute;background:#1a1d23;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;max-width:210px;line-height:1.5;white-space:normal"></div>
+      <div style="position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:3px;z-index:10">
+        <div class="zoom-btn" onclick="zoomMap('${containerId}',1)">+</div>
+        <div class="zoom-btn" onclick="zoomMap('${containerId}',-1)">−</div>
+      </div>
+    </div>
+    <div class="map-pins" id="${containerId}-pins">${pinsHTML}</div>
+    ${legendHTML}`;
+
+  bindMapEvents(containerId, data, extraSpots);
+}
+
+// ── Layer toggle ──
+function toggleLayer(containerId, cat, fillColor, btn) {
+  const layerEl = document.getElementById(`${containerId}-layer-${cat}`);
+  if (!layerEl) return;
+  if (!_layerState[containerId]) _layerState[containerId] = {};
+  const isOn = _layerState[containerId][cat];
+  _layerState[containerId][cat] = !isOn;
+  layerEl.style.display = isOn ? 'none' : 'block';
+  if (isOn) {
+    btn.classList.remove('active');
+    btn.style.background = 'var(--surface)';
+    btn.style.color = 'var(--text-secondary)';
+  } else {
+    btn.classList.add('active');
+    btn.style.background = fillColor;
+    btn.style.color = '#fff';
+  }
+}
+
+function bindMapEvents(containerId, data, extraSpots) {
+  const mc = document.getElementById(containerId + '-mc');
+  const tip = document.getElementById(containerId + '-tip');
+  if (!mc || !tip) return;
+
+  const showTip = (label, desc, type, relX, relY, lat, lng) => {
+    const tc = TYPES[type] || { bg:'#eee', color:'#555', emoji:'', label:'' };
+    const gmapUrl = lat && lng
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(label+' Japan')}`;
+    tip.innerHTML = `
+      <div style="font-weight:700;font-size:13px;margin-bottom:3px">${label}</div>
+      <span style="font-size:10px;padding:1px 7px;border-radius:8px;background:${tc.bg};color:${tc.color};display:inline-block;margin-bottom:5px">${tc.emoji} ${tc.label}</span>
+      <div style="font-size:12px;margin-bottom:6px">${desc}</div>
+      <a href="${gmapUrl}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:4px;background:#4285F4;color:#fff;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;text-decoration:none;pointer-events:auto"
+        onclick="event.stopPropagation()">
+        🗺 Google Maps 開啟
+      </a>`;
+    const svgEl = mc.querySelector('svg');
+    const scaleX = svgEl.clientWidth / MAP_W;
+    const tipW = 220;
+    let lx = relX * scaleX + 14;
+    let ly = relY * scaleX - 110;
+    if (lx + tipW > mc.clientWidth) lx = relX * scaleX - tipW - 6;
+    if (ly < 4) ly = 4;
+    tip.style.left = lx + 'px';
+    tip.style.top = ly + 'px';
+    tip.style.opacity = '1';
+    tip.style.pointerEvents = 'auto';
+  };
+
+  const hideTip = () => { tip.style.opacity = '0'; };
+
+  // Bind all markers (main + extra)
+  mc.querySelectorAll('.map-marker').forEach(el => {
+    const label = el.dataset.label || '';
+    const desc  = el.dataset.desc  || '';
+    const type  = el.dataset.type  || '';
+    const lat   = parseFloat(el.dataset.lat) || null;
+    const lng   = parseFloat(el.dataset.lng) || null;
+
+    el.addEventListener('mouseenter', () => {
+      const t = el.getAttribute('transform').match(/translate\(([^,]+),([^)]+)\)/);
+      if (t) showTip(label, desc, type, parseFloat(t[1]), parseFloat(t[2]), lat, lng);
+    });
+    el.addEventListener('mouseleave', e => {
+      // Don't hide if mouse moves onto the tooltip
+      setTimeout(() => {
+        if (!tip.matches(':hover')) hideTip();
+      }, 120);
+    });
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const t = el.getAttribute('transform').match(/translate\(([^,]+),([^)]+)\)/);
+      if (t) showTip(label, desc, type, parseFloat(t[1]), parseFloat(t[2]), lat, lng);
+    });
+  });
+
+  // ── Pan / drag ──
+  let drag = null;
+  const getXY = e => e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                                : { x: e.clientX, y: e.clientY };
+  const svgEl = mc.querySelector('svg');
+  const scaleRatio = () => MAP_W / svgEl.clientWidth;
+
+  const vpEl = () => document.getElementById(containerId + '-vp');
+
+  const getVpOffset = () => {
+    const vp = vpEl();
+    if (!vp) return { dx: 0, dy: 0 };
+    const t = (vp.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/);
+    return t ? { dx: parseFloat(t[1]), dy: parseFloat(t[2]) } : { dx: 0, dy: 0 };
+  };
+
+  const onDragStart = e => {
+    if (e.target.closest('.zoom-btn') || e.target.closest('.map-marker')) return;
+    const { x, y } = getXY(e);
+    const { dx, dy } = getVpOffset();
+    drag = { startX: x, startY: y, origDx: dx, origDy: dy };
+    mc.style.cursor = 'grabbing';
+    e.preventDefault();
+  };
+
+  let lastRefill = 0;
+  const onDragMove = e => {
+    if (!drag) return;
+    e.preventDefault();
+    const { x, y } = getXY(e);
+    const r = scaleRatio();
+    const dx = drag.origDx + (x - drag.startX) * r;
+    const dy = drag.origDy + (y - drag.startY) * r;
+    const vp = vpEl();
+    if (vp) vp.setAttribute('transform', `translate(${dx.toFixed(1)},${dy.toFixed(1)})`);
+    // Throttled tile refill every 150ms
+    const now = Date.now();
+    if (now - lastRefill > 150) { refillTiles(containerId); lastRefill = now; }
+  };
+
+  const onDragEnd = e => {
+    if (!drag) return;
+    // Update _mapState ox/oy to bake in the pan offset
+    const { dx, dy } = getVpOffset();
+    const st = _mapState[containerId];
+    if (st) _mapState[containerId] = { ...st, ox: st.ox + dx, oy: st.oy + dy };
+    // Remove transform and shift all tile positions by the offset
+    const vp = vpEl();
+    if (vp) {
+      vp.removeAttribute('transform');
+      vp.querySelectorAll('image').forEach(img => {
+        img.setAttribute('x', (parseFloat(img.getAttribute('x')) + dx).toFixed(1));
+        img.setAttribute('y', (parseFloat(img.getAttribute('y')) + dy).toFixed(1));
+      });
+      vp.querySelectorAll('.map-marker').forEach(el => {
+        const t = el.getAttribute('transform').match(/translate\(([^,]+),([^)]+)\)/);
+        if (t) el.setAttribute('transform',
+          `translate(${(parseFloat(t[1])+dx).toFixed(1)},${(parseFloat(t[2])+dy).toFixed(1)})`);
+      });
+    }
+    drag = null;
+    mc.style.cursor = 'grab';
+    // refill tiles that may now be needed
+    refillTiles(containerId);
+  };
+
+  mc.addEventListener('mousedown',  onDragStart);
+  mc.addEventListener('touchstart', onDragStart, { passive: false });
+  window.addEventListener('mousemove',  onDragMove);
+  window.addEventListener('touchmove',  onDragMove, { passive: false });
+  window.addEventListener('mouseup',  onDragEnd);
+  window.addEventListener('touchend', onDragEnd);
+
+  // Tooltip hides when mouse leaves it
+  tip.addEventListener('mouseleave', hideTip);
+
+  mc.addEventListener('click', e => {
+    if (drag !== null) return;
+    if (!e.target.closest('.map-marker') && !tip.contains(e.target)) hideTip();
+  });
+
+  // Pin list → highlight marker
+  const pinsEl = document.getElementById(containerId + '-pins');
+  if (pinsEl) {
+    pinsEl.querySelectorAll('.spot-pin').forEach(pin => {
+      pin.addEventListener('click', () => {
+        const idx = parseInt(pin.dataset.idx);
+        const markers = mc.querySelectorAll('.map-marker:not(.extra-marker)');
+        markers.forEach(m => m.querySelector('path').style.strokeWidth = '2');
+        if (markers[idx]) {
+          markers[idx].querySelector('path').style.strokeWidth = '4';
+          const s = data.spots[idx];
+          const t = markers[idx].getAttribute('transform').match(/translate\(([^,]+),([^)]+)\)/);
+          const lat = parseFloat(markers[idx].dataset.lat) || null;
+          const lng = parseFloat(markers[idx].dataset.lng) || null;
+          if (t) showTip(s.label, s.desc, s.type, parseFloat(t[1]), parseFloat(t[2]), lat, lng);
+          setTimeout(() => { markers.forEach(m => m.querySelector('path').style.strokeWidth = '2'); }, 5000);
+        }
+      });
+    });
+  }
+}
+
+function zoomMap(containerId, delta) {
+  const st = _mapState[containerId];
+  if (!st) return;
+  const dayId = parseInt(containerId.replace('map-wrap-d',''));
+  const day = DAYS.find(d => d.id === dayId);
+  if (!day || !day.map) return;
+  const newZ = Math.max(8, Math.min(17, st.osmZ + delta));
+  if (newZ === st.osmZ) return;
+
+  // Compute current screen-center lat/lng from existing state (accounting for pan)
+  // Screen center (MAP_W/2, MAP_H/2) in tile coords:
+  const vp = document.getElementById(containerId + '-vp');
+  let vpDx = 0, vpDy = 0;
+  if (vp) {
+    const t = (vp.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/);
+    if (t) { vpDx = parseFloat(t[1]); vpDy = parseFloat(t[2]); }
+  }
+  // effective ox/oy = state ox + vp offset
+  const effOx = st.ox + vpDx;
+  const effOy = st.oy + vpDy;
+  // tile coords of screen center
+  const centerTileX = st.tx0 + (MAP_W/2 - effOx) / st.TS;
+  const centerTileY = st.ty0 + (MAP_H/2 - effOy) / st.TS;
+  // convert to lng/lat
+  const newCx = tile2lng(centerTileX, st.osmZ);
+  const newCy = tile2lat(centerTileY, st.osmZ);
+
+  // Rebuild with new zoom centered on current view center
+  const newDay = { ...day, map: { ...day.map, cx: newCx, cy: newCy } };
+  _mapState[containerId] = { ...st, osmZ: newZ };
+  buildMap(newDay, containerId);
+}
+
+// ── Refill tiles when panned near edge ──
+function refillTiles(containerId) {
+  const st = _mapState[containerId];
+  if (!st) return;
+  const vp = document.getElementById(containerId + '-vp');
+  if (!vp) return;
+
+  // current effective ox/oy
+  let vpDx = 0, vpDy = 0;
+  const t = (vp.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/);
+  if (t) { vpDx = parseFloat(t[1]); vpDy = parseFloat(t[2]); }
+  const effOx = st.ox + vpDx;
+  const effOy = st.oy + vpDy;
+
+  const { osmZ, TS } = st;
+  const maxTile = Math.pow(2, osmZ);
+  const PAD = 1; // tiles of padding required
+
+  // Current tile grid bounds in screen space
+  const tilesG = vp.querySelector(`[id$="-tiles"]`);
+  if (!tilesG) return;
+  const imgs = tilesG.querySelectorAll('image');
+  if (!imgs.length) return;
+
+  // We need tiles to cover [0..MAP_W] x [0..MAP_H] with PAD extra
+  const needLeft   = -PAD * TS;
+  const needTop    = -PAD * TS;
+  const needRight  = MAP_W + PAD * TS;
+  const needBottom = MAP_H + PAD * TS;
+
+  // Find current tile extent
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  let minTileCol = Infinity, maxTileCol = -Infinity;
+  let minTileRow = Infinity, maxTileRow = -Infinity;
+
+  imgs.forEach(img => {
+    const ix = parseFloat(img.getAttribute('x'));
+    const iy = parseFloat(img.getAttribute('y'));
+    const sx = ix + vpDx; // screen x
+    const sy = iy + vpDy;
+    minX = Math.min(minX, sx); maxX = Math.max(maxX, sx + TS);
+    minY = Math.min(minY, sy); maxY = Math.max(maxY, sy + TS);
+  });
+
+  // Compute tile col/row range from img data attributes (use position)
+  // Reconstruct: tile col = tx0 + (imgX - origOx) / TS
+  imgs.forEach(img => {
+    const ix = parseFloat(img.getAttribute('x'));
+    const iy = parseFloat(img.getAttribute('y'));
+    const col = Math.round((ix - st.ox) / TS);
+    const row = Math.round((iy - st.oy) / TS);
+    minTileCol = Math.min(minTileCol, col);
+    maxTileCol = Math.max(maxTileCol, col);
+    minTileRow = Math.min(minTileRow, row);
+    maxTileRow = Math.max(maxTileRow, row);
+  });
+
+  let added = false;
+  const addTile = (col, row) => {
+    const tx = ((st.tx0 + col) % maxTile + maxTile) % maxTile;
+    const ty = st.ty0 + row;
+    if (ty < 0 || ty >= maxTile) return;
+    const px = st.ox + col * TS;
+    const py = st.oy + row * TS;
+    const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    img.setAttribute('href', `https://tile.openstreetmap.org/${osmZ}/${tx}/${ty}.png`);
+    img.setAttribute('x', px.toFixed(1));
+    img.setAttribute('y', py.toFixed(1));
+    img.setAttribute('width', TS);
+    img.setAttribute('height', TS);
+    img.setAttribute('crossorigin', 'anonymous');
+    tilesG.appendChild(img);
+    added = true;
+  };
+
+  // Expand left
+  if (minX + vpDx > needLeft) {
+    const newCol = minTileCol - 1;
+    for (let r = minTileRow; r <= maxTileRow; r++) addTile(newCol, r);
+    minTileCol = newCol;
+  }
+  // Expand right
+  if (maxX + vpDx < needRight) {
+    const newCol = maxTileCol + 1;
+    for (let r = minTileRow; r <= maxTileRow; r++) addTile(newCol, r);
+    maxTileCol = newCol;
+  }
+  // Expand top
+  if (minY + vpDy > needTop) {
+    const newRow = minTileRow - 1;
+    for (let c = minTileCol; c <= maxTileCol; c++) addTile(c, newRow);
+    minTileRow = newRow;
+  }
+  // Expand bottom
+  if (maxY + vpDy < needBottom) {
+    const newRow = maxTileRow + 1;
+    for (let c = minTileCol; c <= maxTileCol; c++) addTile(c, newRow);
+    maxTileRow = newRow;
+  }
+}
+
+// ── Render days ──
+function renderDay(d) {
+  const mapId = 'map-wrap-d' + d.id;
+  const mapSection = d.map ? `
+    <div class="map-section">
+      <div class="map-toggle" id="maptoggle${d.id}" onclick="toggleMap(${d.id})">
+        <span>🗺️</span><span>今日景點地圖</span>
+        <span class="map-chevron">›</span>
+      </div>
+      <div class="map-wrap" id="${mapId}"></div>
+    </div>` : '';
+
+  const timelineHTML = d.timeline.map(t => `
+    <div class="tl-item">
+      <div class="tl-dot ${t.dot}"></div>
+      <div class="tl-time">${t.time}</div>
+      <div class="tl-title">${t.title}</div>
+      <div class="tl-desc">${t.desc}</div>
+      ${t.sub ? `<div class="tl-sub">${t.sub}</div>` : ''}
+    </div>`).join('');
+
+  const tipsHTML = d.tips ? `<div class="tips-box">
+    <div class="tips-box-title">💡 小提醒</div>
+    <ul class="tips-list">${d.tips.map(t => `<li>${t}</li>`).join('')}</ul>
+  </div>` : '';
+
+  const shopCardsHTML = d.shopCards ? `
+    <div class="section-label">今日購物重點</div>
+    <div class="food-grid">${d.shopCards.map(c => `
+      <div class="shop-card"><div class="sh-name">${c.name}</div><div class="sh-desc">${c.desc}</div></div>`).join('')}
+    </div>` : '';
+
+  const tagsHTML = d.tags.map(t => `<span class="tag">${t}</span>`).join('');
+
+  return `<div class="day-card open" id="d${d.id}">
+    <div class="day-header" onclick="toggle('d${d.id}')">
+      <div class="day-badge ${d.theme}"><span>${d.date}</span><span class="day-num">${d.id}</span><span>${d.dow}</span></div>
+      <div class="day-title-block">
+        <h2>${d.icon} ${d.title}</h2>
+        <div class="day-meta">${d.meta}</div>
+        <div class="day-tags">${tagsHTML}</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+    <div class="day-body">
+      ${mapSection}
+      <div class="day-content">
+        <div class="timeline">${timelineHTML}</div>
+        ${shopCardsHTML}
+        ${tipsHTML}
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('mainContent').innerHTML = DAYS.map(renderDay).join('');
+
+// ── Toggle functions ──
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function toggleMap(dayId) {
+  const wrap = document.getElementById('map-wrap-d' + dayId);
+  const btn = document.getElementById('maptoggle' + dayId);
+  if (!wrap) return;
+  const visible = wrap.classList.contains('visible');
+  if (visible) {
+    wrap.classList.remove('visible');
+    btn.classList.remove('open');
+  } else {
+    wrap.classList.add('visible');
+    btn.classList.add('open');
+    const day = DAYS.find(d => d.id === dayId);
+    if (day && day.map && !wrap._built) {
+      buildMap(day, 'map-wrap-d' + dayId);
+      wrap._built = true;
+    }
+  }
+}
+</script>
+</body>
+</html>
