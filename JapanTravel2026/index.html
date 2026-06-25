@@ -766,7 +766,7 @@ function bindMapEvents(containerId, data, extraSpots) {
   const showTip = (label, desc, type, relX, relY, lat, lng) => {
     const tc = TYPES[type] || { bg:'#eee', color:'#555', emoji:'', label:'' };
     const gmapUrl = lat && lng
-      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(label)},${lat},${lng}`
       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(label+' Japan')}`;
     tip.innerHTML = `
       <div style="font-weight:700;font-size:13px;margin-bottom:3px">${label}</div>
