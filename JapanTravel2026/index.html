@@ -162,7 +162,8 @@ const TYPES = {
   lifestyle:   { emoji:'🛍️', label:'生活雜貨',bg:'#FEF9C3', color:'#A16207', fill:'#EAB308' },
   electronics: { emoji:'📷', label:'電器行',bg:'#EFF6FF', color:'#2563EB', fill:'#3B82F6' },
   secondhand:  { emoji:'♻️', label:'二手店',bg:'#F0FDF4', color:'#16A34A', fill:'#22C55E' },
-  drugstore:   { emoji:'💊', label:'藥妝店',bg:'#FFF7ED', color:'#EA580C', fill:'#F97316' }
+  drugstore:   { emoji:'💊', label:'藥妝店',bg:'#FFF7ED', color:'#EA580C', fill:'#F97316' },
+  gashapon:    { emoji:'🎰', label:'扭蛋店',bg:'#FDF4FF', color:'#9333EA', fill:'#A855F7' }
 };
 
 // 額外圖層：各區域連鎖店（依切換按鈕顯示）
@@ -188,6 +189,28 @@ const EXTRA_SPOTS = {
     {lat:35.6917,lng:139.7119,label:'BOOKOFF 新宿靖国通り',cat:'secondhand',desc:'遊戲漫畫DVD玩具，價格便宜'},
     {lat:35.7006,lng:139.7705,label:'駿河屋 秋葉原本館',cat:'secondhand',desc:'二手玩具卡牌大本營（秋葉原，可考慮加行程）'},
     {lat:35.6977,lng:139.7721,label:'駿河屋 秋葉原駅前店',cat:'secondhand',desc:'秋葉原駅旁，動漫周邊二手'},
+    // 扭蛋店【原宿】
+    {lat:35.6697,lng:139.7030,label:'がちゃ処 原宿店',cat:'gashapon',desc:'【原宿①】Gacha-Dokoro，原宿ル・ポンテビルB1F A-5，神宮前1-14-2'},
+    {lat:35.6706,lng:139.7038,label:'#C-pla+ 原宿竹下通店',cat:'gashapon',desc:'【原宿②】竹下通商圈扭蛋店，神宮前1丁目16番3号'},
+    {lat:35.6706,lng:139.7040,label:'扭蛋森林 原宿ALTA店',cat:'gashapon',desc:'【原宿③】ガチャガチャの森，原宿アルタ2F，神宮前1-16-4'},
+    {lat:35.6641,lng:139.7046,label:'baseyard tokyo 原宿店',cat:'gashapon',desc:'【原宿④】ベースヤード トーキョー，神宮前6-12-22 2F'},
+    // 扭蛋店【渋谷】
+    {lat:35.6598,lng:139.7003,label:'ドリームカプセル MAGNET by SHIBUYA109',cat:'gashapon',desc:'【渋谷①】MAGNET by SHIBUYA109 5F，神南1-23-10'},
+    {lat:35.6576,lng:139.6978,label:'ヤマダデンキ LABI 渋谷店',cat:'gashapon',desc:'【渋谷②】道玄坂2-29-20，扭蛋區在電器賣場內'},
+    {lat:35.6609,lng:139.6980,label:'MEGA ドン・キホーテ 渋谷本店',cat:'gashapon',desc:'【渋谷③】宇田川町28-6，24h，扭蛋藏在各樓層'},
+    {lat:35.6617,lng:139.6988,label:'ハンズ渋谷店',cat:'gashapon',desc:'【渋谷④】Tokyu Hands 渋谷，宇田川町12-18，文具雜貨扭蛋'},
+    // 扭蛋店【新宿西口】
+    {lat:35.6907,lng:139.6966,label:'BIC CAMERA 新宿西口',cat:'gashapon',desc:'【新宿西①】新宿西口ハルク 2F〜6F，新宿1-5-1'},
+    {lat:35.6897,lng:139.6974,label:'ヨドバシカメラ 新宿西口本店',cat:'gashapon',desc:'【新宿西②】西新宿1-11-1，扭蛋區在玩具館附近'},
+    {lat:35.6893,lng:139.6968,label:'ヨドバシカメラ Hobby & Toy館',cat:'gashapon',desc:'【新宿西③】西新宿1-12-3，玩具・Hobby專門館'},
+    {lat:35.6899,lng:139.6970,label:'ヨドバシカメラ ガシャポン館',cat:'gashapon',desc:'【新宿西④】⭐扭蛋專門館！西新宿1-11-9 第二富士ビル，超多種類'},
+    {lat:35.6888,lng:139.6980,label:'ヤマダ電機 LABI 新宿西口館',cat:'gashapon',desc:'【新宿西⑤】西新宿1-18-8，電器行內設扭蛋區'},
+    // 扭蛋店【新宿東口】
+    {lat:35.6915,lng:139.7031,label:'ヨドバシカメラ マルチメディア新宿東口',cat:'gashapon',desc:'【新宿東①】新宿3-26-7，東口大型電器館含扭蛋區'},
+    {lat:35.6921,lng:139.7034,label:'ガシャポンバンダイ 新宿マルイアネックス6F',cat:'gashapon',desc:'【新宿東②】⭐GASHAPON BANDAI官方旗艦！新宿3-1-26 マルイアネックス6F'},
+    {lat:35.6921,lng:139.7038,label:'ビックカメラ 新宿東口店',cat:'gashapon',desc:'【新宿東③】新宿3-29-1，扭蛋區在玩具賣場旁'},
+    {lat:35.6936,lng:139.7006,label:'ガチャガチャの森 新宿サブナード店',cat:'gashapon',desc:'【新宿東④】新宿サブナード地下街401区画（靖国通り下），冷氣超涼快'},
+    {lat:35.6953,lng:139.7015,label:'ガシャポンバンダイ namco TOKYO 東急歌舞伎町タワー3F',cat:'gashapon',desc:'【新宿東⑤】歌舞伎町1-29-1 東急歌舞伎町タワー3F，Bandai官方＋namco合作店'},
     // 藥妝
     {lat:35.6916,lng:139.7019,label:'マツモトキヨシ 新宿東口',cat:'drugstore',desc:'新宿東口大型店，退稅可，品項超齊'},
     {lat:35.6905,lng:139.6972,label:'ツルハドラッグ 新宿西口',cat:'drugstore',desc:'新宿西口，24h，藥妝日用品'},
@@ -657,6 +680,7 @@ function buildMap(dayData, containerId) {
   const extraSpots = region ? (EXTRA_SPOTS[region] || []) : [];
   const CAT_GROUPS = [
     { cats:['food'],        label:'🍜 美食清單', fill:'#E8916A', borderColor:'#E8916A' },
+    { cats:['gashapon'],    label:'🎰 扭蛋店',  fill:'#A855F7', borderColor:'#A855F7' },
     { cats:['mall'],        label:'🏬 大型商場', fill:'#FB7185', borderColor:'#FB7185' },
     { cats:['electronics'], label:'📷 電器行',   fill:'#3B82F6', borderColor:'#3B82F6' },
     { cats:['secondhand'],  label:'♻️ 二手店',  fill:'#22C55E', borderColor:'#22C55E' },
@@ -665,7 +689,7 @@ function buildMap(dayData, containerId) {
 
   // init layer state
   if (!_layerState[containerId]) {
-    _layerState[containerId] = { food:false, mall:false, lifestyle:false, electronics:false, secondhand:false, drugstore:false };
+    _layerState[containerId] = { food:false, gashapon:false, mall:false, lifestyle:false, electronics:false, secondhand:false, drugstore:false };
   }
 
   let extraLayersSVG = '';
