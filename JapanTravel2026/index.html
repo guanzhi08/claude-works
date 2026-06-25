@@ -209,7 +209,25 @@ const EXTRA_SPOTS = {
     // 藥妝
     {lat:41.7740,lng:140.7298,label:'マツモトキヨシ 函館駅前',cat:'drugstore',desc:'函館駅徒步2分，藥妝保養品，退稅可'},
     {lat:41.7733,lng:140.7280,label:'ツルハドラッグ 函館駅前',cat:'drugstore',desc:'函館駅前，北海道本土連鎖藥妝，價格實惠'},
-    {lat:41.7778,lng:140.7941,label:'ツルハドラッグ 湯の川店',cat:'drugstore',desc:'AEON湯の川旁，北海道藥妝連鎖'}
+    {lat:41.7778,lng:140.7941,label:'ツルハドラッグ 湯の川店',cat:'drugstore',desc:'AEON湯の川旁，北海道藥妝連鎖'},
+    // 美食
+    {lat:41.7730,lng:140.7268,label:'街角クレープ',cat:'food',desc:'脆皮可麗餅專賣店，現做麵糊搭北海道鮮奶油，草莓鹽焦糖巧克力等季節限定口味'}
+  ],
+  niseko: [
+    // 美食
+    {lat:42.8566,lng:140.6869,label:'AFURI 阿夫利',cat:'food',desc:'超人氣柚子鹽拉麵，北海道唯一分店，以當地清泉水熬湯'},
+    {lat:42.8548,lng:140.6875,label:'Tsubara Tsubara',cat:'food',desc:'二世谷人氣湯咖哩，北海道在地食材，辣度可自選'},
+    {lat:42.8368,lng:140.6754,label:'高橋牧場 MILK KOBO',cat:'food',desc:'牧場內美食：PRATIVO蔬菜料理、Mandriano披薩起司、牛奶工房霜淇淋甜點，Milk Kobo站下車'},
+    {lat:42.8562,lng:140.6850,label:"L'OCANDA",cat:'food',desc:'義式小餐廳，卡士達泡芙、蒙布朗、歐培拉等甜點必吃'},
+    {lat:42.8554,lng:140.6858,label:'% ARABICA Niseko',cat:'food',desc:'京都人氣咖啡品牌二世谷分店，白色咖啡車，Hirafu街角'},
+    {lat:42.8541,lng:140.6861,label:'Ichimura 一村',cat:'food',desc:'日式手打蕎麥麵，鴨肉・天婦羅・雞肉丸子，正對羊蹄山景觀'},
+    {lat:42.8733,lng:140.7120,label:'Robata（Park Hyatt Hanazono）',cat:'food',desc:'日本料理爐端燒，雞腿串炭火海鮮，有中文菜單，位於Park Hyatt Hanazono飯店內'},
+    {lat:42.8551,lng:140.6843,label:'Taj Mahal',cat:'food',desc:'印度咖哩連鎖，熱饢現烤香氣撲鼻，芒果拉西傳統印度料理，位於比羅夫十字街口，有中文菜單'}
+  ],
+  airport: [
+    // 美食
+    {lat:42.7795,lng:141.6922,label:'北海道牛乳カステラ',cat:'food',desc:'北海道牧場鮮奶蜂蜜蛋糕，軟綿濕潤，自助點餐，可加霜淇淋組合，新千歲機場內'},
+    {lat:42.7791,lng:141.6918,label:'魚板榮（かま栄）',cat:'food',desc:'現做現炸魚板，招牌「扁形炸魚板」CP值極高，買了可去野餐，新千歲機場內'}
   ],
   sapporo: [
     // 商場
@@ -235,12 +253,31 @@ const EXTRA_SPOTS = {
     {lat:43.0610,lng:141.3555,label:'マツモトキヨシ 狸小路2丁目',cat:'drugstore',desc:'狸小路中段，藥妝保養零食，退稅可'},
     {lat:43.0578,lng:141.3520,label:'ツルハドラッグ 狸小路1丁目',cat:'drugstore',desc:'北海道本土連鎖，薬価實惠，狸小路入口'},
     {lat:43.0688,lng:141.3506,label:'コクミン薬局 札幌駅前',cat:'drugstore',desc:'札幌駅前，大型藥妝，品項最齊'},
-    {lat:43.0671,lng:141.3487,label:'サツドラ（サッポロドラッグ）',cat:'drugstore',desc:'北海道限定連鎖！本土最大，價格常低於本州連鎖'}
+    {lat:43.0671,lng:141.3487,label:'サツドラ（サッポロドラッグ）',cat:'drugstore',desc:'北海道限定連鎖！本土最大，價格常低於本州連鎖'},
+    // 美食
+    {lat:43.0539,lng:141.3101,label:'円山牛乳販売店 MILK STORE',cat:'food',desc:'北海道神宮附近人氣牛乳店，牛乳・軟雪糕・鬆餅・可麗餅，円山公園前'},
+    {lat:43.0634,lng:141.3527,label:'円山牛乳販売店 丸井今井店',cat:'food',desc:'丸井今井店限定「白いパフェ」¥1,380，別海町新鮮生乳製作'},
+    {lat:43.0571,lng:141.3527,label:'すみれ（Sumire）',cat:'food',desc:'超人氣味噌拉麵名店，連日本人都排隊，中央区南3条西3丁目9-2 ピクシスビル 2F'},
+    {lat:43.0479,lng:141.3851,label:'RAMEN N\'n',cat:'food',desc:'鶏出汁醬油拉麵＋迷你叉燒丼套餐¥1,350，豊平区美園2条4-4-1，定休水'},
+    {lat:43.0480,lng:141.3218,label:'ダックラーメン・エイジ',cat:'food',desc:'鴨菲力沾麵¥1,800・鴨菲力飯¥550，中央区南8条西14-1-22，定休水'},
+    {lat:43.0612,lng:141.3458,label:'ひるまがり',cat:'food',desc:'だし香る雞スパイスキーマカレー¥1,600，中央区大通西6-6-9 クリーンビル 2F，定休火水'},
+    {lat:43.0810,lng:141.3731,label:'のや 2nd',cat:'food',desc:'ビーフストロガノフ¥1,250，東区北12条東5-1-17，定休火水'},
+    {lat:43.0620,lng:141.3596,label:'おだし食堂はなれ',cat:'food',desc:'スープカレー・特選ジンギスカン御膳¥3,600，中央区南2条西1-6-2 第20広和ビル 1F，無定休'},
+    {lat:43.0614,lng:141.3232,label:'CURRY CHARLES',cat:'food',desc:'歐風蛋包咖哩¥1,650，中央区南一条西13-317-2，黑色招牌咖哩'},
+    {lat:43.0540,lng:141.3852,label:'Cafe E',cat:'food',desc:'4種起司奶油義大利麵¥1,500・阿芙佳朵¥900，白石区東札幌2条4-11-12，定休月'},
+    {lat:43.0618,lng:141.3238,label:'Coffee gallery Clement',cat:'food',desc:'起司漢堡咖哩¥1,300，中央区南1条西13-317 フナコシヤ南1条ビル 2F，08:00-20:00'},
+    {lat:43.0534,lng:141.3850,label:'ラーメン冬冬',cat:'food',desc:'辛味噌拉麵¥1,020・半炒飯¥450，白石区東札幌2条6丁目7-14 第2トーホービル 1F，定休火'},
+    {lat:43.0512,lng:141.3837,label:'桜井製麺所',cat:'food',desc:'BLACK黒マー油そば¥980，白石区東札幌3条3-1-6，現金only，定休月'},
+    {lat:43.0611,lng:141.3397,label:'豚骨拉麵大河',cat:'food',desc:'特上豚骨ラーメン¥1,500・替え玉¥200，中央区南二条西7-1 M\'sスペース2nd 1F，18:00-23:30'},
+    {lat:42.9892,lng:141.3473,label:'CAFE CUCO',cat:'food',desc:'自家製麴の発酵贅沢ランチ¥2,000，南区真駒内本町6-1-1 マコマナイプラザビル 1F，定休水'},
+    {lat:42.9888,lng:141.3477,label:'クレープ Peace&Love',cat:'food',desc:'純生草莓巧克力可麗餅¥750・奶油糖¥500，現金only，南区真駒内本町6-3-6'},
+    {lat:42.9925,lng:141.4199,label:'とりたまファーム',cat:'food',desc:'泡雞白湯¥990・蛋白霜TKM¥790，清田区有明215-1，定休水'},
+    {lat:43.1906,lng:141.0020,label:'大德燒肉（小樽）',cat:'food',desc:'平價和牛燒肉，連去兩天的好吃程度，位於小樽市內，往札幌途中停靠'}
   ]
 };
 
 // 每天對應的區域
-const DAY_REGION = { 1:'tokyo', 2:'tokyo', 3:'hakodate', 4:'hakodate', 5:null, 6:null, 7:'sapporo', 8:'sapporo', 9:null };
+const DAY_REGION = { 1:'tokyo', 2:'tokyo', 3:'hakodate', 4:'hakodate', 5:'niseko', 6:'niseko', 7:'sapporo', 8:'sapporo', 9:'airport' };
 
 // 圖層開關狀態（每張地圖獨立）
 const _layerState = {};
@@ -617,6 +654,7 @@ function buildMap(dayData, containerId) {
   const region = DAY_REGION[dayData.id];
   const extraSpots = region ? (EXTRA_SPOTS[region] || []) : [];
   const CAT_GROUPS = [
+    { cats:['food'],        label:'🍜 美食清單', fill:'#E8916A', borderColor:'#E8916A' },
     { cats:['mall'],        label:'🏬 大型商場', fill:'#FB7185', borderColor:'#FB7185' },
     { cats:['electronics'], label:'📷 電器行',   fill:'#3B82F6', borderColor:'#3B82F6' },
     { cats:['secondhand'],  label:'♻️ 二手店',  fill:'#22C55E', borderColor:'#22C55E' },
@@ -625,7 +663,7 @@ function buildMap(dayData, containerId) {
 
   // init layer state
   if (!_layerState[containerId]) {
-    _layerState[containerId] = { mall:false, lifestyle:false, electronics:false, secondhand:false, drugstore:false };
+    _layerState[containerId] = { food:false, mall:false, lifestyle:false, electronics:false, secondhand:false, drugstore:false };
   }
 
   let extraLayersSVG = '';
