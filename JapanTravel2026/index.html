@@ -834,7 +834,7 @@ function bindMapEvents(containerId, data, extraSpots) {
   };
 
   const onDragStart = e => {
-    if (e.target.closest('.zoom-btn') || e.target.closest('.map-marker')) return;
+    if (e.target.closest('.zoom-btn') || e.target.closest('.map-marker') || e.target.closest('.map-tooltip')) return;
     const { x, y } = getXY(e);
     const { dx, dy } = getVpOffset();
     drag = { startX: x, startY: y, origDx: dx, origDy: dy };
