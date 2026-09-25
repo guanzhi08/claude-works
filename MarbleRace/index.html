@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v1</title>
+<title>彈珠賽車 v2</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -78,7 +78,7 @@
   <button class="btn sec" onclick="restartLevel()">↺ 重試</button>
 </div>
 
-<div class="hint" id="hint">往反方向拖曳瞄準・放開發射</div>
+<div class="hint" id="hint">往反方向拖曳瞄準・放開發射・飛行中可滑動導引</div>
 
 <div class="ov show" id="menu">
   <div class="card">
@@ -98,6 +98,7 @@
     <h1 style="text-align:center">遊戲說明</h1>
     <p>🎯 <b>發射</b>：像彈弓一樣，往反方向拖曳，放開手指彈珠就會朝瞄準方向飛出</p>
     <p>💪 <b>力道</b>：拖曳距離越長，力道越大（彈珠周圍的環會顯示力道）</p>
+    <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向</p>
     <p>🟡 <b>金幣</b>：碰到即收集（+10 分）</p>
     <p>🟥 <b>石磚</b>：會反彈，善用反彈可以走近路</p>
     <p>🏁 <b>終點</b>：抵達終點即過關</p>
@@ -125,7 +126,7 @@
   </div>
 </div>
 
-<div class="ver">v1</div>
+<div class="ver">v2</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -221,6 +222,7 @@ function newGame(idx){
     score: 0, coinCount: 0,
     state: 'aim',    // 'aim' | 'rolling' | 'won'
     aim: null,       // {sx,sy,cx,cy}
+    steer: null,     // {x,y} world-space finger position while rolling
     cam: {x:0, y:0},
     trail: [],
   };
@@ -281,17 +283,24 @@ function screenToWorld(sx, sy){
 }
 
 function ptDown(sx, sy){
-  if(!G || G.state !== 'aim') return;
+  if(!G) return;
   var p = screenToWorld(sx, sy);
-  G.aim = { sx:p.x, sy:p.y, cx:p.x, cy:p.y };
+  if(G.state === 'aim'){
+    G.aim = { sx:p.x, sy:p.y, cx:p.x, cy:p.y };
+  } else if(G.state === 'rolling'){
+    G.steer = { x:p.x, y:p.y };
+  }
 }
 function ptMove(sx, sy){
-  if(!G || !G.aim) return;
+  if(!G) return;
   var p = screenToWorld(sx, sy);
-  G.aim.cx = p.x; G.aim.cy = p.y;
+  if(G.aim){ G.aim.cx = p.x; G.aim.cy = p.y; }
+  if(G.steer){ G.steer.x = p.x; G.steer.y = p.y; }
 }
 function ptUp(){
-  if(!G || !G.aim) return;
+  if(!G) return;
+  G.steer = null;
+  if(!G.aim) return;
   var a = G.aim; G.aim = null;
   var dx = a.sx - a.cx, dy = a.sy - a.cy;   // reverse: drag back → launch forward
   var dist = Math.hypot(dx, dy);
@@ -319,10 +328,25 @@ cv.addEventListener('pointercancel', function(e){ ptUp(); });
 var FRICTION = 0.992;
 var STOP_V   = 0.18;
 var BOUNCE   = 0.72;
+var STEER_A  = 0.35;   // steering acceleration (px/frame^2)
+var MAX_V    = 18;     // max speed under thrust
 
 function step(){
   if(G.state !== 'rolling') return;
   var b = G.ball;
+
+  // steering thrust — apply BEFORE integration
+  if(G.steer){
+    var sdx = G.steer.x - b.x, sdy = G.steer.y - b.y;
+    var sd = Math.hypot(sdx, sdy);
+    if(sd > 3){
+      b.vx += (sdx / sd) * STEER_A;
+      b.vy += (sdy / sd) * STEER_A;
+      // cap speed so hold-forever doesn't fly infinitely fast
+      var sp = Math.hypot(b.vx, b.vy);
+      if(sp > MAX_V){ b.vx = b.vx / sp * MAX_V; b.vy = b.vy / sp * MAX_V; }
+    }
+  }
 
   // sub-step to reduce tunneling at high speed
   var v = Math.hypot(b.vx, b.vy);
@@ -361,9 +385,9 @@ function step(){
     return;
   }
 
-  // stop
+  // stop — don't fall through while player is still steering
   var vNow = Math.hypot(b.vx, b.vy);
-  if(vNow < STOP_V){
+  if(vNow < STOP_V && !G.steer){
     b.vx = 0; b.vy = 0;
     G.state = 'aim';
     G.trail = [];
@@ -511,6 +535,28 @@ function render(){
     ctx.moveTo(G.trail[0].x, G.trail[0].y);
     for(var i = 1; i < G.trail.length; i++) ctx.lineTo(G.trail[i].x, G.trail[i].y);
     ctx.stroke();
+  }
+
+  // steer UI (during rolling)
+  if(G.state === 'rolling' && G.steer){
+    var bb0 = G.ball;
+    var sdx = G.steer.x - bb0.x, sdy = G.steer.y - bb0.y;
+    var sdd = Math.hypot(sdx, sdy);
+    if(sdd > 3){
+      // dashed line ball → finger
+      ctx.strokeStyle = 'rgba(16,185,129,.55)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(bb0.x, bb0.y); ctx.lineTo(G.steer.x, G.steer.y); ctx.stroke();
+      ctx.setLineDash([]);
+      // target ring at finger
+      var pulse = 0.75 + Math.sin(performance.now()/120) * 0.15;
+      ctx.strokeStyle = 'rgba(16,185,129,.85)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(G.steer.x, G.steer.y, 16 * pulse, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle = 'rgba(16,185,129,.25)';
+      ctx.beginPath(); ctx.arc(G.steer.x, G.steer.y, 8, 0, Math.PI*2); ctx.fill();
+    }
   }
 
   // aim UI
