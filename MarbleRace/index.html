@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v3</title>
+<title>彈珠賽車 v4</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -44,8 +44,12 @@
     display:flex;gap:8px;justify-content:space-between;
     background:linear-gradient(180deg,rgba(15,23,42,.9),transparent);
     z-index:5;pointer-events:none;font-weight:600}
-  .hud-item{background:rgba(30,41,59,.85);padding:6px 12px;border-radius:8px;font-size:.85rem}
+  .hud-item{background:rgba(30,41,59,.85);padding:6px 12px;border-radius:8px;font-size:.85rem;transition:background .2s,color .2s}
   .hud-item .lbl{color:var(--mut);font-size:.68rem;margin-right:5px}
+  .hud-item.warn{background:rgba(239,68,68,.9);color:#fff}
+  .hud-item.warn .lbl{color:rgba(255,255,255,.85)}
+  @keyframes pulse-red{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .hud-item.warn{animation:pulse-red .6s ease-in-out infinite}
 
   .btm{position:fixed;bottom:0;left:0;right:0;
     padding:10px 14px calc(10px + env(safe-area-inset-bottom));
@@ -69,8 +73,8 @@
 
 <div class="hud" id="hud" style="display:none">
   <div class="hud-item"><span class="lbl">金幣</span><span id="hud-coin">0</span></div>
-  <div class="hud-item"><span class="lbl">時間</span><span id="hud-time">0.0</span>s</div>
-  <div class="hud-item"><span class="lbl">關卡</span><span id="hud-lvl">1</span></div>
+  <div class="hud-item" id="hud-time-box"><span class="lbl">剩餘</span><span id="hud-time">20.0</span>s</div>
+  <div class="hud-item"><span class="lbl">難度</span><span id="hud-lvl">簡單</span></div>
 </div>
 
 <div class="btm" id="btm" style="display:none">
@@ -78,16 +82,16 @@
   <button class="btn sec" onclick="restartLevel()">↺ 重試</button>
 </div>
 
-<div class="hint" id="hint">往反方向拖曳瞄準・放開發射・飛行中可滑動導引</div>
+<div class="hint" id="hint">20 秒內衝過終點・拖曳彈弓發射・飛行中可點按導引</div>
 
 <div class="ov show" id="menu">
   <div class="card">
     <h1>🎱 彈珠賽車</h1>
-    <p class="sub">拖曳發射・避開障礙・收集金幣・衝過終點</p>
+    <p class="sub">隨機關卡・20 秒內衝過終點・收集金幣加分</p>
     <div class="lvl-row">
-      <button class="lvl-btn" onclick="startLevel(0)">1</button>
-      <button class="lvl-btn" onclick="startLevel(1)">2</button>
-      <button class="lvl-btn" onclick="startLevel(2)">3</button>
+      <button class="lvl-btn" onclick="startLevel(0)">簡單</button>
+      <button class="lvl-btn" onclick="startLevel(1)">普通</button>
+      <button class="lvl-btn" onclick="startLevel(2)">困難</button>
     </div>
     <button class="btn sec" onclick="showOv('howto')">遊戲說明</button>
   </div>
@@ -100,9 +104,10 @@
     <p>💪 <b>力道</b>：拖曳距離越長，力道越大（彈珠周圍的環會顯示力道）</p>
     <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向；每次按住只維持 <b>0.5 秒</b>後自動放開，需要放開再重按（防止一直拉著飛）</p>
     <p>🟡 <b>金幣</b>：碰到即收集（+10 分）</p>
-    <p>🟥 <b>石磚</b>：會反彈，善用反彈可以走近路</p>
-    <p>🏁 <b>終點</b>：抵達終點即過關</p>
-    <p>⏱ <b>計分</b>：金幣越多、時間越短分數越高</p>
+    <p>🟥 <b>石磚</b>：交錯配置擋住直線捷徑，須穿梭反彈才能通過</p>
+    <p>⏳ <b>倒數 20 秒</b>：時間內衝過終點才算成功，時間到就失敗</p>
+    <p>🎲 <b>隨機關卡</b>：每次開始都是全新地圖；三種難度控制石磚數量與縫隙大小</p>
+    <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
   </div>
 </div>
@@ -120,78 +125,134 @@
   <div class="card">
     <h1>🏁 過關！</h1>
     <p class="sub" id="win-stats"></p>
-    <button class="btn" id="win-next">下一關</button>
-    <button class="btn sec" onclick="restartLevel()">↺ 再玩一次</button>
+    <button class="btn" onclick="newRandomLevel()">🎲 換一關</button>
+    <button class="btn sec" onclick="restartLevel()">↺ 再挑戰同關</button>
     <button class="btn sec" onclick="backToMenu()">回主選單</button>
   </div>
 </div>
 
-<div class="ver">v3</div>
+<div class="ov" id="lose">
+  <div class="card">
+    <h1 style="color:#ef4444">⏰ 時間到！</h1>
+    <p class="sub" id="lose-stats"></p>
+    <button class="btn" onclick="restartLevel()">↺ 再挑戰同關</button>
+    <button class="btn sec" onclick="newRandomLevel()">🎲 換一關</button>
+    <button class="btn sec" onclick="backToMenu()">回主選單</button>
+  </div>
+</div>
+
+<div class="ver">v4</div>
 
 <script>
 // ═══════════════════════════════════════
-// LEVELS (world coordinates in px)
+// LEVEL GENERATOR
 // ═══════════════════════════════════════
-var LEVELS = [
-  { // 1: 直線 + 兩片牆
-    size:{w:800,h:600},
-    start:{x:100,y:300},
-    finish:{x:720,y:240,w:60,h:120},
-    walls:[
-      {x:0,y:0,w:800,h:20},{x:0,y:580,w:800,h:20},
-      {x:0,y:0,w:20,h:600},{x:780,y:0,w:20,h:600},
-    ],
-    blocks:[
-      {x:300,y:0,w:40,h:380},
-      {x:500,y:220,w:40,h:380},
-    ],
-    coins:[
-      {x:250,y:450},{x:400,y:480},{x:600,y:150},{x:680,y:400},
-    ],
-  },
-  { // 2: 蛇形
-    size:{w:900,h:700},
-    start:{x:80,y:600},
-    finish:{x:800,y:60,w:80,h:80},
-    walls:[
-      {x:0,y:0,w:900,h:20},{x:0,y:680,w:900,h:20},
-      {x:0,y:0,w:20,h:700},{x:880,y:0,w:20,h:700},
-    ],
-    blocks:[
-      {x:200,y:100,w:40,h:450},
-      {x:400,y:230,w:40,h:450},
-      {x:600,y:100,w:40,h:450},
-    ],
-    coins:[
-      {x:120,y:350},{x:300,y:600},{x:300,y:150},
-      {x:500,y:120},{x:500,y:620},
-      {x:700,y:600},{x:750,y:250},{x:820,y:400},
-    ],
-  },
-  { // 3: 曲折挑戰
-    size:{w:1000,h:800},
-    start:{x:80,y:720},
-    finish:{x:900,y:60,w:80,h:80},
-    walls:[
-      {x:0,y:0,w:1000,h:20},{x:0,y:780,w:1000,h:20},
-      {x:0,y:0,w:20,h:800},{x:980,y:0,w:20,h:800},
-    ],
-    blocks:[
-      {x:180,y:200,w:40,h:520},
-      {x:340,y:80,w:40,h:520},
-      {x:500,y:250,w:40,h:520},
-      {x:680,y:80,w:40,h:520},
-      {x:840,y:280,w:40,h:420},
-    ],
-    coins:[
-      {x:120,y:400},{x:270,y:680},{x:270,y:150},
-      {x:430,y:720},{x:430,y:180},
-      {x:600,y:680},{x:600,y:180},
-      {x:770,y:720},{x:770,y:180},
-      {x:940,y:520},
-    ],
-  },
+// Snake-corridor layout — bands alternately extend from top/bottom walls,
+// leaving a gap on the opposite side. Because block extents from adjacent
+// bands OVERLAP vertically (guaranteed when gap < (H-40)/2), no straight
+// horizontal line can pass along any edge. Marble must weave through gaps.
+var TIME_LIMIT_MS = 20000;
+
+var DIFF = [
+  { name:'簡單', bands:3, gapMin:210, gapMax:260, coins:6 },
+  { name:'普通', bands:4, gapMin:170, gapMax:220, coins:8 },
+  { name:'困難', bands:5, gapMin:130, gapMax:180, coins:10 },
 ];
+
+function rand(a, b){ return a + Math.random() * (b - a); }
+function randInt(a, b){ return Math.floor(rand(a, b + 1)); }
+
+function generateLevel(diffIdx){
+  var d = DIFF[diffIdx];
+  var WORLD_W = 900, WORLD_H = 600;
+  var BAND_W = 40;
+  var wallT = 20;
+
+  var walls = [
+    {x:0, y:0, w:WORLD_W, h:wallT},
+    {x:0, y:WORLD_H - wallT, w:WORLD_W, h:wallT},
+    {x:0, y:0, w:wallT, h:WORLD_H},
+    {x:WORLD_W - wallT, y:0, w:wallT, h:WORLD_H},
+  ];
+
+  // Divide interior into (bands + 1) equal lanes; bands sit between lanes
+  var innerW = WORLD_W - wallT * 2;
+  var laneW = innerW / (d.bands + 1);
+  var blocks = [];
+  var gaps = []; // remember gap regions for later use
+
+  // random first side (top or bottom) — makes each run feel different
+  var firstBottom = Math.random() < 0.5;
+
+  for (var i = 0; i < d.bands; i++){
+    var bx = wallT + laneW * (i + 1) - BAND_W / 2;
+    var gap = rand(d.gapMin, d.gapMax);
+    var gapAtBottom = (firstBottom ? (i % 2 === 0) : (i % 2 === 1));
+    if (gapAtBottom){
+      // block extends from top wall downward, gap at bottom
+      var bh = WORLD_H - wallT - gap;
+      blocks.push({x:bx, y:0, w:BAND_W, h:bh});
+      gaps.push({side:'bottom', x:bx + BAND_W/2, y:bh + gap/2});
+    } else {
+      // block extends from bottom wall upward, gap at top
+      var bh2 = WORLD_H - wallT - gap;
+      blocks.push({x:bx, y:wallT + gap, w:BAND_W, h:bh2});
+      gaps.push({side:'top', x:bx + BAND_W/2, y:wallT + gap/2});
+    }
+  }
+
+  // Start on left in first lane, positioned toward first gap side
+  var firstGap = gaps[0];
+  var start = {
+    x: wallT + laneW * 0.5,
+    y: firstGap.side === 'bottom' ? WORLD_H - 60 : 60,
+  };
+
+  // Finish on right in last lane, positioned toward last gap side
+  var lastGap = gaps[gaps.length - 1];
+  var finishW = 70, finishH = 90;
+  var finish = {
+    x: WORLD_W - wallT - laneW * 0.5 - finishW/2,
+    y: lastGap.side === 'bottom'
+        ? WORLD_H - wallT - finishH - 20
+        : wallT + 20,
+    w: finishW, h: finishH,
+  };
+
+  // Coins: sprinkle in lanes, avoid blocks/walls/start/finish
+  var coins = [];
+  var attempts = 0;
+  while (coins.length < d.coins && attempts < 300){
+    attempts++;
+    var cx = rand(wallT + 25, WORLD_W - wallT - 25);
+    var cy = rand(wallT + 25, WORLD_H - wallT - 25);
+    var ok = true;
+    // not inside/near any block
+    for (var b = 0; b < blocks.length; b++){
+      var bb = blocks[b];
+      if (cx > bb.x - 18 && cx < bb.x + bb.w + 18 &&
+          cy > bb.y - 18 && cy < bb.y + bb.h + 18){ ok = false; break; }
+    }
+    if (!ok) continue;
+    // not too close to start / finish
+    if (Math.hypot(cx - start.x, cy - start.y) < 60) continue;
+    if (Math.hypot(cx - (finish.x + finish.w/2), cy - (finish.y + finish.h/2)) < 60) continue;
+    // not too close to other coins
+    var tooClose = false;
+    for (var ci = 0; ci < coins.length; ci++){
+      if (Math.hypot(cx - coins[ci].x, cy - coins[ci].y) < 44){ tooClose = true; break; }
+    }
+    if (tooClose) continue;
+    coins.push({x:cx, y:cy});
+  }
+
+  return {
+    size:{w:WORLD_W, h:WORLD_H},
+    start:start, finish:finish,
+    walls:walls, blocks:blocks, coins:coins,
+    diffIdx:diffIdx, diffName:d.name,
+  };
+}
 
 // ═══════════════════════════════════════
 // STATE
@@ -211,16 +272,17 @@ resize();
 
 var G = null;
 var running = false, paused = false;
+var currentLevel = null;     // last generated level (for retry same)
+var currentDiff  = 0;
 
-function newGame(idx){
-  var L = LEVELS[idx];
+function newGame(L){
   G = {
-    idx: idx, L: L,
+    L: L,
     ball: { x:L.start.x, y:L.start.y, vx:0, vy:0, r:12 },
     coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:11, taken:false}; }),
     startTime: 0, elapsed: 0,
     score: 0, coinCount: 0,
-    state: 'aim',    // 'aim' | 'rolling' | 'won'
+    state: 'aim',    // 'aim' | 'rolling' | 'won' | 'lost'
     aim: null,       // {sx,sy,cx,cy}
     steer: null,     // {x,y} world-space finger position while rolling
     steerUntil: 0,   // auto-release timestamp (ms) for current steer touch
@@ -236,9 +298,28 @@ function newGame(idx){
 function showOv(id){ $(id).classList.add('show'); }
 function hideOv(id){ $(id).classList.remove('show'); }
 
-function startLevel(idx){
-  hideOv('menu'); hideOv('win'); hideOv('pause'); hideOv('howto');
-  newGame(idx);
+// startLevel: called from the menu — new random level of given difficulty
+function startLevel(diffIdx){
+  currentDiff = diffIdx;
+  currentLevel = generateLevel(diffIdx);
+  playLevel(currentLevel);
+}
+
+// newRandomLevel: fresh random level, same difficulty
+function newRandomLevel(){
+  currentLevel = generateLevel(currentDiff);
+  playLevel(currentLevel);
+}
+
+// restartLevel: retry the SAME level (same layout)
+function restartLevel(){
+  if(!currentLevel) return;
+  playLevel(currentLevel);
+}
+
+function playLevel(L){
+  hideOv('menu'); hideOv('win'); hideOv('lose'); hideOv('pause'); hideOv('howto');
+  newGame(L);
   $('hud').style.display = 'flex';
   $('btm').style.display = 'flex';
   $('hint').classList.add('show');
@@ -248,15 +329,9 @@ function startLevel(idx){
   requestAnimationFrame(loop);
 }
 
-function restartLevel(){
-  if(!G) return;
-  hideOv('pause'); hideOv('win');
-  startLevel(G.idx);
-}
-
 function backToMenu(){
   running = false;
-  hideOv('pause'); hideOv('win');
+  hideOv('pause'); hideOv('win'); hideOv('lose');
   $('hud').style.display = 'none';
   $('btm').style.display = 'none';
   $('hint').classList.remove('show');
@@ -435,21 +510,23 @@ function collideCircleRect(b, r){
 function winLevel(){
   G.state = 'won';
   running = false;
-  var timeBonus = Math.max(0, 60 - G.elapsed/1000) * 5;
-  G.score += Math.round(timeBonus);
+  var timeLeftSec = Math.max(0, (TIME_LIMIT_MS - G.elapsed) / 1000);
+  G.score = G.coinCount * 10 + Math.round(timeLeftSec * 20);
   var maxCoins = G.L.coins.length;
   $('win-stats').innerHTML =
     '金幣 <b>'+G.coinCount+'/'+maxCoins+'</b> · '+
-    '用時 <b>'+(G.elapsed/1000).toFixed(1)+'s</b> · '+
+    '剩餘 <b>'+timeLeftSec.toFixed(1)+'s</b> · '+
     '總分 <b>'+G.score+'</b>';
-  var nb = $('win-next');
-  if(G.idx < LEVELS.length - 1){
-    nb.style.display = 'block';
-    nb.onclick = function(){ startLevel(G.idx + 1); };
-  } else {
-    nb.style.display = 'none';
-  }
   showOv('win');
+}
+
+function loseLevel(){
+  G.state = 'lost';
+  running = false;
+  var maxCoins = G.L.coins.length;
+  $('lose-stats').innerHTML =
+    '收集金幣 <b>'+G.coinCount+'/'+maxCoins+'</b>・沒能在 20 秒內抵達終點';
+  showOv('lose');
 }
 
 // ═══════════════════════════════════════
@@ -641,14 +718,25 @@ function drawFinish(f){
 // ═══════════════════════════════════════
 function updateHUD(){
   $('hud-coin').textContent = G.coinCount + '/' + G.L.coins.length;
-  $('hud-time').textContent = (G.elapsed / 1000).toFixed(1);
-  $('hud-lvl').textContent  = G.idx + 1;
+  var leftMs = Math.max(0, TIME_LIMIT_MS - G.elapsed);
+  $('hud-time').textContent = (leftMs / 1000).toFixed(1);
+  $('hud-lvl').textContent  = G.L.diffName;
+  var tb = $('hud-time-box');
+  if(leftMs < 5000) tb.classList.add('warn');
+  else tb.classList.remove('warn');
 }
 
 function loop(){
   if(!running || paused) return;
   G.elapsed = performance.now() - G.startTime;
   step();
+  // time-up check — after step so a last-frame finish still counts as win
+  if(G.state !== 'won' && G.state !== 'lost' && G.elapsed >= TIME_LIMIT_MS){
+    loseLevel();
+    updateHUD();
+    render();
+    return;
+  }
   updateCam(false);
   render();
   updateHUD();
