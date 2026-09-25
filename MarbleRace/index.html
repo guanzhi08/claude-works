@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v2</title>
+<title>彈珠賽車 v3</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -98,7 +98,7 @@
     <h1 style="text-align:center">遊戲說明</h1>
     <p>🎯 <b>發射</b>：像彈弓一樣，往反方向拖曳，放開手指彈珠就會朝瞄準方向飛出</p>
     <p>💪 <b>力道</b>：拖曳距離越長，力道越大（彈珠周圍的環會顯示力道）</p>
-    <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向</p>
+    <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向；每次按住只維持 <b>0.5 秒</b>後自動放開，需要放開再重按（防止一直拉著飛）</p>
     <p>🟡 <b>金幣</b>：碰到即收集（+10 分）</p>
     <p>🟥 <b>石磚</b>：會反彈，善用反彈可以走近路</p>
     <p>🏁 <b>終點</b>：抵達終點即過關</p>
@@ -126,7 +126,7 @@
   </div>
 </div>
 
-<div class="ver">v2</div>
+<div class="ver">v3</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -223,6 +223,7 @@ function newGame(idx){
     state: 'aim',    // 'aim' | 'rolling' | 'won'
     aim: null,       // {sx,sy,cx,cy}
     steer: null,     // {x,y} world-space finger position while rolling
+    steerUntil: 0,   // auto-release timestamp (ms) for current steer touch
     cam: {x:0, y:0},
     trail: [],
   };
@@ -289,6 +290,7 @@ function ptDown(sx, sy){
     G.aim = { sx:p.x, sy:p.y, cx:p.x, cy:p.y };
   } else if(G.state === 'rolling'){
     G.steer = { x:p.x, y:p.y };
+    G.steerUntil = performance.now() + 500;   // auto-release after 0.5s
   }
 }
 function ptMove(sx, sy){
@@ -334,6 +336,11 @@ var MAX_V    = 18;     // max speed under thrust
 function step(){
   if(G.state !== 'rolling') return;
   var b = G.ball;
+
+  // auto-release steer after 0.5s (prevents infinite hold-thrust)
+  if(G.steer && performance.now() >= G.steerUntil){
+    G.steer = null;
+  }
 
   // steering thrust — apply BEFORE integration
   if(G.steer){
@@ -543,19 +550,27 @@ function render(){
     var sdx = G.steer.x - bb0.x, sdy = G.steer.y - bb0.y;
     var sdd = Math.hypot(sdx, sdy);
     if(sdd > 3){
+      var remain = Math.max(0, (G.steerUntil - performance.now()) / 500); // 1 → 0
+      var la = 0.25 + 0.30 * remain;   // line alpha fades
+      var ra = 0.35 + 0.50 * remain;   // ring alpha fades
       // dashed line ball → finger
-      ctx.strokeStyle = 'rgba(16,185,129,.55)';
+      ctx.strokeStyle = 'rgba(16,185,129,' + la + ')';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 5]);
       ctx.beginPath(); ctx.moveTo(bb0.x, bb0.y); ctx.lineTo(G.steer.x, G.steer.y); ctx.stroke();
       ctx.setLineDash([]);
       // target ring at finger
-      var pulse = 0.75 + Math.sin(performance.now()/120) * 0.15;
-      ctx.strokeStyle = 'rgba(16,185,129,.85)';
+      ctx.strokeStyle = 'rgba(16,185,129,' + ra + ')';
       ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(G.steer.x, G.steer.y, 16 * pulse, 0, Math.PI*2); ctx.stroke();
-      ctx.fillStyle = 'rgba(16,185,129,.25)';
+      ctx.beginPath(); ctx.arc(G.steer.x, G.steer.y, 16, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle = 'rgba(16,185,129,' + (ra*0.35) + ')';
       ctx.beginPath(); ctx.arc(G.steer.x, G.steer.y, 8, 0, Math.PI*2); ctx.fill();
+      // countdown arc — shrinks as time runs out
+      ctx.strokeStyle = 'rgba(16,185,129,.95)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(G.steer.x, G.steer.y, 22, -Math.PI/2, -Math.PI/2 + Math.PI*2 * remain);
+      ctx.stroke();
     }
   }
 
