@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v4</title>
+<title>彈珠賽車 v5</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -141,7 +141,7 @@
   </div>
 </div>
 
-<div class="ver">v4</div>
+<div class="ver">v5</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -208,16 +208,22 @@ function generateLevel(diffIdx){
     y: firstGap.side === 'bottom' ? WORLD_H - 60 : 60,
   };
 
-  // Finish on right in last lane, positioned toward last gap side
+  // Finish at the END of the path — tucked into the corner of the last lane
+  // on the same side as the last gap (that's where the ball naturally exits)
   var lastGap = gaps[gaps.length - 1];
-  var finishW = 70, finishH = 90;
+  var finishW = 80, finishH = 90;
   var finish = {
-    x: WORLD_W - wallT - laneW * 0.5 - finishW/2,
+    x: WORLD_W - wallT - finishW,
     y: lastGap.side === 'bottom'
-        ? WORLD_H - wallT - finishH - 20
-        : wallT + 20,
+        ? WORLD_H - wallT - finishH
+        : wallT,
     w: finishW, h: finishH,
   };
+
+  // Symmetrically place start in the START corner of the first lane
+  // (already set above based on first gap side, but push it into the corner)
+  start.x = wallT + 30;
+  start.y = firstGap.side === 'bottom' ? WORLD_H - wallT - 30 : wallT + 30;
 
   // Coins: sprinkle in lanes, avoid blocks/walls/start/finish
   var coins = [];
@@ -706,11 +712,12 @@ function drawFinish(f){
   ctx.strokeStyle = '#10b981';
   ctx.lineWidth = 3;
   ctx.strokeRect(f.x, f.y, f.w, f.h);
-  // flag emoji
+  // flag emoji — draw below when finish is tucked against top wall
   ctx.font = 'bold 22px sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#10b981';
-  ctx.fillText('🏁', f.x + f.w/2, f.y - 14);
+  var flagY = f.y < 40 ? f.y + f.h + 16 : f.y - 14;
+  ctx.fillText('🏁', f.x + f.w/2, flagY);
 }
 
 // ═══════════════════════════════════════
