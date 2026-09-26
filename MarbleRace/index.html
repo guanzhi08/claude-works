@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v10</title>
+<title>彈珠賽車 v11</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -127,7 +127,8 @@
       <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 10 秒，可撞破磚塊
       <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
     </p>
-    <p>🎥 <b>相機</b>：局部視角，跟隨彈珠移動</p>
+    <p>🎥 <b>相機</b>：局部視角，跟隨彈珠移動，並自動旋轉讓彈珠前進方向永遠朝上</p>
+    <p>🗺 <b>小地圖</b>：右下角顯示全局跑道，彈珠位置與終點一目瞭然</p>
     <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
   </div>
@@ -162,7 +163,7 @@
   </div>
 </div>
 
-<div class="ver">v10</div>
+<div class="ver">v11</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -414,8 +415,12 @@ function newGame(L){
     freezeUntil: 0,
     growUntil: 0,
     speedUntil: 0,
+    // camera rotation: view rotates so ball heading appears as screen-up
+    headingAngle: -Math.PI / 2,  // start with world-upright (heading = up)
+    camAngle: 0,                 // = -PI/2 - headingAngle
   };
-  updateCam(true);
+  G.camAngle = -Math.PI/2 - G.headingAngle;
+  updateCam();
 }
 
 // ═══════════════════════════════════════
@@ -482,7 +487,13 @@ function resumeGame(){
 // INPUT (slingshot aim & launch)
 // ═══════════════════════════════════════
 function screenToWorld(sx, sy){
-  return { x: sx / VIEW_SCALE + G.cam.x, y: sy / VIEW_SCALE + G.cam.y };
+  // reverse: translate to center → divide by scale → rotate by -camAngle → add ball
+  var a = (sx - W/2) / VIEW_SCALE;
+  var b = (sy - H/2) / VIEW_SCALE;
+  var c = Math.cos(G.camAngle), s = Math.sin(G.camAngle);
+  var rx =  a * c + b * s;
+  var ry = -a * s + b * c;
+  return { x: G.ball.x + rx, y: G.ball.y + ry };
 }
 
 function ptDown(sx, sy){
@@ -509,20 +520,27 @@ function ptUp(){
   G.steer = null;
   if(!G.aim) return;
   var a = G.aim; G.aim = null;
-  var dx = a.sx - a.cx, dy = a.sy - a.cy;   // reverse: drag back → launch forward
-  var dist = Math.hypot(dx, dy);
-  if(dist < 12) return; // tap = no-op
-  var power = Math.min(dist, 200) / 200;    // 0..1 (screen px)
+  var dxScr = a.sx - a.cx, dyScr = a.sy - a.cy;  // screen slingshot vector
+  var distScr = Math.hypot(dxScr, dyScr);
+  if(distScr < 12) return; // tap = no-op
+  var power = Math.min(distScr, 200) / 200;
   var speed = 4 + power * 13;
-  var nx = dx / dist, ny = dy / dist;
+  // convert screen direction → world direction (inverse of camera rotation)
+  var c = Math.cos(G.camAngle), s = Math.sin(G.camAngle);
+  var wxDir =  dxScr * c + dyScr * s;
+  var wyDir = -dxScr * s + dyScr * c;
+  var wd = Math.hypot(wxDir, wyDir) || 1;
+  var nx = wxDir / wd, ny = wyDir / wd;
   G.ball.vx = nx * speed;
   G.ball.vy = ny * speed;
   G.state = 'rolling';
   G.trail = [];
-  // Start the countdown on the first real launch
+  // On the first launch, snap camera heading to launch direction to avoid a jarring spin
   if (G.startTime === 0){
     G.startTime = performance.now();
     G.elapsed = 0;
+    G.headingAngle = Math.atan2(ny, nx);
+    G.camAngle = -Math.PI/2 - G.headingAngle;
   }
 }
 
@@ -737,19 +755,23 @@ function loseLevel(){
 // ═══════════════════════════════════════
 // CAMERA
 // ═══════════════════════════════════════
-function updateCam(snap){
-  var viewW = W / VIEW_SCALE, viewH = H / VIEW_SCALE;
-  var tx = G.ball.x - viewW/2;
-  var ty = G.ball.y - viewH/2;
-  if(G.L.size.w <= viewW) tx = (G.L.size.w - viewW) / 2;
-  else tx = Math.max(0, Math.min(tx, G.L.size.w - viewW));
-  if(G.L.size.h <= viewH) ty = (G.L.size.h - viewH) / 2;
-  else ty = Math.max(0, Math.min(ty, G.L.size.h - viewH));
-  if(snap){ G.cam.x = tx; G.cam.y = ty; }
-  else {
-    G.cam.x += (tx - G.cam.x) * 0.12;
-    G.cam.y += (ty - G.cam.y) * 0.12;
+function updateCam(){
+  // In rotated view, ball is always at screen center; camera "position" = ball position.
+  G.cam.x = G.ball.x;
+  G.cam.y = G.ball.y;
+}
+
+function updateHeading(){
+  // Rotate view so ball's velocity direction appears as screen-up.
+  var v = Math.hypot(G.ball.vx, G.ball.vy);
+  if(v > 0.5){
+    var target = Math.atan2(G.ball.vy, G.ball.vx);
+    var d = target - G.headingAngle;
+    while(d >  Math.PI) d -= 2 * Math.PI;
+    while(d < -Math.PI) d += 2 * Math.PI;
+    G.headingAngle += d * 0.10;
   }
+  G.camAngle = -Math.PI/2 - G.headingAngle;
 }
 
 // ═══════════════════════════════════════
@@ -760,22 +782,31 @@ function render(){
   ctx.fillRect(0, 0, W, H);
 
   ctx.save();
+  // rotated view: ball at screen center, world rotates so heading points up
+  ctx.translate(W/2, H/2);
   ctx.scale(VIEW_SCALE, VIEW_SCALE);
-  ctx.translate(-G.cam.x, -G.cam.y);
+  ctx.rotate(G.camAngle);
+  ctx.translate(-G.ball.x, -G.ball.y);
 
   var viewW = W / VIEW_SCALE, viewH = H / VIEW_SCALE;
+  // grid must cover a square that fits any rotation → use viewport diagonal
+  var diag = Math.hypot(viewW, viewH);
+  var half = diag / 2;
 
   // grid
   ctx.strokeStyle = 'rgba(148,163,184,.08)';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 / VIEW_SCALE;
   var gs = 40;
-  var gx0 = Math.floor(G.cam.x / gs) * gs;
-  var gy0 = Math.floor(G.cam.y / gs) * gs;
-  for(var x = gx0; x < G.cam.x + viewW + gs; x += gs){
-    ctx.beginPath(); ctx.moveTo(x, G.cam.y); ctx.lineTo(x, G.cam.y + viewH); ctx.stroke();
+  var bx = G.ball.x, by = G.ball.y;
+  var startX = Math.floor((bx - half) / gs) * gs;
+  var endX   = bx + half;
+  var startY = Math.floor((by - half) / gs) * gs;
+  var endY   = by + half;
+  for(var x = startX; x < endX; x += gs){
+    ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
   }
-  for(var y = gy0; y < G.cam.y + viewH + gs; y += gs){
-    ctx.beginPath(); ctx.moveTo(G.cam.x, y); ctx.lineTo(G.cam.x + viewW, y); ctx.stroke();
+  for(var y = startY; y < endY; y += gs){
+    ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
   }
 
   // world bounds
@@ -864,39 +895,6 @@ function render(){
     }
   }
 
-  // aim UI — dist is in SCREEN px; convert lengths to world by /VIEW_SCALE
-  if(G.state === 'aim' && G.aim){
-    var b = G.ball;
-    var dx = G.aim.sx - G.aim.cx, dy = G.aim.sy - G.aim.cy;
-    var distScr = Math.min(Math.hypot(dx, dy), 200);
-    if(distScr > 6){
-      var ang = Math.atan2(dy, dx);
-      var lenW = distScr * 1.4 / VIEW_SCALE;
-      var tx = b.x + Math.cos(ang) * lenW;
-      var ty = b.y + Math.sin(ang) * lenW;
-      var headW = 15 / VIEW_SCALE;
-      ctx.strokeStyle = 'rgba(6,182,212,.75)';
-      ctx.lineWidth = 3 / VIEW_SCALE;
-      ctx.setLineDash([9 / VIEW_SCALE, 6 / VIEW_SCALE]);
-      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(tx, ty); ctx.stroke();
-      ctx.setLineDash([]);
-      // arrow
-      ctx.fillStyle = 'rgba(6,182,212,.9)';
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(tx - Math.cos(ang-0.42)*headW, ty - Math.sin(ang-0.42)*headW);
-      ctx.lineTo(tx - Math.cos(ang+0.42)*headW, ty - Math.sin(ang+0.42)*headW);
-      ctx.closePath(); ctx.fill();
-      // power ring
-      var power = distScr / 200;
-      ctx.strokeStyle = 'hsl(' + Math.round((1-power)*120) + ', 85%, 55%)';
-      ctx.lineWidth = 4 / VIEW_SCALE;
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r + 7/VIEW_SCALE, -Math.PI/2, -Math.PI/2 + Math.PI*2*power);
-      ctx.stroke();
-    }
-  }
-
   // ball
   var bb = G.ball;
   var nowB = performance.now();
@@ -929,6 +927,89 @@ function render(){
   ctx.lineWidth = 2; ctx.stroke();
 
   ctx.restore();
+
+  // ─── Overlays in screen space (unaffected by camera rotation) ───
+
+  // aim UI — drawn from screen-center in screen-space drag direction
+  if(G.state === 'aim' && G.aim){
+    var adx = G.aim.sx - G.aim.cx, ady = G.aim.sy - G.aim.cy;
+    var distScr = Math.min(Math.hypot(adx, ady), 200);
+    if(distScr > 6){
+      var ang = Math.atan2(ady, adx);
+      var cx = W/2, cy = H/2;
+      var len = distScr * 1.4;
+      var tx = cx + Math.cos(ang) * len;
+      var ty = cy + Math.sin(ang) * len;
+      ctx.strokeStyle = 'rgba(6,182,212,.75)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([9, 6]);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(6,182,212,.9)';
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - Math.cos(ang-0.42)*15, ty - Math.sin(ang-0.42)*15);
+      ctx.lineTo(tx - Math.cos(ang+0.42)*15, ty - Math.sin(ang+0.42)*15);
+      ctx.closePath(); ctx.fill();
+      // power ring at ball (screen center)
+      var pw = distScr / 200;
+      var ringR = G.ball.r * VIEW_SCALE + 8;
+      ctx.strokeStyle = 'hsl(' + Math.round((1-pw)*120) + ', 85%, 55%)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR, -Math.PI/2, -Math.PI/2 + Math.PI*2*pw);
+      ctx.stroke();
+    }
+  }
+
+  drawMinimap();
+}
+
+function drawMinimap(){
+  var pad = 12;
+  var maxW = 150, maxH = 110;
+  // fit world aspect
+  var wAsp = G.L.size.w / G.L.size.h;
+  var mmW = maxW, mmH = maxW / wAsp;
+  if(mmH > maxH){ mmH = maxH; mmW = maxH * wAsp; }
+  var mmX = W - mmW - pad;
+  var mmY = H - mmH - pad - 60;   // 60 = space for bottom .btm buttons
+  // background
+  ctx.fillStyle = 'rgba(15,23,42,.85)';
+  ctx.strokeStyle = 'rgba(6,182,212,.55)';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(mmX, mmY, mmW, mmH);
+  ctx.strokeRect(mmX, mmY, mmW, mmH);
+  // scale world → minimap
+  var s = mmW / G.L.size.w;
+  // walls / inner island (gray) — draw all walls
+  ctx.fillStyle = 'rgba(148,163,184,.6)';
+  for(var i = 0; i < G.L.walls.length; i++){
+    var w = G.L.walls[i];
+    ctx.fillRect(mmX + w.x*s, mmY + w.y*s, w.w*s, w.h*s);
+  }
+  // finish (emerald)
+  var f = G.L.finish;
+  ctx.fillStyle = '#10b981';
+  ctx.fillRect(mmX + f.x*s, mmY + f.y*s, Math.max(2, f.w*s), Math.max(2, f.h*s));
+  // ball (bright dot with heading indicator)
+  var bx = mmX + G.ball.x * s;
+  var by = mmY + G.ball.y * s;
+  // heading line
+  var hl = 8;
+  ctx.strokeStyle = '#0284c7';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(bx + Math.cos(G.headingAngle) * hl, by + Math.sin(G.headingAngle) * hl);
+  ctx.stroke();
+  // dot
+  ctx.fillStyle = '#f0f9ff';
+  ctx.strokeStyle = '#0284c7';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(bx, by, 4, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
 }
 
 function drawBrickBlock(bk){
@@ -1072,7 +1153,8 @@ function loop(){
     render();
     return;
   }
-  updateCam(false);
+  updateHeading();
+  updateCam();
   render();
   updateHUD();
   updateFX();
