@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v6</title>
+<title>彈珠賽車 v7</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -82,12 +82,12 @@
   <button class="btn sec" onclick="restartLevel()">↺ 重試</button>
 </div>
 
-<div class="hint" id="hint">拖曳發射開始計時・繞跑道一圈回到起點・20 秒內完成</div>
+<div class="hint" id="hint">拖曳發射開始計時・繞跑道一圈回到起點・30 秒內完成</div>
 
 <div class="ov show" id="menu">
   <div class="card">
     <h1>🎱 彈珠賽車</h1>
-    <p class="sub">環狀跑道・繞一圈回起點・20 秒內完成</p>
+    <p class="sub">環狀跑道・繞一圈回起點・30 秒內完成</p>
     <div class="lvl-row">
       <button class="lvl-btn" onclick="startLevel(0)">簡單</button>
       <button class="lvl-btn" onclick="startLevel(1)">普通</button>
@@ -105,7 +105,7 @@
     <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向；每次按住只維持 <b>0.5 秒</b>後自動放開，需要放開再重按（防止一直拉著飛）</p>
     <p>🔁 <b>環狀跑道</b>：起點和終點都在跑道頂端中央；必須繞一整圈（順時針或逆時針皆可）回到起點才算完成</p>
     <p>📍 <b>進度</b>：HUD 顯示已通過的檢查點（右、下、左三處），三個都通過並回到起點就過關</p>
-    <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數 <b>20 秒</b>，時間到就失敗</p>
+    <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數 <b>30 秒</b>，時間到就失敗</p>
     <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈</p>
     <p>🟥 <b>障礙物</b>：跑道上隨機分佈，會反彈彈珠</p>
     <p>🎥 <b>相機</b>：局部視角，跟隨彈珠移動</p>
@@ -143,7 +143,7 @@
   </div>
 </div>
 
-<div class="ver">v6</div>
+<div class="ver">v7</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -153,7 +153,7 @@
 // them is the racetrack. Start/finish is at the top-center. Player must
 // visit right/bottom/left quadrants (any direction) then return to the top
 // zone. Small obstacles are scattered in the corridor for bounce challenge.
-var TIME_LIMIT_MS = 20000;
+var TIME_LIMIT_MS = 30000;
 var VIEW_SCALE = 1.5;   // world-to-screen zoom (local view)
 
 var DIFF = [
@@ -212,7 +212,7 @@ function randCoinInSide(side, wallT, CORR, innerW, innerH){
 
 function generateLevel(diffIdx){
   var d = DIFF[diffIdx];
-  var WORLD_W = 1400, WORLD_H = 1000;
+  var WORLD_W = 4200, WORLD_H = 3000;   // 3x bigger map
   var wallT = 20;
   var CORR = d.corridor;
 
@@ -289,7 +289,11 @@ function generateLevel(diffIdx){
   return {
     size:{w:WORLD_W, h:WORLD_H},
     start:start, finish:finish,
-    walls:walls, blocks:[innerBlock].concat(obstacles), coins:coins,
+    // inner island lives in walls so it renders in wall-gray, not obstacle-red;
+    // obstacles-only are the small red bounce blocks
+    walls: walls.concat([innerBlock]),
+    blocks: obstacles,
+    coins: coins,
     isLoop: true,
     diffIdx:diffIdx, diffName:d.name,
   };
@@ -593,7 +597,7 @@ function loseLevel(){
   running = false;
   var maxCoins = G.L.coins.length;
   $('lose-stats').innerHTML =
-    '收集金幣 <b>'+G.coinCount+'/'+maxCoins+'</b>・沒能在 20 秒內抵達終點';
+    '收集金幣 <b>'+G.coinCount+'/'+maxCoins+'</b>・沒能在 30 秒內完成一圈';
   showOv('lose');
 }
 
