@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v9</title>
+<title>彈珠賽車 v10</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -121,9 +121,9 @@
     <p>📍 <b>進度</b>：HUD 顯示已通過的檢查點（右、下、左三處），三個都通過並回到起點就過關</p>
     <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數（簡單 60s / 普通 45s / 困難 30s），時間到就失敗</p>
     <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈</p>
-    <p>🧱 <b>磚塊障礙</b>：跑道上隨機分佈，會反彈彈珠（吃到 🍄 變大後可撞破）</p>
-    <p>🎁 <b>道具</b>（每關 2 個）：
-      <br>・<b style="color:#67e8f9">⏸ 時間暫停</b>：倒數暫停 5 秒
+    <p>🧱 <b>磚塊障礙</b>：跑道上隨機分佈，長度從 1 格到 4 格都有，會反彈彈珠（吃到 🍄 變大後可撞破整塊）</p>
+    <p>🎁 <b>道具</b>（每關每種各 4 個，共 12 個）：
+      <br>・<b style="color:#67e8f9">⏸ 時間暫停</b>：倒數暫停 10 秒
       <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 10 秒，可撞破磚塊
       <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
     </p>
@@ -162,7 +162,7 @@
   </div>
 </div>
 
-<div class="ver">v9</div>
+<div class="ver">v10</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -175,9 +175,9 @@
 var VIEW_SCALE = 1.5;   // world-to-screen zoom (local view)
 
 var DIFF = [
-  { name:'簡單', corridor:220, obstacles:6,  coins:24, timeMs:60000 },
-  { name:'普通', corridor:180, obstacles:12, coins:30, timeMs:45000 },
-  { name:'困難', corridor:150, obstacles:18, coins:36, timeMs:30000 },
+  { name:'簡單', corridor:220, obstacles:12, coins:24, timeMs:60000 },
+  { name:'普通', corridor:180, obstacles:24, coins:30, timeMs:45000 },
+  { name:'困難', corridor:150, obstacles:36, coins:36, timeMs:30000 },
 ];
 
 function rand(a, b){ return a + Math.random() * (b - a); }
@@ -194,8 +194,16 @@ function quadrantOf(x, y, L){
 
 function randObstacleInSide(side, wallT, CORR, innerW, innerH){
   var pad = 30;
-  var maxSz = Math.min(55, CORR * 0.32); // don't clog narrow corridors
-  var w = rand(25, maxSz), h = rand(25, maxSz);
+  // 1..4 cells long (long side runs along the corridor)
+  var cells = 1 + Math.floor(Math.random() * 4);
+  var cellSz = 38;
+  var longSz = cells * cellSz + rand(-4, 4);
+  // short side kept small so it doesn't clog the corridor width
+  var crossMax = Math.min(50, CORR * 0.32);
+  var crossSz = rand(26, crossMax);
+  var w, h;
+  if (side === 0 || side === 2){ w = longSz; h = crossSz; }  // top/bottom: long horizontally
+  else                          { w = crossSz; h = longSz; } // left/right: long vertically
   var x, y;
   if (side === 0){        // top corridor
     x = wallT + CORR + pad + Math.random() * Math.max(1, innerW - 2*pad - w);
@@ -210,7 +218,7 @@ function randObstacleInSide(side, wallT, CORR, innerW, innerH){
     x = wallT + pad + Math.random() * Math.max(1, CORR - 2*pad - w);
     y = wallT + CORR + pad + Math.random() * Math.max(1, innerH - 2*pad - h);
   }
-  return {x:x, y:y, w:w, h:h};
+  return {x:x, y:y, w:w, h:h, cells:cells};
 }
 
 function randCoinInSide(side, wallT, CORR, innerW, innerH){
@@ -262,7 +270,7 @@ function generateLevel(diffIdx){
   // Obstacles — spread across sides, avoid start
   var obstacles = [];
   var oAtt = 0;
-  while (obstacles.length < d.obstacles && oAtt < 800){
+  while (obstacles.length < d.obstacles && oAtt < 2000){
     oAtt++;
     var side = obstacles.length < 4
         ? obstacles.length
@@ -304,14 +312,14 @@ function generateLevel(diffIdx){
     coins.push({x:cx, y:cy});
   }
 
-  // Power-ups — fixed total per level: 2 of each type = 6 total
+  // Power-ups — fixed total per level: 4 of each type = 12 total
   var powerTypes = ['freeze', 'grow', 'speed'];
   var powerups = [];
   var pAtt = 0;
-  var perType = 2;
+  var perType = 4;
   var wanted = powerTypes.length * perType;
   var countByType = {freeze:0, grow:0, speed:0};
-  while (powerups.length < wanted && pAtt < 1500){
+  while (powerups.length < wanted && pAtt < 3000){
     pAtt++;
     // pick type that still needs more, cycling
     var t = powerTypes[powerups.length % powerTypes.length];
@@ -532,7 +540,7 @@ cv.addEventListener('pointercancel', function(e){ ptUp(); });
 function applyPowerUp(type){
   var now = performance.now();
   if(type === 'freeze'){
-    G.freezeUntil = Math.max(G.freezeUntil, now) + 5000;
+    G.freezeUntil = Math.max(G.freezeUntil, now) + 10000;
   } else if(type === 'grow'){
     G.growUntil = Math.max(G.growUntil, now) + 10000;
     G.ball.r = 24;
