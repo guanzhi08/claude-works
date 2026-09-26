@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v15</title>
+<title>彈珠賽車 v16</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -164,7 +164,7 @@
   </div>
 </div>
 
-<div class="ver">v15</div>
+<div class="ver">v16</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -436,6 +436,7 @@ function newGame(L){
     camAngle: 0,                 // = -PI/2 - headingAngle, set below
     lapDir: 0,                   // 0=unknown, +1=clockwise, -1=counter-clockwise
     particles: [],               // brick-break debris particles
+    pickupFX: [],                // powerup pickup visual effects
   };
   G.camAngle = -Math.PI/2 - G.headingAngle;
   updateCam();
@@ -605,6 +606,39 @@ function emitBrickBreak(bl, ballVx, ballVy){
   }
 }
 
+// Powerup pickup effect: expanding ring at world pickup point + short
+// radial particle burst + rising text overlay in screen space.
+var PICKUP_COLORS = { freeze:'#67e8f9', grow:'#86efac', speed:'#fde047' };
+var PICKUP_ICONS  = { freeze:'⏸ 暫停', grow:'🍄 變大', speed:'⚡ 加速' };
+
+function emitPickupFX(x, y, type){
+  G.pickupFX.push({ x:x, y:y, type:type, startTime: performance.now(), life: 900 });
+  // radial particle burst reuses the same particle array
+  var col = PICKUP_COLORS[type];
+  for(var i = 0; i < 14; i++){
+    var ang = i * (Math.PI * 2 / 14) + rand(-0.15, 0.15);
+    var spd = rand(3, 6);
+    G.particles.push({
+      x: x, y: y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      size: 2 + Math.floor(Math.random() * 3),
+      color: col,
+      life: 25 + Math.floor(Math.random() * 15),
+      maxLife: 40,
+    });
+  }
+}
+
+function updatePickupFX(){
+  var now = performance.now();
+  for(var i = G.pickupFX.length - 1; i >= 0; i--){
+    if(now - G.pickupFX[i].startTime > G.pickupFX[i].life){
+      G.pickupFX.splice(i, 1);
+    }
+  }
+}
+
 function updateParticles(){
   for(var i = G.particles.length - 1; i >= 0; i--){
     var p = G.particles[i];
@@ -721,7 +755,9 @@ function step(){
       // every 5 coins → grant a random power-up
       if(G.coinCount % 5 === 0){
         var bonusTypes = ['freeze', 'grow', 'speed'];
-        applyPowerUp(bonusTypes[Math.floor(Math.random() * 3)]);
+        var bt = bonusTypes[Math.floor(Math.random() * 3)];
+        applyPowerUp(bt);
+        emitPickupFX(b.x, b.y, bt);
       }
     }
   }
@@ -735,6 +771,7 @@ function step(){
     if(dpx*dpx + dpy*dpy < rrp*rrp){
       pu.taken = true;
       applyPowerUp(pu.type);
+      emitPickupFX(pu.x, pu.y, pu.type);
     }
   }
 
@@ -1028,6 +1065,28 @@ function render(){
   ctx.strokeStyle = isGrowB ? '#14532d' : '#0c4a6e';
   ctx.lineWidth = 2; ctx.stroke();
 
+  // pickup FX — expanding ring in world at pickup location
+  var nowFX = performance.now();
+  for(var fi = 0; fi < G.pickupFX.length; fi++){
+    var fx = G.pickupFX[fi];
+    var age = (nowFX - fx.startTime) / fx.life;   // 0 → 1
+    if(age >= 1) continue;
+    var col = PICKUP_COLORS[fx.type];
+    var r0 = 18 + age * 90;
+    ctx.globalAlpha = (1 - age) * 0.85;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 5 * (1 - age * 0.6);
+    ctx.beginPath();
+    ctx.arc(fx.x, fx.y, r0, 0, Math.PI*2);
+    ctx.stroke();
+    // second inner ring for extra flash
+    ctx.lineWidth = 3 * (1 - age);
+    ctx.beginPath();
+    ctx.arc(fx.x, fx.y, r0 * 0.55, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
   // brick debris particles — drawn as flat squares for pixel aesthetic
   for(var pi = 0; pi < G.particles.length; pi++){
     var p = G.particles[pi];
@@ -1050,6 +1109,29 @@ function render(){
   ctx.imageSmoothingEnabled = true;
 
   // ─── Overlays in screen space (unaffected by camera rotation) ───
+
+  // pickup FX — rising floating labels above ball (screen center)
+  var nowT = performance.now();
+  for(var ti = 0; ti < G.pickupFX.length; ti++){
+    var fxT = G.pickupFX[ti];
+    var ageT = (nowT - fxT.startTime) / fxT.life;
+    if(ageT >= 1) continue;
+    var colT = PICKUP_COLORS[fxT.type];
+    var textY = H/2 - 60 - ageT * 80;
+    var textX = W/2;
+    ctx.globalAlpha = 1 - ageT;
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // outline
+    ctx.strokeStyle = 'rgba(0,0,0,.75)';
+    ctx.lineWidth = 4;
+    ctx.strokeText(PICKUP_ICONS[fxT.type], textX, textY);
+    // fill
+    ctx.fillStyle = colT;
+    ctx.fillText(PICKUP_ICONS[fxT.type], textX, textY);
+  }
+  ctx.globalAlpha = 1;
 
   // aim UI — drawn from screen-center in screen-space drag direction
   if(G.state === 'aim' && G.aim){
@@ -1268,6 +1350,7 @@ function loop(){
   }
   step();
   updateParticles();
+  updatePickupFX();
   // time-up check — only after timer started
   if(G.startTime > 0 && G.state !== 'won' && G.state !== 'lost' && G.elapsed >= G.L.timeMs){
     loseLevel();
