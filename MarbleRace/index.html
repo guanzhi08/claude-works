@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v17</title>
+<title>彈珠賽車 v18</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -164,7 +164,7 @@
   </div>
 </div>
 
-<div class="ver">v17</div>
+<div class="ver">v18</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -353,7 +353,7 @@ function generateLevel(diffIdx){
       if (Math.hypot(px - powerups[pi].x, py - powerups[pi].y) < 130){ badp = true; break; }
     }
     if (badp) continue;
-    powerups.push({x:px, y:py, r:32, type:t, taken:false});
+    powerups.push({x:px, y:py, r:24, type:t, taken:false});
     countByType[t]++;
   }
 
@@ -409,8 +409,8 @@ function newGame(L){
   G = {
     L: L,
     ball: { x:L.start.x, y:L.start.y, vx:0, vy:0, r:12 },
-    coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:22, taken:false}; }),
-    powerups: L.powerups.map(function(p){ return {x:p.x, y:p.y, r:32, type:p.type, taken:false}; }),
+    coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:17, taken:false}; }),
+    powerups: L.powerups.map(function(p){ return {x:p.x, y:p.y, r:24, type:p.type, taken:false}; }),
     startTime: 0,       // 0 = timer not yet running; set on first launch
     elapsed: 0,
     score: 0, coinCount: 0,
@@ -1008,7 +1008,7 @@ function render(){
     ctx.arc(c.x, c.y, c.r * sc, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = '#b45309'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#fef3c7';
-    ctx.font = 'bold 22px sans-serif';
+    ctx.font = 'bold 17px sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('$', c.x, c.y);
   }
@@ -1366,7 +1366,7 @@ function drawPowerup(p, tAnim){
   ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
   ctx.strokeStyle = c.inner; ctx.lineWidth = 2; ctx.stroke();
   // icon
-  ctx.font = 'bold 32px sans-serif';
+  ctx.font = 'bold 27px sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
   ctx.fillText(c.text, p.x, p.y + 2);
