@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v16</title>
+<title>彈珠賽車 v17</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -124,7 +124,7 @@
     <p>🧱 <b>磚塊障礙</b>：跑道上隨機分佈，長度從 1 格到 4 格都有，會反彈彈珠（吃到 🍄 變大後可撞破整塊）</p>
     <p>🎁 <b>道具</b>（每關每種各 4 個，共 12 個）：
       <br>・<b style="color:#67e8f9">⏸ 時間暫停</b>：倒數暫停 10 秒
-      <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 10 秒，可撞破磚塊
+      <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 5 秒，可撞破磚塊
       <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
     </p>
     <p>🎥 <b>相機</b>：局部視角，跟隨彈珠；預設起點視角就已朝跑道方向，過彎時緩慢旋轉，不追彈珠瞬時速度，避免頭暈</p>
@@ -164,7 +164,7 @@
   </div>
 </div>
 
-<div class="ver">v16</div>
+<div class="ver">v17</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -305,13 +305,13 @@ function generateLevel(diffIdx){
     var badc = false;
     for (var oi2 = 0; oi2 < obstacles.length; oi2++){
       var ob2 = obstacles[oi2];
-      if (cx > ob2.x - 18 && cx < ob2.x + ob2.w + 18 &&
-          cy > ob2.y - 18 && cy < ob2.y + ob2.h + 18){ badc = true; break; }
+      if (cx > ob2.x - 30 && cx < ob2.x + ob2.w + 30 &&
+          cy > ob2.y - 30 && cy < ob2.y + ob2.h + 30){ badc = true; break; }
     }
     if (badc) continue;
     var tc = false;
     for (var ci = 0; ci < coins.length; ci++){
-      if (Math.hypot(cx - coins[ci].x, cy - coins[ci].y) < 48){ tc = true; break; }
+      if (Math.hypot(cx - coins[ci].x, cy - coins[ci].y) < 70){ tc = true; break; }
     }
     if (tc) continue;
     coins.push({x:cx, y:cy});
@@ -341,19 +341,19 @@ function generateLevel(diffIdx){
     var badp = false;
     for (var oi3 = 0; oi3 < obstacles.length; oi3++){
       var ob3 = obstacles[oi3];
-      if (px > ob3.x - 24 && px < ob3.x + ob3.w + 24 &&
-          py > ob3.y - 24 && py < ob3.y + ob3.h + 24){ badp = true; break; }
+      if (px > ob3.x - 42 && px < ob3.x + ob3.w + 42 &&
+          py > ob3.y - 42 && py < ob3.y + ob3.h + 42){ badp = true; break; }
     }
     if (badp) continue;
     for (var ci2 = 0; ci2 < coins.length; ci2++){
-      if (Math.hypot(px - coins[ci2].x, py - coins[ci2].y) < 55){ badp = true; break; }
+      if (Math.hypot(px - coins[ci2].x, py - coins[ci2].y) < 90){ badp = true; break; }
     }
     if (badp) continue;
     for (var pi = 0; pi < powerups.length; pi++){
-      if (Math.hypot(px - powerups[pi].x, py - powerups[pi].y) < 80){ badp = true; break; }
+      if (Math.hypot(px - powerups[pi].x, py - powerups[pi].y) < 130){ badp = true; break; }
     }
     if (badp) continue;
-    powerups.push({x:px, y:py, r:16, type:t, taken:false});
+    powerups.push({x:px, y:py, r:32, type:t, taken:false});
     countByType[t]++;
   }
 
@@ -409,8 +409,8 @@ function newGame(L){
   G = {
     L: L,
     ball: { x:L.start.x, y:L.start.y, vx:0, vy:0, r:12 },
-    coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:11, taken:false}; }),
-    powerups: L.powerups.map(function(p){ return {x:p.x, y:p.y, r:p.r, type:p.type, taken:false}; }),
+    coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:22, taken:false}; }),
+    powerups: L.powerups.map(function(p){ return {x:p.x, y:p.y, r:32, type:p.type, taken:false}; }),
     startTime: 0,       // 0 = timer not yet running; set on first launch
     elapsed: 0,
     score: 0, coinCount: 0,
@@ -657,7 +657,7 @@ function applyPowerUp(type){
   if(type === 'freeze'){
     G.freezeUntil = Math.max(G.freezeUntil, now) + 10000;
   } else if(type === 'grow'){
-    G.growUntil = Math.max(G.growUntil, now) + 10000;
+    G.growUntil = Math.max(G.growUntil, now) + 5000;
     G.ball.r = 24;
   } else if(type === 'speed'){
     G.speedUntil = Math.max(G.speedUntil, now) + 10000;
@@ -970,6 +970,33 @@ function render(){
   // finish (checker + glow)
   drawFinish(G.L.finish);
 
+  // start-hint arrow — only before the first launch; shows CW forward direction
+  if(G.startTime === 0){
+    var arrowDist = 90;   // world units ahead of ball
+    // forward direction = Q0 CW tangent = world +x (matches preset headingAngle)
+    var fx = G.ball.x + arrowDist;
+    var fy = G.ball.y;
+    var pulse = 0.85 + Math.sin(performance.now() / 260) * 0.15;
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.scale(pulse, pulse);
+    // arrow pointing +x (renders as up on screen because of camera rotation)
+    ctx.fillStyle = 'rgba(103,232,249,.85)';
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(38, 0);
+    ctx.lineTo(0, -32);
+    ctx.lineTo(0, -14);
+    ctx.lineTo(-30, -14);
+    ctx.lineTo(-30, 14);
+    ctx.lineTo(0, 14);
+    ctx.lineTo(0, 32);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
   // coins
   var t = performance.now() / 300;
   for(var k = 0; k < G.coins.length; k++){
@@ -981,7 +1008,7 @@ function render(){
     ctx.arc(c.x, c.y, c.r * sc, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = '#b45309'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#fef3c7';
-    ctx.font = 'bold 11px sans-serif';
+    ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('$', c.x, c.y);
   }
@@ -1133,6 +1160,75 @@ function render(){
   }
   ctx.globalAlpha = 1;
 
+  // launch tutorial — animated pull-back gesture while user hasn't launched yet
+  if(G.startTime === 0 && G.state === 'aim' && !G.aim){
+    var cyc = 2200;
+    var phase = (performance.now() % cyc) / cyc;   // 0 → 1
+    // easing curves for the two phases
+    var pullFrac, alphaP;
+    if(phase < 0.45){
+      // pull: 0 → 1 with ease-out
+      var t0 = phase / 0.45;
+      pullFrac = 1 - Math.pow(1 - t0, 2);
+      alphaP = 1;
+    } else if(phase < 0.62){
+      // hold at pulled position
+      pullFrac = 1;
+      alphaP = 1;
+    } else if(phase < 0.78){
+      // release: pointer fades out at pulled position
+      pullFrac = 1;
+      alphaP = 1 - (phase - 0.62) / 0.16;
+    } else {
+      // pause
+      pullFrac = 0;
+      alphaP = 0;
+    }
+    var cxT = W/2, cyT = H/2;
+    var pullDist = 130 * pullFrac;
+    // pointer position: BELOW center (user drags down to launch up)
+    var pxT = cxT;
+    var pyT = cyT + pullDist;
+    // preview arrow pointing UP from ball (screen up = CW forward)
+    if(pullFrac > 0.05){
+      var previewLen = pullDist * 1.4;
+      var tx = cxT, ty = cyT - previewLen;
+      ctx.globalAlpha = alphaP * 0.6;
+      ctx.strokeStyle = '#67e8f9';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(cxT, cyT); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#67e8f9';
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - 14, ty + 18);
+      ctx.lineTo(tx + 14, ty + 18);
+      ctx.closePath(); ctx.fill();
+    }
+    // phantom finger circle at drag point
+    if(alphaP > 0){
+      ctx.globalAlpha = alphaP;
+      // outer ring
+      ctx.strokeStyle = 'rgba(255,255,255,.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(pxT, pyT, 20, 0, Math.PI*2); ctx.stroke();
+      // filled dot
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath(); ctx.arc(pxT, pyT, 8, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // instruction text
+    ctx.font = 'bold 14px -apple-system,BlinkMacSystemFont,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.strokeStyle = 'rgba(0,0,0,.6)';
+    ctx.lineWidth = 3;
+    var msg = '往下拖曳，放開 → 彈珠往上飛';
+    ctx.strokeText(msg, cxT, cyT + 200);
+    ctx.fillText(msg, cxT, cyT + 200);
+  }
+
   // aim UI — drawn from screen-center in screen-space drag direction
   if(G.state === 'aim' && G.aim){
     var adx = G.aim.sx - G.aim.cx, ady = G.aim.sy - G.aim.cy;
@@ -1270,10 +1366,10 @@ function drawPowerup(p, tAnim){
   ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
   ctx.strokeStyle = c.inner; ctx.lineWidth = 2; ctx.stroke();
   // icon
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = 'bold 32px sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
-  ctx.fillText(c.text, p.x, p.y + 1);
+  ctx.fillText(c.text, p.x, p.y + 2);
 }
 
 function drawFinish(f){
