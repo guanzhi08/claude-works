@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v5</title>
+<title>彈珠賽車 v6</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -74,7 +74,7 @@
 <div class="hud" id="hud" style="display:none">
   <div class="hud-item"><span class="lbl">金幣</span><span id="hud-coin">0</span></div>
   <div class="hud-item" id="hud-time-box"><span class="lbl">剩餘</span><span id="hud-time">20.0</span>s</div>
-  <div class="hud-item"><span class="lbl">難度</span><span id="hud-lvl">簡單</span></div>
+  <div class="hud-item"><span class="lbl">進度</span><span id="hud-lvl">0/3</span></div>
 </div>
 
 <div class="btm" id="btm" style="display:none">
@@ -82,12 +82,12 @@
   <button class="btn sec" onclick="restartLevel()">↺ 重試</button>
 </div>
 
-<div class="hint" id="hint">20 秒內衝過終點・拖曳彈弓發射・飛行中可點按導引</div>
+<div class="hint" id="hint">拖曳發射開始計時・繞跑道一圈回到起點・20 秒內完成</div>
 
 <div class="ov show" id="menu">
   <div class="card">
     <h1>🎱 彈珠賽車</h1>
-    <p class="sub">隨機關卡・20 秒內衝過終點・收集金幣加分</p>
+    <p class="sub">環狀跑道・繞一圈回起點・20 秒內完成</p>
     <div class="lvl-row">
       <button class="lvl-btn" onclick="startLevel(0)">簡單</button>
       <button class="lvl-btn" onclick="startLevel(1)">普通</button>
@@ -103,10 +103,12 @@
     <p>🎯 <b>發射</b>：像彈弓一樣，往反方向拖曳，放開手指彈珠就會朝瞄準方向飛出</p>
     <p>💪 <b>力道</b>：拖曳距離越長，力道越大（彈珠周圍的環會顯示力道）</p>
     <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向；每次按住只維持 <b>0.5 秒</b>後自動放開，需要放開再重按（防止一直拉著飛）</p>
-    <p>🟡 <b>金幣</b>：碰到即收集（+10 分）</p>
-    <p>🟥 <b>石磚</b>：交錯配置擋住直線捷徑，須穿梭反彈才能通過</p>
-    <p>⏳ <b>倒數 20 秒</b>：時間內衝過終點才算成功，時間到就失敗</p>
-    <p>🎲 <b>隨機關卡</b>：每次開始都是全新地圖；三種難度控制石磚數量與縫隙大小</p>
+    <p>🔁 <b>環狀跑道</b>：起點和終點都在跑道頂端中央；必須繞一整圈（順時針或逆時針皆可）回到起點才算完成</p>
+    <p>📍 <b>進度</b>：HUD 顯示已通過的檢查點（右、下、左三處），三個都通過並回到起點就過關</p>
+    <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數 <b>20 秒</b>，時間到就失敗</p>
+    <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈</p>
+    <p>🟥 <b>障礙物</b>：跑道上隨機分佈，會反彈彈珠</p>
+    <p>🎥 <b>相機</b>：局部視角，跟隨彈珠移動</p>
     <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
   </div>
@@ -141,121 +143,154 @@
   </div>
 </div>
 
-<div class="ver">v5</div>
+<div class="ver">v6</div>
 
 <script>
 // ═══════════════════════════════════════
-// LEVEL GENERATOR
+// LEVEL GENERATOR — rectangular loop track
 // ═══════════════════════════════════════
-// Snake-corridor layout — bands alternately extend from top/bottom walls,
-// leaving a gap on the opposite side. Because block extents from adjacent
-// bands OVERLAP vertically (guaranteed when gap < (H-40)/2), no straight
-// horizontal line can pass along any edge. Marble must weave through gaps.
+// A big outer rectangle with a solid inner "island" — the corridor between
+// them is the racetrack. Start/finish is at the top-center. Player must
+// visit right/bottom/left quadrants (any direction) then return to the top
+// zone. Small obstacles are scattered in the corridor for bounce challenge.
 var TIME_LIMIT_MS = 20000;
+var VIEW_SCALE = 1.5;   // world-to-screen zoom (local view)
 
 var DIFF = [
-  { name:'簡單', bands:3, gapMin:210, gapMax:260, coins:6 },
-  { name:'普通', bands:4, gapMin:170, gapMax:220, coins:8 },
-  { name:'困難', bands:5, gapMin:130, gapMax:180, coins:10 },
+  { name:'簡單', corridor:220, obstacles:2, coins:8 },
+  { name:'普通', corridor:180, obstacles:4, coins:10 },
+  { name:'困難', corridor:150, obstacles:6, coins:12 },
 ];
 
 function rand(a, b){ return a + Math.random() * (b - a); }
-function randInt(a, b){ return Math.floor(rand(a, b + 1)); }
+
+// Return world quadrant of a point: 0=top, 1=right, 2=bottom, 3=left
+function quadrantOf(x, y, L){
+  var cx = L.size.w / 2, cy = L.size.h / 2;
+  var ang = Math.atan2(y - cy, x - cx); // canvas coord: y+ down
+  if (ang >= -3*Math.PI/4 && ang < -Math.PI/4) return 0;   // up
+  if (ang >= -Math.PI/4   && ang <  Math.PI/4) return 1;   // right
+  if (ang >=  Math.PI/4   && ang <  3*Math.PI/4) return 2; // down
+  return 3;                                                // left
+}
+
+function randObstacleInSide(side, wallT, CORR, innerW, innerH){
+  var pad = 30;
+  var maxSz = Math.min(55, CORR * 0.32); // don't clog narrow corridors
+  var w = rand(25, maxSz), h = rand(25, maxSz);
+  var x, y;
+  if (side === 0){        // top corridor
+    x = wallT + CORR + pad + Math.random() * Math.max(1, innerW - 2*pad - w);
+    y = wallT + pad + Math.random() * Math.max(1, CORR - 2*pad - h);
+  } else if (side === 1){ // right corridor
+    x = wallT + CORR + innerW + pad + Math.random() * Math.max(1, CORR - 2*pad - w);
+    y = wallT + CORR + pad + Math.random() * Math.max(1, innerH - 2*pad - h);
+  } else if (side === 2){ // bottom corridor
+    x = wallT + CORR + pad + Math.random() * Math.max(1, innerW - 2*pad - w);
+    y = wallT + CORR + innerH + pad + Math.random() * Math.max(1, CORR - 2*pad - h);
+  } else {                // left corridor
+    x = wallT + pad + Math.random() * Math.max(1, CORR - 2*pad - w);
+    y = wallT + CORR + pad + Math.random() * Math.max(1, innerH - 2*pad - h);
+  }
+  return {x:x, y:y, w:w, h:h};
+}
+
+function randCoinInSide(side, wallT, CORR, innerW, innerH){
+  var pad = 25;
+  if (side === 0)
+    return { x: wallT + CORR + pad + Math.random()*(innerW - 2*pad),
+             y: wallT + pad + Math.random()*(CORR - 2*pad) };
+  if (side === 1)
+    return { x: wallT + CORR + innerW + pad + Math.random()*(CORR - 2*pad),
+             y: wallT + CORR + pad + Math.random()*(innerH - 2*pad) };
+  if (side === 2)
+    return { x: wallT + CORR + pad + Math.random()*(innerW - 2*pad),
+             y: wallT + CORR + innerH + pad + Math.random()*(CORR - 2*pad) };
+  return   { x: wallT + pad + Math.random()*(CORR - 2*pad),
+             y: wallT + CORR + pad + Math.random()*(innerH - 2*pad) };
+}
 
 function generateLevel(diffIdx){
   var d = DIFF[diffIdx];
-  var WORLD_W = 900, WORLD_H = 600;
-  var BAND_W = 40;
+  var WORLD_W = 1400, WORLD_H = 1000;
   var wallT = 20;
+  var CORR = d.corridor;
 
   var walls = [
     {x:0, y:0, w:WORLD_W, h:wallT},
-    {x:0, y:WORLD_H - wallT, w:WORLD_W, h:wallT},
+    {x:0, y:WORLD_H-wallT, w:WORLD_W, h:wallT},
     {x:0, y:0, w:wallT, h:WORLD_H},
-    {x:WORLD_W - wallT, y:0, w:wallT, h:WORLD_H},
+    {x:WORLD_W-wallT, y:0, w:wallT, h:WORLD_H},
   ];
 
-  // Divide interior into (bands + 1) equal lanes; bands sit between lanes
-  var innerW = WORLD_W - wallT * 2;
-  var laneW = innerW / (d.bands + 1);
-  var blocks = [];
-  var gaps = []; // remember gap regions for later use
+  var innerX = wallT + CORR;
+  var innerY = wallT + CORR;
+  var innerW = WORLD_W - 2*wallT - 2*CORR;
+  var innerH = WORLD_H - 2*wallT - 2*CORR;
+  var innerBlock = {x:innerX, y:innerY, w:innerW, h:innerH};
 
-  // random first side (top or bottom) — makes each run feel different
-  var firstBottom = Math.random() < 0.5;
+  // Start & finish — top-center of top corridor
+  var startX = WORLD_W / 2;
+  var startY = wallT + CORR / 2;
+  var start = {x:startX, y:startY};
+  var finishW = 100;
+  var finish = {
+    x: startX - finishW/2,
+    y: wallT,
+    w: finishW,
+    h: CORR,
+  };
 
-  for (var i = 0; i < d.bands; i++){
-    var bx = wallT + laneW * (i + 1) - BAND_W / 2;
-    var gap = rand(d.gapMin, d.gapMax);
-    var gapAtBottom = (firstBottom ? (i % 2 === 0) : (i % 2 === 1));
-    if (gapAtBottom){
-      // block extends from top wall downward, gap at bottom
-      var bh = WORLD_H - wallT - gap;
-      blocks.push({x:bx, y:0, w:BAND_W, h:bh});
-      gaps.push({side:'bottom', x:bx + BAND_W/2, y:bh + gap/2});
-    } else {
-      // block extends from bottom wall upward, gap at top
-      var bh2 = WORLD_H - wallT - gap;
-      blocks.push({x:bx, y:wallT + gap, w:BAND_W, h:bh2});
-      gaps.push({side:'top', x:bx + BAND_W/2, y:wallT + gap/2});
+  // Obstacles — spread across sides, avoid start
+  var obstacles = [];
+  var oAtt = 0;
+  while (obstacles.length < d.obstacles && oAtt < 300){
+    oAtt++;
+    var side = obstacles.length < 4
+        ? obstacles.length
+        : Math.floor(Math.random() * 4);
+    var ob = randObstacleInSide(side, wallT, CORR, innerW, innerH);
+    var ocx = ob.x + ob.w/2, ocy = ob.y + ob.h/2;
+    if (Math.hypot(ocx - startX, ocy - startY) < 150) continue;
+    var bad = false;
+    for (var oi = 0; oi < obstacles.length; oi++){
+      var op = obstacles[oi];
+      if (ob.x < op.x + op.w + 25 && ob.x + ob.w + 25 > op.x &&
+          ob.y < op.y + op.h + 25 && ob.y + ob.h + 25 > op.y){ bad = true; break; }
     }
+    if (bad) continue;
+    obstacles.push(ob);
   }
 
-  // Start on left in first lane, positioned toward first gap side
-  var firstGap = gaps[0];
-  var start = {
-    x: wallT + laneW * 0.5,
-    y: firstGap.side === 'bottom' ? WORLD_H - 60 : 60,
-  };
-
-  // Finish at the END of the path — tucked into the corner of the last lane
-  // on the same side as the last gap (that's where the ball naturally exits)
-  var lastGap = gaps[gaps.length - 1];
-  var finishW = 80, finishH = 90;
-  var finish = {
-    x: WORLD_W - wallT - finishW,
-    y: lastGap.side === 'bottom'
-        ? WORLD_H - wallT - finishH
-        : wallT,
-    w: finishW, h: finishH,
-  };
-
-  // Symmetrically place start in the START corner of the first lane
-  // (already set above based on first gap side, but push it into the corner)
-  start.x = wallT + 30;
-  start.y = firstGap.side === 'bottom' ? WORLD_H - wallT - 30 : wallT + 30;
-
-  // Coins: sprinkle in lanes, avoid blocks/walls/start/finish
+  // Coins — around loop, avoid obstacles + start
   var coins = [];
-  var attempts = 0;
-  while (coins.length < d.coins && attempts < 300){
-    attempts++;
-    var cx = rand(wallT + 25, WORLD_W - wallT - 25);
-    var cy = rand(wallT + 25, WORLD_H - wallT - 25);
-    var ok = true;
-    // not inside/near any block
-    for (var b = 0; b < blocks.length; b++){
-      var bb = blocks[b];
-      if (cx > bb.x - 18 && cx < bb.x + bb.w + 18 &&
-          cy > bb.y - 18 && cy < bb.y + bb.h + 18){ ok = false; break; }
+  var cAtt = 0;
+  while (coins.length < d.coins && cAtt < 400){
+    cAtt++;
+    var cside = Math.floor(Math.random() * 4);
+    var pt = randCoinInSide(cside, wallT, CORR, innerW, innerH);
+    var cx = pt.x, cy = pt.y;
+    if (Math.hypot(cx - startX, cy - startY) < 110) continue;
+    var badc = false;
+    for (var oi2 = 0; oi2 < obstacles.length; oi2++){
+      var ob2 = obstacles[oi2];
+      if (cx > ob2.x - 18 && cx < ob2.x + ob2.w + 18 &&
+          cy > ob2.y - 18 && cy < ob2.y + ob2.h + 18){ badc = true; break; }
     }
-    if (!ok) continue;
-    // not too close to start / finish
-    if (Math.hypot(cx - start.x, cy - start.y) < 60) continue;
-    if (Math.hypot(cx - (finish.x + finish.w/2), cy - (finish.y + finish.h/2)) < 60) continue;
-    // not too close to other coins
-    var tooClose = false;
+    if (badc) continue;
+    var tc = false;
     for (var ci = 0; ci < coins.length; ci++){
-      if (Math.hypot(cx - coins[ci].x, cy - coins[ci].y) < 44){ tooClose = true; break; }
+      if (Math.hypot(cx - coins[ci].x, cy - coins[ci].y) < 48){ tc = true; break; }
     }
-    if (tooClose) continue;
+    if (tc) continue;
     coins.push({x:cx, y:cy});
   }
 
   return {
     size:{w:WORLD_W, h:WORLD_H},
     start:start, finish:finish,
-    walls:walls, blocks:blocks, coins:coins,
+    walls:walls, blocks:[innerBlock].concat(obstacles), coins:coins,
+    isLoop: true,
     diffIdx:diffIdx, diffName:d.name,
   };
 }
@@ -286,14 +321,19 @@ function newGame(L){
     L: L,
     ball: { x:L.start.x, y:L.start.y, vx:0, vy:0, r:12 },
     coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:11, taken:false}; }),
-    startTime: 0, elapsed: 0,
+    startTime: 0,       // 0 = timer not yet running; set on first launch
+    elapsed: 0,
     score: 0, coinCount: 0,
-    state: 'aim',    // 'aim' | 'rolling' | 'won' | 'lost'
-    aim: null,       // {sx,sy,cx,cy}
-    steer: null,     // {x,y} world-space finger position while rolling
-    steerUntil: 0,   // auto-release timestamp (ms) for current steer touch
+    state: 'aim',       // 'aim' | 'rolling' | 'won' | 'lost'
+    aim: null,          // {sx,sy,cx,cy}
+    steer: null,        // {x,y} world-space finger position while rolling
+    steerUntil: 0,      // auto-release timestamp (ms) for current steer touch
     cam: {x:0, y:0},
     trail: [],
+    // lap tracking (loop mode)
+    visited: {0:true, 1:false, 2:false, 3:false},
+    lastQ: 0,
+    hasLeft: false,
   };
   updateCam(true);
 }
@@ -331,7 +371,7 @@ function playLevel(L){
   $('hint').classList.add('show');
   setTimeout(function(){ $('hint').classList.remove('show'); }, 3500);
   running = true; paused = false;
-  G.startTime = performance.now();
+  // Timer stays paused (startTime=0) until first launch — see ptUp()
   requestAnimationFrame(loop);
 }
 
@@ -353,7 +393,7 @@ function resumeGame(){
   if(!paused) return;
   paused = false;
   hideOv('pause');
-  G.startTime = performance.now() - G.elapsed;
+  if (G.startTime > 0) G.startTime = performance.now() - G.elapsed;
   requestAnimationFrame(loop);
 }
 
@@ -361,24 +401,27 @@ function resumeGame(){
 // INPUT (slingshot aim & launch)
 // ═══════════════════════════════════════
 function screenToWorld(sx, sy){
-  return { x: sx + G.cam.x, y: sy + G.cam.y };
+  return { x: sx / VIEW_SCALE + G.cam.x, y: sy / VIEW_SCALE + G.cam.y };
 }
 
 function ptDown(sx, sy){
   if(!G) return;
-  var p = screenToWorld(sx, sy);
   if(G.state === 'aim'){
-    G.aim = { sx:p.x, sy:p.y, cx:p.x, cy:p.y };
+    // aim uses screen coords so drag distance is not warped by zoom
+    G.aim = { sx:sx, sy:sy, cx:sx, cy:sy };
   } else if(G.state === 'rolling'){
+    var p = screenToWorld(sx, sy);
     G.steer = { x:p.x, y:p.y };
-    G.steerUntil = performance.now() + 500;   // auto-release after 0.5s
+    G.steerUntil = performance.now() + 500;
   }
 }
 function ptMove(sx, sy){
   if(!G) return;
-  var p = screenToWorld(sx, sy);
-  if(G.aim){ G.aim.cx = p.x; G.aim.cy = p.y; }
-  if(G.steer){ G.steer.x = p.x; G.steer.y = p.y; }
+  if(G.aim){ G.aim.cx = sx; G.aim.cy = sy; }
+  if(G.steer){
+    var p = screenToWorld(sx, sy);
+    G.steer.x = p.x; G.steer.y = p.y;
+  }
 }
 function ptUp(){
   if(!G) return;
@@ -387,14 +430,19 @@ function ptUp(){
   var a = G.aim; G.aim = null;
   var dx = a.sx - a.cx, dy = a.sy - a.cy;   // reverse: drag back → launch forward
   var dist = Math.hypot(dx, dy);
-  if(dist < 8) return; // tap = no-op
-  var power = Math.min(dist, 220) / 220;    // 0..1
+  if(dist < 12) return; // tap = no-op
+  var power = Math.min(dist, 200) / 200;    // 0..1 (screen px)
   var speed = 4 + power * 13;
   var nx = dx / dist, ny = dy / dist;
   G.ball.vx = nx * speed;
   G.ball.vy = ny * speed;
   G.state = 'rolling';
   G.trail = [];
+  // Start the countdown on the first real launch
+  if (G.startTime === 0){
+    G.startTime = performance.now();
+    G.elapsed = 0;
+  }
 }
 
 cv.addEventListener('pointerdown', function(e){
@@ -466,11 +514,25 @@ function step(){
     }
   }
 
-  // finish
-  var f = G.L.finish;
-  if(b.x > f.x && b.x < f.x + f.w && b.y > f.y && b.y < f.y + f.h){
-    winLevel();
-    return;
+  // lap tracking (loop mode): update visited quadrants + finish check
+  if (G.L.isLoop){
+    var q = quadrantOf(b.x, b.y, G.L);
+    if (q !== G.lastQ){
+      G.visited[q] = true;
+      G.lastQ = q;
+    }
+    if (!G.hasLeft){
+      var dsx = b.x - G.L.start.x, dsy = b.y - G.L.start.y;
+      if (dsx*dsx + dsy*dsy > 120*120) G.hasLeft = true;
+    }
+    var lapDone = G.hasLeft && G.visited[1] && G.visited[2] && G.visited[3];
+    if (lapDone){
+      var f = G.L.finish;
+      if (b.x > f.x && b.x < f.x + f.w && b.y > f.y && b.y < f.y + f.h){
+        winLevel();
+        return;
+      }
+    }
   }
 
   // stop — don't fall through while player is still steering
@@ -539,12 +601,13 @@ function loseLevel(){
 // CAMERA
 // ═══════════════════════════════════════
 function updateCam(snap){
-  var tx = G.ball.x - W/2;
-  var ty = G.ball.y - H/2;
-  if(G.L.size.w <= W) tx = (G.L.size.w - W) / 2;
-  else tx = Math.max(0, Math.min(tx, G.L.size.w - W));
-  if(G.L.size.h <= H) ty = (G.L.size.h - H) / 2;
-  else ty = Math.max(0, Math.min(ty, G.L.size.h - H));
+  var viewW = W / VIEW_SCALE, viewH = H / VIEW_SCALE;
+  var tx = G.ball.x - viewW/2;
+  var ty = G.ball.y - viewH/2;
+  if(G.L.size.w <= viewW) tx = (G.L.size.w - viewW) / 2;
+  else tx = Math.max(0, Math.min(tx, G.L.size.w - viewW));
+  if(G.L.size.h <= viewH) ty = (G.L.size.h - viewH) / 2;
+  else ty = Math.max(0, Math.min(ty, G.L.size.h - viewH));
   if(snap){ G.cam.x = tx; G.cam.y = ty; }
   else {
     G.cam.x += (tx - G.cam.x) * 0.12;
@@ -560,7 +623,10 @@ function render(){
   ctx.fillRect(0, 0, W, H);
 
   ctx.save();
+  ctx.scale(VIEW_SCALE, VIEW_SCALE);
   ctx.translate(-G.cam.x, -G.cam.y);
+
+  var viewW = W / VIEW_SCALE, viewH = H / VIEW_SCALE;
 
   // grid
   ctx.strokeStyle = 'rgba(148,163,184,.08)';
@@ -568,11 +634,11 @@ function render(){
   var gs = 40;
   var gx0 = Math.floor(G.cam.x / gs) * gs;
   var gy0 = Math.floor(G.cam.y / gs) * gs;
-  for(var x = gx0; x < G.cam.x + W + gs; x += gs){
-    ctx.beginPath(); ctx.moveTo(x, G.cam.y); ctx.lineTo(x, G.cam.y + H); ctx.stroke();
+  for(var x = gx0; x < G.cam.x + viewW + gs; x += gs){
+    ctx.beginPath(); ctx.moveTo(x, G.cam.y); ctx.lineTo(x, G.cam.y + viewH); ctx.stroke();
   }
-  for(var y = gy0; y < G.cam.y + H + gs; y += gs){
-    ctx.beginPath(); ctx.moveTo(G.cam.x, y); ctx.lineTo(G.cam.x + W, y); ctx.stroke();
+  for(var y = gy0; y < G.cam.y + viewH + gs; y += gs){
+    ctx.beginPath(); ctx.moveTo(G.cam.x, y); ctx.lineTo(G.cam.x + viewW, y); ctx.stroke();
   }
 
   // world bounds
@@ -657,34 +723,35 @@ function render(){
     }
   }
 
-  // aim UI
+  // aim UI — dist is in SCREEN px; convert lengths to world by /VIEW_SCALE
   if(G.state === 'aim' && G.aim){
     var b = G.ball;
     var dx = G.aim.sx - G.aim.cx, dy = G.aim.sy - G.aim.cy;
-    var dist = Math.min(Math.hypot(dx, dy), 220);
-    if(dist > 4){
+    var distScr = Math.min(Math.hypot(dx, dy), 200);
+    if(distScr > 6){
       var ang = Math.atan2(dy, dx);
-      var len = dist * 1.4;
-      var tx = b.x + Math.cos(ang) * len;
-      var ty = b.y + Math.sin(ang) * len;
+      var lenW = distScr * 1.4 / VIEW_SCALE;
+      var tx = b.x + Math.cos(ang) * lenW;
+      var ty = b.y + Math.sin(ang) * lenW;
+      var headW = 15 / VIEW_SCALE;
       ctx.strokeStyle = 'rgba(6,182,212,.75)';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([9, 6]);
+      ctx.lineWidth = 3 / VIEW_SCALE;
+      ctx.setLineDash([9 / VIEW_SCALE, 6 / VIEW_SCALE]);
       ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(tx, ty); ctx.stroke();
       ctx.setLineDash([]);
       // arrow
       ctx.fillStyle = 'rgba(6,182,212,.9)';
       ctx.beginPath();
       ctx.moveTo(tx, ty);
-      ctx.lineTo(tx - Math.cos(ang-0.42)*15, ty - Math.sin(ang-0.42)*15);
-      ctx.lineTo(tx - Math.cos(ang+0.42)*15, ty - Math.sin(ang+0.42)*15);
+      ctx.lineTo(tx - Math.cos(ang-0.42)*headW, ty - Math.sin(ang-0.42)*headW);
+      ctx.lineTo(tx - Math.cos(ang+0.42)*headW, ty - Math.sin(ang+0.42)*headW);
       ctx.closePath(); ctx.fill();
       // power ring
-      var power = dist / 220;
+      var power = distScr / 200;
       ctx.strokeStyle = 'hsl(' + Math.round((1-power)*120) + ', 85%, 55%)';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 4 / VIEW_SCALE;
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r + 7, -Math.PI/2, -Math.PI/2 + Math.PI*2*power);
+      ctx.arc(b.x, b.y, b.r + 7/VIEW_SCALE, -Math.PI/2, -Math.PI/2 + Math.PI*2*power);
       ctx.stroke();
     }
   }
@@ -725,20 +792,24 @@ function drawFinish(f){
 // ═══════════════════════════════════════
 function updateHUD(){
   $('hud-coin').textContent = G.coinCount + '/' + G.L.coins.length;
-  var leftMs = Math.max(0, TIME_LIMIT_MS - G.elapsed);
+  var leftMs = G.startTime === 0
+      ? TIME_LIMIT_MS
+      : Math.max(0, TIME_LIMIT_MS - G.elapsed);
   $('hud-time').textContent = (leftMs / 1000).toFixed(1);
-  $('hud-lvl').textContent  = G.L.diffName;
+  var count = (G.visited[1] ? 1 : 0) + (G.visited[2] ? 1 : 0) + (G.visited[3] ? 1 : 0);
+  $('hud-lvl').textContent  = count + '/3';
   var tb = $('hud-time-box');
-  if(leftMs < 5000) tb.classList.add('warn');
+  if(G.startTime > 0 && leftMs < 5000) tb.classList.add('warn');
   else tb.classList.remove('warn');
 }
 
 function loop(){
   if(!running || paused) return;
-  G.elapsed = performance.now() - G.startTime;
+  // countdown only runs after first launch
+  if (G.startTime > 0) G.elapsed = performance.now() - G.startTime;
   step();
-  // time-up check — after step so a last-frame finish still counts as win
-  if(G.state !== 'won' && G.state !== 'lost' && G.elapsed >= TIME_LIMIT_MS){
+  // time-up check — only after timer started
+  if(G.startTime > 0 && G.state !== 'won' && G.state !== 'lost' && G.elapsed >= TIME_LIMIT_MS){
     loseLevel();
     updateHUD();
     render();
