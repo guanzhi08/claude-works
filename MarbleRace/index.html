@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v14</title>
+<title>彈珠賽車 v15</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -120,7 +120,7 @@
     <p>🔁 <b>環狀跑道</b>：起點和終點都在跑道頂端中央；必須繞一整圈（順時針或逆時針皆可）回到起點才算完成</p>
     <p>📍 <b>進度</b>：HUD 顯示已通過的檢查點（右、下、左三處），三個都通過並回到起點就過關</p>
     <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數（簡單 60s / 普通 45s / 困難 30s），時間到就失敗</p>
-    <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈</p>
+    <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈；每累積 <b>5 個</b>會立刻獲得一個隨機道具</p>
     <p>🧱 <b>磚塊障礙</b>：跑道上隨機分佈，長度從 1 格到 4 格都有，會反彈彈珠（吃到 🍄 變大後可撞破整塊）</p>
     <p>🎁 <b>道具</b>（每關每種各 4 個，共 12 個）：
       <br>・<b style="color:#67e8f9">⏸ 時間暫停</b>：倒數暫停 10 秒
@@ -164,7 +164,7 @@
   </div>
 </div>
 
-<div class="ver">v14</div>
+<div class="ver">v15</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -380,7 +380,7 @@ var cv = $('cv'), ctx = cv.getContext('2d');
 var W=0, H=0, DPR=1;
 // Pixel-art offscreen buffer — world is drawn at 1/PIXEL_SIZE resolution
 // then blitted with nearest-neighbor scaling for that chunky pixel look.
-var PIXEL_SIZE = 3;
+var PIXEL_SIZE = 4;
 var pxCanvas = document.createElement('canvas');
 var pxCtx = pxCanvas.getContext('2d');
 function resize(){
@@ -718,6 +718,11 @@ function step(){
       c.taken = true;
       G.coinCount++;
       G.score += 10;
+      // every 5 coins → grant a random power-up
+      if(G.coinCount % 5 === 0){
+        var bonusTypes = ['freeze', 'grow', 'speed'];
+        applyPowerUp(bonusTypes[Math.floor(Math.random() * 3)]);
+      }
     }
   }
 
