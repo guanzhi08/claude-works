@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v8</title>
+<title>彈珠賽車 v9</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -48,8 +48,20 @@
   .hud-item .lbl{color:var(--mut);font-size:.68rem;margin-right:5px}
   .hud-item.warn{background:rgba(239,68,68,.9);color:#fff}
   .hud-item.warn .lbl{color:rgba(255,255,255,.85)}
+  .hud-item.frozen{background:rgba(103,232,249,.9);color:#083344}
+  .hud-item.frozen .lbl{color:rgba(8,51,68,.75)}
   @keyframes pulse-red{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
   .hud-item.warn{animation:pulse-red .6s ease-in-out infinite}
+
+  .fx{position:fixed;top:calc(58px + env(safe-area-inset-top));left:0;right:0;
+    display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none;
+    flex-wrap:wrap;padding:0 12px}
+  .fx-chip{background:rgba(15,23,42,.9);color:#fff;padding:5px 10px;
+    border-radius:16px;font-size:.78rem;font-weight:700;border:2px solid;
+    display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .fx-chip.freeze{border-color:#67e8f9;color:#67e8f9}
+  .fx-chip.grow{border-color:#86efac;color:#86efac}
+  .fx-chip.speed{border-color:#fde047;color:#fde047}
 
   .btm{position:fixed;bottom:0;left:0;right:0;
     padding:10px 14px calc(10px + env(safe-area-inset-bottom));
@@ -76,6 +88,8 @@
   <div class="hud-item" id="hud-time-box"><span class="lbl">剩餘</span><span id="hud-time">--</span>s</div>
   <div class="hud-item"><span class="lbl">進度</span><span id="hud-lvl">0/3</span></div>
 </div>
+
+<div class="fx" id="fx" style="display:none"></div>
 
 <div class="btm" id="btm" style="display:none">
   <button class="btn sec" onclick="pauseGame()">⏸ 暫停</button>
@@ -107,7 +121,12 @@
     <p>📍 <b>進度</b>：HUD 顯示已通過的檢查點（右、下、左三處），三個都通過並回到起點就過關</p>
     <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數（簡單 60s / 普通 45s / 困難 30s），時間到就失敗</p>
     <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈</p>
-    <p>🟥 <b>障礙物</b>：跑道上隨機分佈，會反彈彈珠</p>
+    <p>🧱 <b>磚塊障礙</b>：跑道上隨機分佈，會反彈彈珠（吃到 🍄 變大後可撞破）</p>
+    <p>🎁 <b>道具</b>（每關 2 個）：
+      <br>・<b style="color:#67e8f9">⏸ 時間暫停</b>：倒數暫停 5 秒
+      <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 10 秒，可撞破磚塊
+      <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
+    </p>
     <p>🎥 <b>相機</b>：局部視角，跟隨彈珠移動</p>
     <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
@@ -143,7 +162,7 @@
   </div>
 </div>
 
-<div class="ver">v8</div>
+<div class="ver">v9</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -285,6 +304,46 @@ function generateLevel(diffIdx){
     coins.push({x:cx, y:cy});
   }
 
+  // Power-ups — fixed total per level: 2 of each type = 6 total
+  var powerTypes = ['freeze', 'grow', 'speed'];
+  var powerups = [];
+  var pAtt = 0;
+  var perType = 2;
+  var wanted = powerTypes.length * perType;
+  var countByType = {freeze:0, grow:0, speed:0};
+  while (powerups.length < wanted && pAtt < 1500){
+    pAtt++;
+    // pick type that still needs more, cycling
+    var t = powerTypes[powerups.length % powerTypes.length];
+    if (countByType[t] >= perType){
+      // fallback: any type still under quota
+      for (var ti = 0; ti < powerTypes.length; ti++){
+        if (countByType[powerTypes[ti]] < perType){ t = powerTypes[ti]; break; }
+      }
+    }
+    var pside = Math.floor(Math.random() * 4);
+    var pp = randCoinInSide(pside, wallT, CORR, innerW, innerH);
+    var px = pp.x, py = pp.y;
+    if (Math.hypot(px - startX, py - startY) < 140) continue;
+    var badp = false;
+    for (var oi3 = 0; oi3 < obstacles.length; oi3++){
+      var ob3 = obstacles[oi3];
+      if (px > ob3.x - 24 && px < ob3.x + ob3.w + 24 &&
+          py > ob3.y - 24 && py < ob3.y + ob3.h + 24){ badp = true; break; }
+    }
+    if (badp) continue;
+    for (var ci2 = 0; ci2 < coins.length; ci2++){
+      if (Math.hypot(px - coins[ci2].x, py - coins[ci2].y) < 55){ badp = true; break; }
+    }
+    if (badp) continue;
+    for (var pi = 0; pi < powerups.length; pi++){
+      if (Math.hypot(px - powerups[pi].x, py - powerups[pi].y) < 80){ badp = true; break; }
+    }
+    if (badp) continue;
+    powerups.push({x:px, y:py, r:16, type:t, taken:false});
+    countByType[t]++;
+  }
+
   return {
     size:{w:WORLD_W, h:WORLD_H},
     start:start, finish:finish,
@@ -293,6 +352,7 @@ function generateLevel(diffIdx){
     walls: walls.concat([innerBlock]),
     blocks: obstacles,
     coins: coins,
+    powerups: powerups,
     isLoop: true,
     timeMs: d.timeMs,
     diffIdx:diffIdx, diffName:d.name,
@@ -321,10 +381,14 @@ var currentLevel = null;     // last generated level (for retry same)
 var currentDiff  = 0;
 
 function newGame(L){
+  // deep-copy block objects so 'destroyed' state doesn't persist across retries
+  var freshBlocks = L.blocks.map(function(b){ return {x:b.x, y:b.y, w:b.w, h:b.h, destroyed:false}; });
+  L.blocks = freshBlocks;
   G = {
     L: L,
     ball: { x:L.start.x, y:L.start.y, vx:0, vy:0, r:12 },
     coins: L.coins.map(function(c){ return {x:c.x, y:c.y, r:11, taken:false}; }),
+    powerups: L.powerups.map(function(p){ return {x:p.x, y:p.y, r:p.r, type:p.type, taken:false}; }),
     startTime: 0,       // 0 = timer not yet running; set on first launch
     elapsed: 0,
     score: 0, coinCount: 0,
@@ -338,6 +402,10 @@ function newGame(L){
     visited: {0:true, 1:false, 2:false, 3:false},
     lastQ: 0,
     hasLeft: false,
+    // power-up effect timestamps (ms; 0 = inactive)
+    freezeUntil: 0,
+    growUntil: 0,
+    speedUntil: 0,
   };
   updateCam(true);
 }
@@ -384,6 +452,7 @@ function backToMenu(){
   hideOv('pause'); hideOv('win'); hideOv('lose');
   $('hud').style.display = 'none';
   $('btm').style.display = 'none';
+  $('fx').style.display = 'none';
   $('hint').classList.remove('show');
   showOv('menu');
 }
@@ -458,6 +527,25 @@ cv.addEventListener('pointerup',   function(e){ ptUp(); });
 cv.addEventListener('pointercancel', function(e){ ptUp(); });
 
 // ═══════════════════════════════════════
+// POWER-UPS
+// ═══════════════════════════════════════
+function applyPowerUp(type){
+  var now = performance.now();
+  if(type === 'freeze'){
+    G.freezeUntil = Math.max(G.freezeUntil, now) + 5000;
+  } else if(type === 'grow'){
+    G.growUntil = Math.max(G.growUntil, now) + 10000;
+    G.ball.r = 24;
+  } else if(type === 'speed'){
+    G.speedUntil = Math.max(G.speedUntil, now) + 10000;
+    if(G.state === 'rolling'){
+      G.ball.vx *= 2;
+      G.ball.vy *= 2;
+    }
+  }
+}
+
+// ═══════════════════════════════════════
 // PHYSICS
 // ═══════════════════════════════════════
 var FRICTION = 0.992;
@@ -469,9 +557,17 @@ var MAX_V    = 18;     // max speed under thrust
 function step(){
   if(G.state !== 'rolling') return;
   var b = G.ball;
+  var now = performance.now();
+
+  // Expire grow: shrink ball back if effect ended
+  if(G.growUntil && now > G.growUntil && b.r > 12){ b.r = 12; }
+
+  var isGrow  = G.growUntil  > now;
+  var isSpeed = G.speedUntil > now;
+  var maxV    = isSpeed ? MAX_V * 2 : MAX_V;
 
   // auto-release steer after 0.5s (prevents infinite hold-thrust)
-  if(G.steer && performance.now() >= G.steerUntil){
+  if(G.steer && now >= G.steerUntil){
     G.steer = null;
   }
 
@@ -482,9 +578,8 @@ function step(){
     if(sd > 3){
       b.vx += (sdx / sd) * STEER_A;
       b.vy += (sdy / sd) * STEER_A;
-      // cap speed so hold-forever doesn't fly infinitely fast
       var sp = Math.hypot(b.vx, b.vy);
-      if(sp > MAX_V){ b.vx = b.vx / sp * MAX_V; b.vy = b.vy / sp * MAX_V; }
+      if(sp > maxV){ b.vx = b.vx / sp * maxV; b.vy = b.vy / sp * maxV; }
     }
   }
 
@@ -494,8 +589,26 @@ function step(){
   for(var i = 0; i < steps; i++){
     b.x += b.vx / steps;
     b.y += b.vy / steps;
-    var rects = G.L.walls.concat(G.L.blocks);
-    for(var j = 0; j < rects.length; j++) collideCircleRect(b, rects[j]);
+    // walls always bounce
+    for(var wj = 0; wj < G.L.walls.length; wj++){
+      collideCircleRect(b, G.L.walls[wj]);
+    }
+    // blocks: bounce, or destroy on grow contact
+    for(var bj = 0; bj < G.L.blocks.length; bj++){
+      var bl = G.L.blocks[bj];
+      if(bl.destroyed) continue;
+      if(isGrow){
+        var nx = Math.max(bl.x, Math.min(b.x, bl.x + bl.w));
+        var ny = Math.max(bl.y, Math.min(b.y, bl.y + bl.h));
+        var dxg = b.x - nx, dyg = b.y - ny;
+        if(dxg*dxg + dyg*dyg < b.r * b.r){
+          bl.destroyed = true;
+          b.vx *= 0.9; b.vy *= 0.9;   // small slow-down through debris
+        }
+      } else {
+        collideCircleRect(b, bl);
+      }
+    }
   }
 
   b.vx *= FRICTION;
@@ -515,6 +628,18 @@ function step(){
       c.taken = true;
       G.coinCount++;
       G.score += 10;
+    }
+  }
+
+  // power-ups
+  for(var pk = 0; pk < G.powerups.length; pk++){
+    var pu = G.powerups[pk];
+    if(pu.taken) continue;
+    var dpx = b.x - pu.x, dpy = b.y - pu.y;
+    var rrp = b.r + pu.r;
+    if(dpx*dpx + dpy*dpy < rrp*rrp){
+      pu.taken = true;
+      applyPowerUp(pu.type);
     }
   }
 
@@ -657,14 +782,11 @@ function render(){
     ctx.fillRect(w.x, w.y, w.w, w.h);
   }
 
-  // blocks
+  // blocks — brick pattern
   for(var i = 0; i < G.L.blocks.length; i++){
     var bk = G.L.blocks[i];
-    ctx.fillStyle = '#dc2626';
-    ctx.fillRect(bk.x, bk.y, bk.w, bk.h);
-    ctx.strokeStyle = '#7f1d1d';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bk.x+1, bk.y+1, bk.w-2, bk.h-2);
+    if(bk.destroyed) continue;
+    drawBrickBlock(bk);
   }
 
   // finish (checker + glow)
@@ -684,6 +806,13 @@ function render(){
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('$', c.x, c.y);
+  }
+
+  // power-ups
+  for(var pk = 0; pk < G.powerups.length; pk++){
+    var pu = G.powerups[pk];
+    if(pu.taken) continue;
+    drawPowerup(pu, t);
   }
 
   // trail
@@ -762,14 +891,97 @@ function render(){
 
   // ball
   var bb = G.ball;
+  var nowB = performance.now();
+  var isGrowB  = G.growUntil  > nowB;
+  var isSpeedB = G.speedUntil > nowB;
+  // grow halo (green pulse)
+  if(isGrowB){
+    var ph = 0.85 + Math.sin(nowB / 120) * 0.15;
+    var gh = ctx.createRadialGradient(bb.x, bb.y, bb.r*0.5, bb.x, bb.y, bb.r*1.8*ph);
+    gh.addColorStop(0, 'rgba(134,239,172,.55)');
+    gh.addColorStop(1, 'rgba(134,239,172,0)');
+    ctx.fillStyle = gh;
+    ctx.beginPath(); ctx.arc(bb.x, bb.y, bb.r*1.8*ph, 0, Math.PI*2); ctx.fill();
+  }
+  // speed streaks (yellow radial motion lines)
+  if(isSpeedB){
+    var ps = 0.8 + Math.sin(nowB / 90) * 0.2;
+    var sg = ctx.createRadialGradient(bb.x, bb.y, bb.r*0.5, bb.x, bb.y, bb.r*1.6*ps);
+    sg.addColorStop(0, 'rgba(253,224,71,.55)');
+    sg.addColorStop(1, 'rgba(253,224,71,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(bb.x, bb.y, bb.r*1.6*ps, 0, Math.PI*2); ctx.fill();
+  }
   var grd = ctx.createRadialGradient(bb.x-3, bb.y-4, 2, bb.x, bb.y, bb.r);
   grd.addColorStop(0, '#f0f9ff');
-  grd.addColorStop(1, '#0284c7');
+  grd.addColorStop(1, isGrowB ? '#16a34a' : '#0284c7');
   ctx.fillStyle = grd;
   ctx.beginPath(); ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = '#0c4a6e'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = isGrowB ? '#14532d' : '#0c4a6e';
+  ctx.lineWidth = 2; ctx.stroke();
 
   ctx.restore();
+}
+
+function drawBrickBlock(bk){
+  // Brick pattern: staggered rows of bricks with darker mortar background
+  ctx.save();
+  // clip to block bounds so overhanging bricks don't spill out
+  ctx.beginPath();
+  ctx.rect(bk.x, bk.y, bk.w, bk.h);
+  ctx.clip();
+  // mortar
+  ctx.fillStyle = '#3f1010';
+  ctx.fillRect(bk.x, bk.y, bk.w, bk.h);
+  // bricks
+  var brickH = 11, brickW = 22, mortar = 2;
+  var rows = Math.ceil(bk.h / brickH) + 1;
+  for(var r = 0; r < rows; r++){
+    var by = bk.y + r * brickH;
+    var offset = (r % 2 === 0) ? 0 : brickW / 2;
+    var col = (r % 2 === 0) ? '#dc2626' : '#e04949';
+    for(var bx = bk.x - offset; bx < bk.x + bk.w; bx += brickW){
+      ctx.fillStyle = col;
+      ctx.fillRect(bx + mortar/2, by + mortar/2, brickW - mortar, brickH - mortar);
+      // subtle highlight top
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      ctx.fillRect(bx + mortar/2, by + mortar/2, brickW - mortar, 2);
+    }
+  }
+  ctx.restore();
+  // outer dark border
+  ctx.strokeStyle = '#4a0e0e';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bk.x + 1, bk.y + 1, bk.w - 2, bk.h - 2);
+}
+
+function drawPowerup(p, tAnim){
+  var pulse = 0.9 + Math.sin(tAnim + p.x * 0.01) * 0.12;
+  var r = p.r * pulse;
+  var colors = {
+    freeze: {ring:'#67e8f9', inner:'#0e7490', text:'⏸'},
+    grow:   {ring:'#86efac', inner:'#166534', text:'🍄'},
+    speed:  {ring:'#fde047', inner:'#a16207', text:'⚡'},
+  };
+  var c = colors[p.type];
+  // outer glow
+  var grd = ctx.createRadialGradient(p.x, p.y, r*0.3, p.x, p.y, r*1.6);
+  grd.addColorStop(0, c.ring);
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r*1.6, 0, Math.PI*2); ctx.fill();
+  // body
+  var body = ctx.createRadialGradient(p.x - r*0.3, p.y - r*0.3, 1, p.x, p.y, r);
+  body.addColorStop(0, c.ring);
+  body.addColorStop(1, c.inner);
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = c.inner; ctx.lineWidth = 2; ctx.stroke();
+  // icon
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(c.text, p.x, p.y + 1);
 }
 
 function drawFinish(f){
@@ -803,14 +1015,47 @@ function updateHUD(){
   var count = (G.visited[1] ? 1 : 0) + (G.visited[2] ? 1 : 0) + (G.visited[3] ? 1 : 0);
   $('hud-lvl').textContent  = count + '/3';
   var tb = $('hud-time-box');
-  if(G.startTime > 0 && leftMs < 5000) tb.classList.add('warn');
-  else tb.classList.remove('warn');
+  var now = performance.now();
+  var frozen = G.freezeUntil > now;
+  if(frozen){
+    tb.classList.add('frozen');
+    tb.classList.remove('warn');
+  } else {
+    tb.classList.remove('frozen');
+    if(G.startTime > 0 && leftMs < 5000) tb.classList.add('warn');
+    else tb.classList.remove('warn');
+  }
+}
+
+function updateFX(){
+  var now = performance.now();
+  var chips = '';
+  if(G.freezeUntil > now){
+    chips += '<div class="fx-chip freeze">⏸ '+((G.freezeUntil-now)/1000).toFixed(1)+'s</div>';
+  }
+  if(G.growUntil > now){
+    chips += '<div class="fx-chip grow">🍄 '+((G.growUntil-now)/1000).toFixed(1)+'s</div>';
+  }
+  if(G.speedUntil > now){
+    chips += '<div class="fx-chip speed">⚡ '+((G.speedUntil-now)/1000).toFixed(1)+'s</div>';
+  }
+  var fx = $('fx');
+  fx.innerHTML = chips;
+  fx.style.display = chips ? 'flex' : 'none';
 }
 
 function loop(){
   if(!running || paused) return;
-  // countdown only runs after first launch
-  if (G.startTime > 0) G.elapsed = performance.now() - G.startTime;
+  var now = performance.now();
+  // countdown only runs after first launch, and pauses while freeze effect active
+  if (G.startTime > 0){
+    if (G.freezeUntil > now){
+      // hold elapsed constant while frozen
+      G.startTime = now - G.elapsed;
+    } else {
+      G.elapsed = now - G.startTime;
+    }
+  }
   step();
   // time-up check — only after timer started
   if(G.startTime > 0 && G.state !== 'won' && G.state !== 'lost' && G.elapsed >= G.L.timeMs){
@@ -822,6 +1067,7 @@ function loop(){
   updateCam(false);
   render();
   updateHUD();
+  updateFX();
   requestAnimationFrame(loop);
 }
 </script>
