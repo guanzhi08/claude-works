@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v13</title>
+<title>彈珠賽車 v14</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -128,6 +128,7 @@
       <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
     </p>
     <p>🎥 <b>相機</b>：局部視角，跟隨彈珠；預設起點視角就已朝跑道方向，過彎時緩慢旋轉，不追彈珠瞬時速度，避免頭暈</p>
+    <p>🕹 <b>像素風格</b>：畫面以低解析度渲染再放大，呈現懷舊像素感；撞破磚塊會噴出磚屑碎片</p>
     <p>🗺 <b>小地圖</b>：右下角顯示全局跑道，彈珠位置與終點一目瞭然</p>
     <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
@@ -163,7 +164,7 @@
   </div>
 </div>
 
-<div class="ver">v13</div>
+<div class="ver">v14</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -377,12 +378,21 @@ function generateLevel(diffIdx){
 var $ = function(id){ return document.getElementById(id); };
 var cv = $('cv'), ctx = cv.getContext('2d');
 var W=0, H=0, DPR=1;
+// Pixel-art offscreen buffer — world is drawn at 1/PIXEL_SIZE resolution
+// then blitted with nearest-neighbor scaling for that chunky pixel look.
+var PIXEL_SIZE = 3;
+var pxCanvas = document.createElement('canvas');
+var pxCtx = pxCanvas.getContext('2d');
 function resize(){
   DPR = window.devicePixelRatio || 1;
   W = window.innerWidth; H = window.innerHeight;
   cv.width = W*DPR; cv.height = H*DPR;
   cv.style.width = W+'px'; cv.style.height = H+'px';
   ctx.setTransform(DPR,0,0,DPR,0,0);
+  // low-res buffer
+  pxCanvas.width  = Math.max(1, Math.floor(W / PIXEL_SIZE));
+  pxCanvas.height = Math.max(1, Math.floor(H / PIXEL_SIZE));
+  pxCtx.imageSmoothingEnabled = false;
 }
 window.addEventListener('resize', resize);
 resize();
@@ -425,6 +435,7 @@ function newGame(L){
     headingAngle: 0,             // Q0 CW tangent direction
     camAngle: 0,                 // = -PI/2 - headingAngle, set below
     lapDir: 0,                   // 0=unknown, +1=clockwise, -1=counter-clockwise
+    particles: [],               // brick-break debris particles
   };
   G.camAngle = -Math.PI/2 - G.headingAngle;
   updateCam();
@@ -570,6 +581,43 @@ cv.addEventListener('pointercancel', function(e){ ptUp(); });
 // ═══════════════════════════════════════
 // POWER-UPS
 // ═══════════════════════════════════════
+// Emit chunky debris particles when a brick is destroyed.
+function emitBrickBreak(bl, ballVx, ballVy){
+  var cx = bl.x + bl.w/2;
+  var cy = bl.y + bl.h/2;
+  var area = bl.w * bl.h;
+  var count = Math.max(8, Math.min(28, Math.floor(area / 300)));
+  var colors = ['#dc2626', '#e04949', '#7f1d1d', '#f87171', '#3f1010'];
+  for(var i = 0; i < count; i++){
+    var ang = Math.random() * Math.PI * 2;
+    var spd = rand(1.5, 5.5);
+    var vx = Math.cos(ang) * spd + ballVx * 0.25;
+    var vy = Math.sin(ang) * spd + ballVy * 0.25 - rand(0.5, 2.5);
+    G.particles.push({
+      x: cx + rand(-bl.w/3, bl.w/3),
+      y: cy + rand(-bl.h/3, bl.h/3),
+      vx: vx, vy: vy,
+      size: 2 + Math.floor(Math.random() * 4),   // 2-5 world px (pixelated)
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 34 + Math.floor(Math.random() * 22),
+      maxLife: 55,
+    });
+  }
+}
+
+function updateParticles(){
+  for(var i = G.particles.length - 1; i >= 0; i--){
+    var p = G.particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.28;         // gravity
+    p.vx *= 0.985;
+    p.vy *= 0.995;
+    p.life--;
+    if(p.life <= 0) G.particles.splice(i, 1);
+  }
+}
+
 function applyPowerUp(type){
   var now = performance.now();
   if(type === 'freeze'){
@@ -644,6 +692,7 @@ function step(){
         var dxg = b.x - nx, dyg = b.y - ny;
         if(dxg*dxg + dyg*dyg < b.r * b.r){
           bl.destroyed = true;
+          emitBrickBreak(bl, b.vx, b.vy);
           b.vx *= 0.9; b.vy *= 0.9;   // small slow-down through debris
         }
       } else {
@@ -815,6 +864,17 @@ function updateHeading(){
 // RENDER
 // ═══════════════════════════════════════
 function render(){
+  // ─── Pixel-art world pass: draw to low-res pxCanvas, then blit ───
+  // Redirect globals so all existing rendering code below targets pxCtx
+  var _ctx = ctx, _W = W, _H = H, _DPR = DPR, _VS = VIEW_SCALE;
+  ctx = pxCtx;
+  W = pxCanvas.width;
+  H = pxCanvas.height;
+  DPR = 1;
+  VIEW_SCALE = _VS / PIXEL_SIZE;
+  ctx.imageSmoothingEnabled = false;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
   ctx.fillStyle = '#0b1220';
   ctx.fillRect(0, 0, W, H);
 
@@ -963,7 +1023,26 @@ function render(){
   ctx.strokeStyle = isGrowB ? '#14532d' : '#0c4a6e';
   ctx.lineWidth = 2; ctx.stroke();
 
+  // brick debris particles — drawn as flat squares for pixel aesthetic
+  for(var pi = 0; pi < G.particles.length; pi++){
+    var p = G.particles[pi];
+    var a = Math.min(1, p.life / 22);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+
   ctx.restore();
+
+  // ─── Blit low-res pxCanvas → main canvas with nearest-neighbor ───
+  var _pxW = W, _pxH = H;
+  ctx = _ctx; W = _W; H = _H; DPR = _DPR; VIEW_SCALE = _VS;
+  ctx.fillStyle = '#0b1220';
+  ctx.fillRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(pxCanvas, 0, 0, _pxW, _pxH, 0, 0, W, H);
+  ctx.imageSmoothingEnabled = true;
 
   // ─── Overlays in screen space (unaffected by camera rotation) ───
 
@@ -1183,6 +1262,7 @@ function loop(){
     }
   }
   step();
+  updateParticles();
   // time-up check — only after timer started
   if(G.startTime > 0 && G.state !== 'won' && G.state !== 'lost' && G.elapsed >= G.L.timeMs){
     loseLevel();
