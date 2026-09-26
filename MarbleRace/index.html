@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v12</title>
+<title>彈珠賽車 v13</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -127,7 +127,7 @@
       <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 10 秒，可撞破磚塊
       <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
     </p>
-    <p>🎥 <b>相機</b>：局部視角，跟隨彈珠移動；視角方向對齊當前跑道走向（不追彈珠瞬時速度，避免碰撞反彈時頭暈）</p>
+    <p>🎥 <b>相機</b>：局部視角，跟隨彈珠；預設起點視角就已朝跑道方向，過彎時緩慢旋轉，不追彈珠瞬時速度，避免頭暈</p>
     <p>🗺 <b>小地圖</b>：右下角顯示全局跑道，彈珠位置與終點一目瞭然</p>
     <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
@@ -163,7 +163,7 @@
   </div>
 </div>
 
-<div class="ver">v12</div>
+<div class="ver">v13</div>
 
 <script>
 // ═══════════════════════════════════════
@@ -418,9 +418,12 @@ function newGame(L){
     freezeUntil: 0,
     growUntil: 0,
     speedUntil: 0,
-    // camera rotation: view aligns with TRACK direction at current position
-    headingAngle: -Math.PI / 2,  // start world-upright
-    camAngle: 0,                 // = -PI/2 - headingAngle
+    // camera rotation: view aligns with TRACK direction at current position.
+    // Preset to top-corridor clockwise tangent (world +x = screen up) so
+    // that the very first view already looks "forward down the corridor",
+    // no post-launch snap needed for CW players.
+    headingAngle: 0,             // Q0 CW tangent direction
+    camAngle: 0,                 // = -PI/2 - headingAngle, set below
     lapDir: 0,                   // 0=unknown, +1=clockwise, -1=counter-clockwise
   };
   G.camAngle = -Math.PI/2 - G.headingAngle;
@@ -803,7 +806,8 @@ function updateHeading(){
   var d = target - G.headingAngle;
   while(d >  Math.PI) d -= 2 * Math.PI;
   while(d < -Math.PI) d += 2 * Math.PI;
-  G.headingAngle += d * 0.10;
+  // Slower smoothing (0.035) — ~3s for a 90° corner turn to avoid nausea
+  G.headingAngle += d * 0.035;
   G.camAngle = -Math.PI/2 - G.headingAngle;
 }
 
