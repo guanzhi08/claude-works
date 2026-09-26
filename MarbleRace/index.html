@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>彈珠賽車 v18</title>
+<title>彈珠賽車 v19</title>
 <style>
   :root{
     --bg:#0f172a; --sur:#1e293b; --sur2:#334155;
@@ -24,6 +24,8 @@
   .ov.show{display:flex}
   .card{background:var(--sur);border-radius:16px;padding:28px 24px;
     max-width:400px;width:100%;text-align:center;
+    max-height:calc(100vh - 48px);overflow-y:auto;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
     box-shadow:0 20px 60px rgba(0,0,0,.5)}
   h1{margin:0 0 6px;font-size:1.8rem;color:var(--acc)}
   .sub{color:var(--mut);margin:0 0 20px;font-size:.9rem}
@@ -114,23 +116,17 @@
 <div class="ov" id="howto">
   <div class="card" style="text-align:left">
     <h1 style="text-align:center">遊戲說明</h1>
-    <p>🎯 <b>發射</b>：像彈弓一樣，往反方向拖曳，放開手指彈珠就會朝瞄準方向飛出</p>
-    <p>💪 <b>力道</b>：拖曳距離越長，力道越大（彈珠周圍的環會顯示力道）</p>
-    <p>🕹 <b>導引</b>：彈珠飛行中，手指按住畫面任一點，彈珠會朝該點加速轉向；每次按住只維持 <b>0.5 秒</b>後自動放開，需要放開再重按（防止一直拉著飛）</p>
-    <p>🔁 <b>環狀跑道</b>：起點和終點都在跑道頂端中央；必須繞一整圈（順時針或逆時針皆可）回到起點才算完成</p>
-    <p>📍 <b>進度</b>：HUD 顯示已通過的檢查點（右、下、左三處），三個都通過並回到起點就過關</p>
-    <p>⏳ <b>計時</b>：第一次發射彈珠後才開始倒數（簡單 60s / 普通 45s / 困難 30s），時間到就失敗</p>
-    <p>🟡 <b>金幣</b>：碰到即收集（+10 分），沿著跑道分佈；每累積 <b>5 個</b>會立刻獲得一個隨機道具</p>
-    <p>🧱 <b>磚塊障礙</b>：跑道上隨機分佈，長度從 1 格到 4 格都有，會反彈彈珠（吃到 🍄 變大後可撞破整塊）</p>
-    <p>🎁 <b>道具</b>（每關每種各 4 個，共 12 個）：
-      <br>・<b style="color:#67e8f9">⏸ 時間暫停</b>：倒數暫停 10 秒
-      <br>・<b style="color:#86efac">🍄 變大藥丸</b>：彈珠變大 5 秒，可撞破磚塊
-      <br>・<b style="color:#fde047">⚡ 加速藥水</b>：移動速度 2 倍持續 10 秒
+    <p>🎯 <b>發射</b>：往反方向拖曳，放開發射（拖越長越有力）</p>
+    <p>🕹 <b>導引</b>：飛行中點按畫面，彈珠朝該點加速 0.5 秒</p>
+    <p>🔁 <b>目標</b>：繞跑道一圈回到起點（通過 3 個檢查點）</p>
+    <p>⏳ <b>限時</b>：簡單 60s ／ 普通 45s ／ 困難 30s</p>
+    <p>🟡 <b>金幣</b>：+10 分，每 5 個獲得隨機道具</p>
+    <p>🎁 <b>道具</b>：
+      <br>・<b style="color:#67e8f9">⏸ 暫停</b> 10s
+      <br>・<b style="color:#86efac">🍄 變大</b> 5s（可撞破磚塊）
+      <br>・<b style="color:#fde047">⚡ 加速</b> 2 倍速 10s
     </p>
-    <p>🎥 <b>相機</b>：局部視角，跟隨彈珠；預設起點視角就已朝跑道方向，過彎時緩慢旋轉，不追彈珠瞬時速度，避免頭暈</p>
-    <p>🕹 <b>像素風格</b>：畫面以低解析度渲染再放大，呈現懷舊像素感；撞破磚塊會噴出磚屑碎片</p>
-    <p>🗺 <b>小地圖</b>：右下角顯示全局跑道，彈珠位置與終點一目瞭然</p>
-    <p>⭐ <b>計分</b>：金幣 × 10 + 剩餘秒數 × 20</p>
+    <p>⭐ <b>計分</b>：金幣 × 10 ＋ 剩餘秒 × 20</p>
     <button class="btn" onclick="hideOv('howto')">開始遊玩</button>
   </div>
 </div>
@@ -164,7 +160,7 @@
   </div>
 </div>
 
-<div class="ver">v18</div>
+<div class="ver">v19</div>
 
 <script>
 // ═══════════════════════════════════════
